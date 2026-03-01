@@ -1,17 +1,21 @@
-# KNI_SP_2025/2026
+# Programowanie Zespolowe
 
-## [Numer zespolu(np. A1)] [Nazwa projektu] DO UZUPELNIENIA
+## TRIPPY - YOUR TRIP MANAGER
 
 ### Zespół
 
-|-Osoba 1(Lider)<br>
-|-Osoba 2<br>
-...
+```
+- Oleksii Nawrocki
+- Tomasz Nowak
+```
 
 ### Technologię
 
-|-Docker<br>
-...
+```
+- Kotlin
+- Spring Boot
+- Docker
+```
 
 ### Struktura projektu
 ### Dokumentacja
