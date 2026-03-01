@@ -7,6 +7,8 @@
 ```
 - Oleksii Nawrocki
 - Tomasz Nowak
+- Jakub Czesnak
+- Mateusz Tokarz
 ```
 
 ### Technologię
