@@ -1,6 +1,6 @@
 # Programowanie Zespolowe
 
-## TRIPPY - YOUR TRIP MANAGER
+## TRIPPY - YOUR TRAVELING COMPANION
 
 ### Zespół
 
