@@ -18,4 +18,15 @@
 ```
 
 ### Struktura projektu
+
+```
+trippy/
+|- backend/
+|- mobile/
+|- database/
+|- .env
+|- .gitignore
+|- docker-compose.yml
+```
+
 ### Dokumentacja
