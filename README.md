@@ -5,6 +5,7 @@
 - Oleksii Nawrocki
 - Tomasz Nowak
 - Jakub Czesnak
+- Dawid Bajek
 - Mateusz Tokarz
 ```
 
