@@ -1,0 +1,20 @@
+Dziedziczenie aktorów (od najniższego do najwyższego uprawnienia): 
+
+Gość → Użytkownik zalogowany → Admin    
+
+Co może każdy aktor: 
+
+Gość (niezalogowany) 
+- Rejestracja
+- Logowanie
+
+Użytkownik zalogowany (wszystko co Gość +) 
+- Dodawanie uczestników wycieczki + Zapraszanie  
+- Dodawanie wydatku  
+- Zarządzanie wycieczką 
+- Rozliczanie długów 
+- Podgląd bilansu 
+
+Admin (wszystko co Użytkownik zalogowany +)  
+- Zarządzanie użytkownikami
+- CRUD wycieczek
