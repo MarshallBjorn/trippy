@@ -135,6 +135,10 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				    <configuration>
+						<!-- This is required to ensure devtools is active when running with "mvn spring-boot:run" -->
+						<excludeDevtools>false</excludeDevtools>
+					</configuration>
 			</plugin>
 		</plugins>
 	</build>
