@@ -55,4 +55,11 @@ trippy/
 |- .gitignore
 |- docker-compose.yml
 ```
+
+```
+docker-compose up -d --build
+
+docker-compose down -v
+```
+
 ## TRIPPY - YOUR TRAVELING COMPANION
