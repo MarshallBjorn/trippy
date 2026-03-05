@@ -1,0 +1,69 @@
+Diagram przedstawia proces uwierzytelniania niezalogowanego użytkownika w aplikacji. Obrazuje komunikację między klientem a serwerem w celu weryfikacji tożsamości i bezpiecznego przekazania tokenu JWT, niezbędnego do dalszego korzystania z systemu. 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Aktorzy i komponenty systemu: 
+
+  
+
+Gość: Niezalogowany użytkownik, który posiada już konto w systemie i próbuje uzyskać do niego dostęp. 
+
+ Aplikacja Android: Frontend aplikacji mobilnej, obsługujący formularz logowania oraz zarządzanie sesją na urządzeniu. 
+
+ API Backend: Serwer aplikacji  odpowiedzialny za weryfikację poświadczeń (np. hashy BCrypt w bazie danych) oraz wygenerowanie tokenu. 
+
+ 
+
+Szczegółowy przebieg procesu: 
+
+  
+
+Inicjalizacja procesu: Gość wprowadza swoje poświadczenia, czyli adres e-mail oraz hasło, na ekranie logowania w aplikacji mobilnej. 
+
+Wysłanie żądania do serwera: Aplikacja Android wysyła żądanie logowania (zawierające podany e-mail i hasło) do serwera API Backend w celu weryfikacji. 
+
+Weryfikacja i obsługa odpowiedzi (Blok warunkowy alt): System backendowy przetwarza żądanie, co prowadzi do jednej z dwóch ścieżek: 
+
+  
+
+Scenariusz A: Poprawne dane  
+
+  
+
+Serwer pozytywnie weryfikuje poświadczenia i zwraca do aplikacji  kod odpowiedzi HTTP 200 (OK). Wraz z odpowiedzią przekazywany jest wygenerowany token JWT.  
+
+Aplikacja wykonuje operację wewnętrzną – bezpiecznie zapisuje token JWT w pamięci urządzenia (co pozwala na utrzymanie sesji i autoryzację przyszłych żądań). 
+
+Użytkownik otrzymuje wizualne potwierdzenie logowania i zostaje przekierowany do głównego widoku aplikacji. 
+
+ 
+
+ 
+
+Scenariusz B: Błędne dane  
+
+  
+
+W przypadku braku konta o podanym adresie e-mail lub niezgodności hasła, serwer odrzuca próbę dostępu. 
+
+API zwraca do aplikacji kod błędu HTTP 401 (Unauthorized). 
+
+Aplikacja  rejestruje w swojej logice niepowodzenie procesu logowania. 
+
+System wyświetla Gościowi stosowną informację o błędzie (np. "Nieprawidłowy e-mail lub hasło"), umożliwiając ponowną próbę logowania. 
