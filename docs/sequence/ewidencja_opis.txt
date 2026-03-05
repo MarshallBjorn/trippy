@@ -1,0 +1,41 @@
+Diagram przedstawia proces dodawania nowego wydatku w ramach wycieczki przez zalogowanego uczestnika w aplikacji. Obrazuje on interakcję pomiędzy interfejsem mobilnym a logiką biznesową serwera, uwzględniając autoryzację żądania oraz obsługę ścieżki sukcesu i błędu. 
+
+Aktorzy i komponenty systemu: 
+
+  
+
+Użytkownik: Zalogowany uczestnik wycieczki, który inicjuje akcję. 
+
+Aplikacja Android: Frontend aplikacji odpowiedzialny za zebranie danych i prezentację wyników. 
+
+API Backend: Serwer aplikacji realizujący logikę biznesową, autoryzację oraz komunikację z bazą danych. 
+
+  
+
+Szczegółowy przebieg procesu: 
+
+Inicjalizacja procesu: Użytkownik wypełnia formularz w aplikacji, wprowadzając dane dotyczące nowego wydatku (kwotę, tytuł wydatku oraz wskazanie osoby finansującej). 
+
+Wysłanie żądania do serwera: Aplikacja agreguje wprowadzone informacje i wysyła do API Backend żądanie zapisu wydatku. Wraz z danymi przesyłany jest token autoryzacyjny użytkownika (JWT). 
+
+Weryfikacja i obsługa odpowiedzi (Blok warunkowy alt): System backendowy przetwarza żądanie, co może zakończyć się jednym z dwóch głównych scenariuszy: 
+
+Scenariusz A: Zapis i autoryzacja poprawne (Ścieżka sukcesu) 
+
+Serwer pomyślnie weryfikuje token użytkownika oraz poprawność przesłanych danych, a następnie rejestruje wydatek. 
+
+API zwraca do aplikacji mobilnej kod odpowiedzi HTTP 201 (Created). 
+
+Aplikacja wykonuje operację wewnętrzną – pomyślnie aktualizuje stan bilansu wydatków w pamięci. 
+
+Użytkownik otrzymuje wizualne potwierdzenie pomyślnego dodania wydatku. 
+
+Scenariusz B: Błąd autoryzacji / Złe dane (Ścieżka błędu) 
+
+W przypadku wykrycia błędu walidacji danych (np. ujemna kwota) lub nieważnego tokenu (np. sesja wygasła), serwer odrzuca żądanie. 
+
+API zwraca do aplikacji mobilnej odpowiedni kod błędu HTTP (np. 400 Bad Request lub 401 Unauthorized). 
+
+Aplikacja mobilna rejestruje w swojej logice niepowodzenie operacji zapisu. 
+
+System wyświetla użytkownikowi odpowiedni komunikat informujący o błędzie, zapobiegając dodaniu niepoprawnego wydatku. 
