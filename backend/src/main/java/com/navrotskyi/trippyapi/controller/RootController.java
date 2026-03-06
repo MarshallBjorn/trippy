@@ -10,6 +10,6 @@ public class RootController {
 
     @GetMapping("/")
     public Map<String, String> index() {
-        return Map.of("status", "ok", "message", "Trippy API nuh uh hotreload doesnt work ;p");
+        return Map.of("status", "ok", "message", "Trippy hotreload WORKS!");
     }
 }
