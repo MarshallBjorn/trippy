@@ -41,12 +41,17 @@ public class AuthenticationService {
     }
 
     public AuthResponse register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Użytkownik z tym adresem email już istnieje!");
+        }
+
         var user = new User(
                 request.getName(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 Role.USER
         );
+        
         user.setVerified(false);
         userRepository.save(user);
 
