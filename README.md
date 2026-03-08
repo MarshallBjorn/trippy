@@ -87,10 +87,68 @@ trippy/
 |- docker-compose.yml
 ```
 
+## Testy
+
+### Moduł Autoryzacji
+
+#### 1. Rejestracja: `AuthenticationServiceRegistrationTest`
+Testy weryfikujące poprawność i bezpieczeństwo tworzenia nowych kont użytkowników.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyRegisterUserAndReturnJwt` | Email jest wolny, hasło poprawne. | Wywołanie `register()`. | Generuje JWT. Weryfikuje 1x zapis do DB, 1x zapis tokena i 1x wysyłkę emaila. |
+| `shouldThrowExceptionWhenEmailIsAlreadyTaken`| Baza zwraca istniejącego użytkownika dla podanego emaila. | Wywołanie `register()`. | Wyrzuca `IllegalArgumentException`. Udowadnia, że NIE wykonano zapisu do DB ani nie wysłano maila. |
+| `shouldEnforceSecurityConstraintsOnNewUser` | Poprawne dane wejściowe. | Wywołanie `register()`. | Przechwytuje (Captor) obiekt User. Sprawdza czy: hasło jest zaszyfrowane, rola to USER, a `isVerified` to false. |
+| `shouldGenerateValidVerificationToken` | Poprawne dane wejściowe. | Wywołanie `register()`. | Przechwytuje obiekt VerificationToken. Sprawdza, czy token nie jest pusty i ma poprawną datę wygaśnięcia. |
+
+---
+
+#### 2. Logowanie: `AuthenticationServiceLoginTest`
+Testy weryfikujące proces uwierzytelniania, napisane w architekturze Fail-Fast.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyAuthenticateAndReturnJwt` | Konto jest zweryfikowane (`isVerified=true`), poświadczenia są poprawne. | Wywołanie `authenticate()`. | Zwraca token JWT, weryfikuje poprawne odpytanie `AuthenticationManager`. |
+| `shouldThrowExceptionWhenUserIsNotVerified` | Użytkownik podał dobre hasło, ale konto jest nieaktywne (`isVerified=false`). | Wywołanie `authenticate()`. | Wyrzuca `RuntimeException`. Weryfikuje, że `JwtService` NIGDY nie wydał tokena. |
+| `shouldPropagateExceptionWhenBadCredentials` | `AuthManager` odrzuca hasło użytkownika. | Wywołanie `authenticate()`. | Wyrzuca `BadCredentialsException`. Weryfikuje, że w celach optymalizacji w ogóle NIE odpytano bazy danych. |
+| `shouldThrowExceptionWhenUserNotFoundInDatabase`| Hasło przeszło, ale użytkownik nagle zniknął z bazy (Edge case). | Wywołanie `authenticate()`. | Wyrzuca `NoSuchElementException`. Token nie zostaje wygenerowany. |
+
+---
+
+#### 3. Kryptografia: `JwtServiceTest`
+Testy algorytmów HMAC SHA-256 oraz obsługi JSON Web Tokens (izolowane od kontekstu Springa).
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldGenerateTokenAndExtractUsername` | Ręcznie wstrzyknięty SecretKey i UserDetails. | Generowanie tokena. | Token nie jest nullem, a wyciągnięty `Subject` zgadza się z mailem. |
+| `shouldReturnTrueWhenTokenIsValid` | Wygenerowany, świeży token dla danego usera. | Walidacja `isTokenValid()`. | Zwraca wartość `true`. |
+| `shouldReturnFalseWhenTokenBelongsToAnotherUser`| Token usera A sprawdzany na koncie usera B. | Walidacja `isTokenValid()`. | Zwraca wartość `false`. |
+| `shouldThrowExceptionWhenTokenIsExpired` | Czas życia tokena skrócony do 1ms. Wątek uśpiony na 10ms. | Walidacja `isTokenValid()`. | Wyrzuca wyjątek `ExpiredJwtException`. |
+
+---
+
+#### 4. Komunikacja: `EmailServiceTest`
+Weryfikacja integracji z systemem SMTP przy pomocy zaślepek (Mocks).
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSendVerificationEmailWithCorrectContent`| Zdefiniowany adres email docelowy i UUID tokena. | Wywołanie `sendVerificationEmail()`. | Przechwytuje obiekt `SimpleMailMessage`. Sprawdza poprawność nadawcy, odbiorcy, tytułu i gwarantuje obecność linku z tokenem w ciele wiadomości. |
+
+---
+
+#### 5. Warstwa Transportowa: `AuthControllerTest`
+Weryfikacja logiki aktywacji konta przez endpointy REST API.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyVerifyEmail` | W bazie istnieje token, jego data ważności jest poprawna. | GET `/api/auth/verify?token=...` | Zwraca HTTP 200 (OK). Flaga użytkownika zmienia się na `isVerified=true`. Token jest usuwany z bazy. |
+| `shouldReturnBadRequestWhenTokenIsExpired` | W bazie istnieje token, ale jego data wygasła. | GET `/api/auth/verify?token=...` | Zwraca HTTP 400 (Bad Request). Flaga użytkownika to wciąż `false`. |
+| `shouldThrowExceptionWhenTokenDoesNotExist` | Podano zmyślony/błędny token. | GET `/api/auth/verify?token=fake`| Wyrzuca `RuntimeException` ("Nieprawidłowy token"). |
+
+## Instrukcja uruchomienia(TO DO)
+
 ```
 docker-compose up -d --build
 
 docker-compose down -v
 ```
-
-## TRIPPY - YOUR TRAVELING COMPANION
