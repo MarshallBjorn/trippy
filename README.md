@@ -2,7 +2,7 @@
 
 ## Zespół
 ```
-- Oleksii Nawrocki
+- Oleksii Nawrocki - PM
 - Tomasz Nowak
 - Jakub Czesnak
 - Dawid Bajek
