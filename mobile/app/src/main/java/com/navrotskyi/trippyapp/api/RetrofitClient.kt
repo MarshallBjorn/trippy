@@ -17,6 +17,7 @@ object RetrofitClient {
 
     // Konfiguracja klienta HTTP
     private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(AuthInterceptor())
         .addInterceptor(loggingInterceptor)
         .build()
 
