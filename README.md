@@ -55,14 +55,14 @@ Architektura repozytorium opiera się na dwóch głównych gałęziach o nieogra
 * **`develop`** – Główna gałąź integracyjna. Agreguje zatwierdzone zmiany z gałęzi roboczych. Pełni funkcję bazy do tworzenia nowych odgałęzień i jest docelowym miejscem fuzji dla nowo zaimplementowanych funkcjonalności.
 
 ### 2. Konwencja Nazewnictwa Gałęzi (Short-lived branches)
-Każde nowe zadanie (funkcjonalność, poprawka, dokumentacja) wymaga utworzenia dedykowanej, tymczasowej gałęzi roboczej. Nazewnictwo musi być zgodne z formatem `typ/krotki-opis-zadania`, gdzie opis zapisany jest w formacie *kebab-case* (małe litery, słowa oddzielone myślnikiem).
+Każde nowe zadanie (funkcjonalność, poprawka, dokumentacja) wymaga utworzenia dedykowanej, tymczasowej gałęzi roboczej. Nazewnictwo musi być zgodne z formatem `TR-XX-typ/krotki-opis-zadania`, gdzie opis zapisany jest w formacie *kebab-case* (małe litery, słowa oddzielone myślnikiem). Natomiast na początku nazwy brancha należy umieścić numer ticketa (np. TR-01), żeby Jira była w stanie automatycznie zmieniać statusy ticketów w zależności od naszych interakcji.
 
 Dopuszczalne prefiksy (typy):
-* **`feature/<nazwa>`** – Implementacja nowej funkcjonalności systemu (np. `feature/jwt-authentication`, `feature/expense-entity`). Gałąź tworzona z `develop`.
-* **`bugfix/<nazwa>`** – Usunięcie błędu zidentyfikowanego w środowisku deweloperskim (np. `bugfix/balance-calculation-error`). Gałąź tworzona z `develop`.
-* **`hotfix/<nazwa>`** – Krytyczna poprawka błędu na środowisku produkcyjnym. Tworzona bezpośrednio z gałęzi `main`. Po zakończeniu i weryfikacji prac, gałąź jest włączana (merge) zarówno do `main`, jak i do `develop` (np. `hotfix/database-connection-loss`).
-* **`documentation/<nazwa>`** – Tworzenie, rozbudowa lub aktualizacja dokumentacji technicznej oraz plików konfiguracyjnych (np. `documentation/api-endpoints`, `documentation/readme-update`).
-* **`refactor/<nazwa>`** – Restrukturyzacja i optymalizacja istniejącego kodu, niepociągająca za sobą zmian w jego obserwowalnym zachowaniu zewnętrznym (np. `refactor/user-service-architecture`).
+* **`TR-XX-feature/<nazwa>`** – Implementacja nowej funkcjonalności systemu (np. `TR-01-feature/jwt-authentication`, `TR-01-feature/expense-entity`). Gałąź tworzona z `develop`.
+* **`TR-XX-bugfix/<nazwa>`** – Usunięcie błędu zidentyfikowanego w środowisku deweloperskim (np. `TR-01-bugfix/balance-calculation-error`). Gałąź tworzona z `develop`.
+* **`TR-XX-hotfix/<nazwa>`** – Krytyczna poprawka błędu na środowisku produkcyjnym. Tworzona bezpośrednio z gałęzi `main`. Po zakończeniu i weryfikacji prac, gałąź jest włączana (merge) zarówno do `main`, jak i do `develop` (np. `TR-01-hotfix/database-connection-loss`).
+* **`TR-XX-documentation/<nazwa>`** – Tworzenie, rozbudowa lub aktualizacja dokumentacji technicznej oraz plików konfiguracyjnych (np. `TR-01-documentation/api-endpoints`, `TR-01-documentation/readme-update`).
+* **`TR-XX-refactor/<nazwa>`** – Restrukturyzacja i optymalizacja istniejącego kodu, niepociągająca za sobą zmian w jego obserwowalnym zachowaniu zewnętrznym (np. `TR-01-refactor/user-service-architecture`).
 
 ### 3. Przepływ Pracy i Integracja Kodu (Pull Request Workflow)
 Wprowadzanie zmian do głównej linii kodu podlega ustandaryzowanemu procesowi:
