@@ -2,7 +2,7 @@
 
 ## Zespół
 ```
-- Oleksii Nawrocki - PM, cośtam
+- Oleksii Nawrocki - PM, cośtam, cośtam
 - Tomasz Nowak
 - Jakub Czesnak
 - Dawid Bajek
