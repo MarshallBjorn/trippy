@@ -30,7 +30,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         // Allow all requests to auth endpoints
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify").permitAll()
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         // Any other request that doesn't match '/**' needs to be authenticated
                         .anyRequest().authenticated()
                 )
