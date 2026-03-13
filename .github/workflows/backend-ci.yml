@@ -48,4 +48,6 @@ jobs:
         SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/trippy
         SPRING_DATASOURCE_USERNAME: postgres
         SPRING_DATASOURCE_PASSWORD: password
+        # Provide a dummy mail host so JavaMailSender auto-configuration doesn't fail
+        SPRING_MAIL_HOST: localhost
       run: mvn -B clean verify
