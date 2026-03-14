@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TrippyAppTheme {
-                val navController = rememberNavController() // Serce nawigacji
+                val navController = rememberNavController()
                 val authViewModel: AuthViewModel = viewModel()
                 val authState = authViewModel.authState
                 val context = LocalContext.current
@@ -43,8 +43,6 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "Sukces!", Toast.LENGTH_SHORT).show()
                             authViewModel.resetState()
 
-                            // Po zalogowaniu/rejestracji możesz przejść dalej:
-                            // navController.navigate(Screen.Home.route)
                         }
                         is AuthState.Error -> {
                             Toast.makeText(context, authState.message, Toast.LENGTH_LONG).show()
@@ -55,7 +53,6 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    // Definiujemy mapę naszych ekranów
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Login.route, // Ekran startowy
@@ -68,7 +65,7 @@ class MainActivity : ComponentActivity() {
                                     authViewModel.login(email, password)
                                 },
                                 onRegisterClick = {
-                                    navController.navigate(Screen.Register.route) // Przełączamy ekran
+                                    navController.navigate(Screen.Register.route) // Przełączenie ekranu
                                 },
                                 modifier = Modifier
                             )

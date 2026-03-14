@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.api.TokenManager
-import com.navrotskyi.trippyapp.models.LoginRequest    // Import z models
-import com.navrotskyi.trippyapp.models.RegisterRequest // Import z models
+import com.navrotskyi.trippyapp.models.LoginRequest
+import com.navrotskyi.trippyapp.models.RegisterRequest
 import kotlinx.coroutines.launch
 
 sealed class AuthState {
@@ -42,16 +42,15 @@ class AuthViewModel : ViewModel() {
     }
 
     fun register(name: String, email: String, password: String) {
-        authState = AuthState.Loading // Dodajemy stan ładowania
+        authState = AuthState.Loading
         viewModelScope.launch {
             try {
-                // Zmieniamy 'repository' na 'api'
                 val response = api.register(RegisterRequest(name, email, password))
 
                 if (response.isSuccessful && response.body() != null) {
                     val token = response.body()!!.token
                     TokenManager.saveToken(token)
-                    authState = AuthState.Success(token) // Poprawione przypisanie stanu
+                    authState = AuthState.Success(token)
                 } else {
                     authState = AuthState.Error("Błąd rejestracji: ${response.code()}")
                 }
