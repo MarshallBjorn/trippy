@@ -9,7 +9,7 @@ Cel Sprintu: Skonfigurowanie środowiska deweloperskiego i repozytorium, przygot
 W trakcie trwania Sprintu 1 zespół zrealizował ponad wymagane 15 commitów, pracując w modelu gałęzi funkcyjnych.
 
 Podział prac:
-![Contributions](docs/imgs/reports/report_1/contributions.png)
+![Contributions](https://github.com/MarshallBjorn/trippy/blob/5e68d7d95b858004efdb44a51a797df1bd5ff8db/docs/imgs/reports/report_1/contributions.png)
 
 - Zespół zintegrował kod za pomocą Pull Requestów.
 
