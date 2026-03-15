@@ -2,7 +2,7 @@
 
 ## Zespół
 ```
-- Oleksii Nawrocki
+- Oleksii Nawrocki - PM
 - Tomasz Nowak
 - Jakub Czesnak
 - Dawid Bajek
@@ -55,14 +55,14 @@ Architektura repozytorium opiera się na dwóch głównych gałęziach o nieogra
 * **`develop`** – Główna gałąź integracyjna. Agreguje zatwierdzone zmiany z gałęzi roboczych. Pełni funkcję bazy do tworzenia nowych odgałęzień i jest docelowym miejscem fuzji dla nowo zaimplementowanych funkcjonalności.
 
 ### 2. Konwencja Nazewnictwa Gałęzi (Short-lived branches)
-Każde nowe zadanie (funkcjonalność, poprawka, dokumentacja) wymaga utworzenia dedykowanej, tymczasowej gałęzi roboczej. Nazewnictwo musi być zgodne z formatem `typ/krotki-opis-zadania`, gdzie opis zapisany jest w formacie *kebab-case* (małe litery, słowa oddzielone myślnikiem).
+Każde nowe zadanie (funkcjonalność, poprawka, dokumentacja) wymaga utworzenia dedykowanej, tymczasowej gałęzi roboczej. Nazewnictwo musi być zgodne z formatem `TR-XX-typ/krotki-opis-zadania`, gdzie opis zapisany jest w formacie *kebab-case* (małe litery, słowa oddzielone myślnikiem). Natomiast na początku nazwy brancha należy umieścić numer ticketa (np. TR-01), żeby Jira była w stanie automatycznie zmieniać statusy ticketów w zależności od naszych interakcji.
 
 Dopuszczalne prefiksy (typy):
-* **`feature/<nazwa>`** – Implementacja nowej funkcjonalności systemu (np. `feature/jwt-authentication`, `feature/expense-entity`). Gałąź tworzona z `develop`.
-* **`bugfix/<nazwa>`** – Usunięcie błędu zidentyfikowanego w środowisku deweloperskim (np. `bugfix/balance-calculation-error`). Gałąź tworzona z `develop`.
-* **`hotfix/<nazwa>`** – Krytyczna poprawka błędu na środowisku produkcyjnym. Tworzona bezpośrednio z gałęzi `main`. Po zakończeniu i weryfikacji prac, gałąź jest włączana (merge) zarówno do `main`, jak i do `develop` (np. `hotfix/database-connection-loss`).
-* **`documentation/<nazwa>`** – Tworzenie, rozbudowa lub aktualizacja dokumentacji technicznej oraz plików konfiguracyjnych (np. `documentation/api-endpoints`, `documentation/readme-update`).
-* **`refactor/<nazwa>`** – Restrukturyzacja i optymalizacja istniejącego kodu, niepociągająca za sobą zmian w jego obserwowalnym zachowaniu zewnętrznym (np. `refactor/user-service-architecture`).
+* **`TR-XX-feature/<nazwa>`** – Implementacja nowej funkcjonalności systemu (np. `TR-01-feature/jwt-authentication`, `TR-01-feature/expense-entity`). Gałąź tworzona z `develop`.
+* **`TR-XX-bugfix/<nazwa>`** – Usunięcie błędu zidentyfikowanego w środowisku deweloperskim (np. `TR-01-bugfix/balance-calculation-error`). Gałąź tworzona z `develop`.
+* **`TR-XX-hotfix/<nazwa>`** – Krytyczna poprawka błędu na środowisku produkcyjnym. Tworzona bezpośrednio z gałęzi `main`. Po zakończeniu i weryfikacji prac, gałąź jest włączana (merge) zarówno do `main`, jak i do `develop` (np. `TR-01-hotfix/database-connection-loss`).
+* **`TR-XX-documentation/<nazwa>`** – Tworzenie, rozbudowa lub aktualizacja dokumentacji technicznej oraz plików konfiguracyjnych (np. `TR-01-documentation/api-endpoints`, `TR-01-documentation/readme-update`).
+* **`TR-XX-refactor/<nazwa>`** – Restrukturyzacja i optymalizacja istniejącego kodu, niepociągająca za sobą zmian w jego obserwowalnym zachowaniu zewnętrznym (np. `TR-01-refactor/user-service-architecture`).
 
 ### 3. Przepływ Pracy i Integracja Kodu (Pull Request Workflow)
 Wprowadzanie zmian do głównej linii kodu podlega ustandaryzowanemu procesowi:
@@ -87,10 +87,68 @@ trippy/
 |- docker-compose.yml
 ```
 
+## Testy
+
+### Moduł Autoryzacji
+
+#### 1. Rejestracja: `AuthenticationServiceRegistrationTest`
+Testy weryfikujące poprawność i bezpieczeństwo tworzenia nowych kont użytkowników.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyRegisterUserAndReturnJwt` | Email jest wolny, hasło poprawne. | Wywołanie `register()`. | Generuje JWT. Weryfikuje 1x zapis do DB, 1x zapis tokena i 1x wysyłkę emaila. |
+| `shouldThrowExceptionWhenEmailIsAlreadyTaken`| Baza zwraca istniejącego użytkownika dla podanego emaila. | Wywołanie `register()`. | Wyrzuca `IllegalArgumentException`. Udowadnia, że NIE wykonano zapisu do DB ani nie wysłano maila. |
+| `shouldEnforceSecurityConstraintsOnNewUser` | Poprawne dane wejściowe. | Wywołanie `register()`. | Przechwytuje (Captor) obiekt User. Sprawdza czy: hasło jest zaszyfrowane, rola to USER, a `isVerified` to false. |
+| `shouldGenerateValidVerificationToken` | Poprawne dane wejściowe. | Wywołanie `register()`. | Przechwytuje obiekt VerificationToken. Sprawdza, czy token nie jest pusty i ma poprawną datę wygaśnięcia. |
+
+---
+
+#### 2. Logowanie: `AuthenticationServiceLoginTest`
+Testy weryfikujące proces uwierzytelniania, napisane w architekturze Fail-Fast.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyAuthenticateAndReturnJwt` | Konto jest zweryfikowane (`isVerified=true`), poświadczenia są poprawne. | Wywołanie `authenticate()`. | Zwraca token JWT, weryfikuje poprawne odpytanie `AuthenticationManager`. |
+| `shouldThrowExceptionWhenUserIsNotVerified` | Użytkownik podał dobre hasło, ale konto jest nieaktywne (`isVerified=false`). | Wywołanie `authenticate()`. | Wyrzuca `RuntimeException`. Weryfikuje, że `JwtService` NIGDY nie wydał tokena. |
+| `shouldPropagateExceptionWhenBadCredentials` | `AuthManager` odrzuca hasło użytkownika. | Wywołanie `authenticate()`. | Wyrzuca `BadCredentialsException`. Weryfikuje, że w celach optymalizacji w ogóle NIE odpytano bazy danych. |
+| `shouldThrowExceptionWhenUserNotFoundInDatabase`| Hasło przeszło, ale użytkownik nagle zniknął z bazy (Edge case). | Wywołanie `authenticate()`. | Wyrzuca `NoSuchElementException`. Token nie zostaje wygenerowany. |
+
+---
+
+#### 3. Kryptografia: `JwtServiceTest`
+Testy algorytmów HMAC SHA-256 oraz obsługi JSON Web Tokens (izolowane od kontekstu Springa).
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldGenerateTokenAndExtractUsername` | Ręcznie wstrzyknięty SecretKey i UserDetails. | Generowanie tokena. | Token nie jest nullem, a wyciągnięty `Subject` zgadza się z mailem. |
+| `shouldReturnTrueWhenTokenIsValid` | Wygenerowany, świeży token dla danego usera. | Walidacja `isTokenValid()`. | Zwraca wartość `true`. |
+| `shouldReturnFalseWhenTokenBelongsToAnotherUser`| Token usera A sprawdzany na koncie usera B. | Walidacja `isTokenValid()`. | Zwraca wartość `false`. |
+| `shouldThrowExceptionWhenTokenIsExpired` | Czas życia tokena skrócony do 1ms. Wątek uśpiony na 10ms. | Walidacja `isTokenValid()`. | Wyrzuca wyjątek `ExpiredJwtException`. |
+
+---
+
+#### 4. Komunikacja: `EmailServiceTest`
+Weryfikacja integracji z systemem SMTP przy pomocy zaślepek (Mocks).
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSendVerificationEmailWithCorrectContent`| Zdefiniowany adres email docelowy i UUID tokena. | Wywołanie `sendVerificationEmail()`. | Przechwytuje obiekt `SimpleMailMessage`. Sprawdza poprawność nadawcy, odbiorcy, tytułu i gwarantuje obecność linku z tokenem w ciele wiadomości. |
+
+---
+
+#### 5. Warstwa Transportowa: `AuthControllerTest`
+Weryfikacja logiki aktywacji konta przez endpointy REST API.
+
+| Nazwa Metody Testowej | Scenariusz (Given) | Akcja (When) | Oczekiwany Wynik (Then) |
+| :--- | :--- | :--- | :--- |
+| `shouldSuccessfullyVerifyEmail` | W bazie istnieje token, jego data ważności jest poprawna. | GET `/api/auth/verify?token=...` | Zwraca HTTP 200 (OK). Flaga użytkownika zmienia się na `isVerified=true`. Token jest usuwany z bazy. |
+| `shouldReturnBadRequestWhenTokenIsExpired` | W bazie istnieje token, ale jego data wygasła. | GET `/api/auth/verify?token=...` | Zwraca HTTP 400 (Bad Request). Flaga użytkownika to wciąż `false`. |
+| `shouldThrowExceptionWhenTokenDoesNotExist` | Podano zmyślony/błędny token. | GET `/api/auth/verify?token=fake`| Wyrzuca `RuntimeException` ("Nieprawidłowy token"). |
+
+## Instrukcja uruchomienia(TO DO)
+
 ```
 docker-compose up -d --build
 
 docker-compose down -v
 ```
-
-## TRIPPY - YOUR TRAVELING COMPANION
