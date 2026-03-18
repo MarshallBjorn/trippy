@@ -64,7 +64,7 @@ class AuthenticationServiceRegistrationTest {
         AuthResponse response = authenticationService.register(request);
 
         assertNotNull(response);
-        assertEquals("mock-jwt-token", response.getToken());
+        assertEquals("mock-jwt-token", response.getAccessToken());
 
         verify(emailService, times(1)).sendVerificationEmail(eq("john.doe@email.com"), anyString());
         verify(userRepository, times(1)).save(any(User.class));

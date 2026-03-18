@@ -62,7 +62,7 @@ class AuthenticationServiceLoginTest {
         AuthResponse response = authenticationService.authenticate(request);
 
         assertNotNull(response);
-        assertEquals("mock-jwt-token", response.getToken());
+        assertEquals("mock-jwt-token", response.getAccessToken());
         
         verify(authManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
