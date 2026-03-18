@@ -26,6 +26,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(name = "is_verified", nullable = false, columnDefinition = "boolean default false")
     private boolean isVerified = false;
 
     public User() {
