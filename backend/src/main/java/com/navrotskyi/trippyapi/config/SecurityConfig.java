@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         // Any other request that doesn't match '/**' needs to be authenticated
                         .anyRequest().authenticated()
                 )
