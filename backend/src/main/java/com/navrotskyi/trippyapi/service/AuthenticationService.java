@@ -45,11 +45,14 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Użytkownik z tym adresem email już istnieje!");
         }
 
-        var user = new User(
+        User user = new User(
                 request.getName(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
-                Role.USER
+                Role.USER,
+                null,
+                false,
+                false
         );
         
         user.setVerified(false);
