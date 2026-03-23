@@ -26,7 +26,7 @@ class UserDaoTest {
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(context, UserDatabase::class.java)
-            .allowMainThreadQueries()           // tylko w testach!
+            .allowMainThreadQueries()
             .build()
         userDao = db.userDao()
     }
@@ -40,28 +40,35 @@ class UserDaoTest {
     fun insertAll_and_getAll_returnsInsertedUsers() = runTest {
         // given
         val users = listOf(
-            User(id = 0, name = "Jan", email = "jan@example.com"),
-            User(id = 0, name = "Anna", email = "anna@example.com")
+            User(name = "Jan", email = "jan@example.com"),
+            User(name = "Anna", email = "anna@example.com")
         )
 
         // when
         userDao.insertAll(users)
 
         // then
-        val result = userDao.getAll().first()   // .first() bo Flow
+        val result = userDao.getAll().first()
         assertEquals(2, result.size)
         assertEquals("Jan", result[0].name)
         assertEquals("anna@example.com", result[1].email)
+        assertTrue(result[0].id > 0)           // sprawdzamy, że id zostało nadane
+        assertTrue(result[1].id > 0)
     }
 
     @Test
     fun delete_removesUsers() = runTest {
         // given
-        val user = User(id = 0, name = "Tomasz", email = "tomasz@test.pl")
-        userDao.insertAll(listOf(user))
+        val userToInsert = User(name = "Tomasz", email = "tomasz@test.pl")
+        userDao.insertAll(listOf(userToInsert))
+
+        val insertedUsers = userDao.getAll().first()
+        assertEquals(1, insertedUsers.size) // sanity check
+
+        val insertedUser = insertedUsers[0]
 
         // when
-        userDao.delete(listOf(user))
+        userDao.delete(listOf(insertedUser))
 
         // then
         val result = userDao.getAll().first()
@@ -70,19 +77,18 @@ class UserDaoTest {
 
     @Test
     fun insert_duplicateId_replacesWhenOnConflictReplace() = runTest {
-        // given – zakładamy, że w @Entity masz @PrimaryKey(autoGenerate = true)
-        // ale dla testu ręcznie wstawiamy ten sam id
-        val user1 = User(id = 100, name = "Stary", email = "old@email.com")
+        val user1 = User(name = "Stary", email = "konflikt@example.com")
         userDao.insertAll(listOf(user1))
 
-        val user2 = User(id = 100, name = "Nowy", email = "new@email.com")
+        val user2 = User(name = "Nowy", email = "konflikt@example.com")
 
         // when
-        userDao.insertAll(listOf(user2))   // REPLACE powinno nadpisać
+        userDao.insertAll(listOf(user2))
 
         // then
         val result = userDao.getAll().first()
         assertEquals(1, result.size)
         assertEquals("Nowy", result[0].name)
+        assertEquals("konflikt@example.com", result[0].email)
     }
 }
