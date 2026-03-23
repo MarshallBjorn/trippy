@@ -11,6 +11,7 @@ activityCompose = "1.12.3"
 composeBom = "2024.09.00"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
+kotlinxCoroutines = "1.10.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,9 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+androidx-test-core-ktx = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
