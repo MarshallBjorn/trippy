@@ -9,5 +9,4 @@ public class TrippyapiApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TrippyapiApplication.class, args);
 	}
-
 }
