@@ -7,43 +7,63 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
-@Table(name = "_user")
+@Table(name = "users")
 public class User implements UserDetails {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    private String name;
-
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = true)
+    private String name;
+
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
-    @Column(name = "is_verified", nullable = false, columnDefinition = "boolean default false")
+    @Column(name = "photo_url")
+    private String photoUrl;
+
+    @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
+
+    @Column(name = "is_blocked", nullable = false)
+    private boolean isBlocked = false;
 
     public User() {
     }
 
-    public User(String name, String email, String password, Role role) {
+    public User(
+        String name, 
+        String email, 
+        String password, 
+        Role role,
+        String photoUrl,
+        boolean isVerified,
+        boolean isBlocked
+    ) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.photoUrl = photoUrl;
+        this.isVerified = isVerified;
+        this.isBlocked = isBlocked;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -75,12 +95,28 @@ public class User implements UserDetails {
         this.role = role;
     }
 
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
+    }
+
     public boolean isVerified() {
         return isVerified;
     }
 
     public void setVerified(boolean verified) {
         isVerified = verified;
+    }
+
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        isVerified = blocked;
     }
 
     @Override

@@ -35,11 +35,14 @@ public class AuthenticationService {
             throw new IllegalArgumentException("User with this email already exists");
         }
 
-        var user = new User(
+        User user = new User(
                 request.getName(),
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
-                Role.USER
+                Role.USER,
+                null,
+                false,
+                false
         );
         user.setVerified(false);
         var savedUser = repository.save(user);
