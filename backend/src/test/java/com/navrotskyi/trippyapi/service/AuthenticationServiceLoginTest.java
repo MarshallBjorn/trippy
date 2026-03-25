@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class AuthenticationServiceLoginTest {
     @Test
     void shouldSuccessfullyAuthenticateAndReturnJwt() {
         User savedUser = new User();
-        savedUser.setId(1L);
+        savedUser.setId(UUID.randomUUID());
         savedUser.setVerified(true);
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(savedUser));
@@ -78,7 +79,7 @@ class AuthenticationServiceLoginTest {
     @Test
     void shouldThrowExceptionWhenUserIsNotVerified() {
         User nonVerifiedUser = new User();
-        nonVerifiedUser.setId(1L);
+        nonVerifiedUser.setId(UUID.randomUUID());
         nonVerifiedUser.setVerified(false);
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(nonVerifiedUser));

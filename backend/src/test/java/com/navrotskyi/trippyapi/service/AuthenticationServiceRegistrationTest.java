@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,7 @@ class AuthenticationServiceRegistrationTest {
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);
-            u.setId(1L);
+            u.setId(UUID.randomUUID());
             return u;
         });
 
@@ -109,7 +110,7 @@ class AuthenticationServiceRegistrationTest {
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);
-            u.setId(1L);
+            u.setId(UUID.randomUUID());
             return u;
         });
 
@@ -136,7 +137,7 @@ class AuthenticationServiceRegistrationTest {
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);
-            u.setId(1L);
+            u.setId(UUID.randomUUID());
             return u;
         });
 

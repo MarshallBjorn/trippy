@@ -1,15 +1,17 @@
 package com.navrotskyi.trippyapi.dto;
 
+import java.util.UUID;
+
 import com.navrotskyi.trippyapi.domain.Role;
 
 public class UserResponse {
-    private Long id;
+    private UUID id;
     private String name;
     private String email;
     private Role role;
     private boolean isVerified;
 
-    public UserResponse(Long id, String name, String email, Role role, boolean isVerified) {
+    public UserResponse(UUID id, String name, String email, Role role, boolean isVerified) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -17,7 +19,7 @@ public class UserResponse {
         this.isVerified = isVerified;
     }
 
-    public Long getId() { return id; }
+    public UUID getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
     public Role getRole() { return role; }

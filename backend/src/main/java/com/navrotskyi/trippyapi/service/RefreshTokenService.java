@@ -30,7 +30,7 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public RefreshToken createRefreshToken(Long userId) {
+    public RefreshToken createRefreshToken(UUID userId) {
         return userRepository.findById(userId).map(user -> {
             RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
                     .orElseGet(RefreshToken::new);
