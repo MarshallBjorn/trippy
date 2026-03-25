@@ -20,13 +20,10 @@ public class TripPhoto {
 
     public TripPhoto() {}
 
-    // --- GETTERS & SETTERS ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
     public TripPost getPost() { return post; }
     public void setPost(TripPost post) { this.post = post; }
-
     public String getPhotoUrl() { return photoUrl; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 }

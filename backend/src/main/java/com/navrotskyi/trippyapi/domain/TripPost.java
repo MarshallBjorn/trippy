@@ -21,7 +21,7 @@ public class TripPost {
     @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String note;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -29,19 +29,14 @@ public class TripPost {
 
     public TripPost() {}
 
-    // --- GETTERS & SETTERS ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
     public TripNode getNode() { return node; }
     public void setNode(TripNode node) { this.node = node; }
-
     public User getReporter() { return reporter; }
     public void setReporter(User reporter) { this.reporter = reporter; }
-
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
-
     public List<TripPhoto> getPhotos() { return photos; }
     public void setPhotos(List<TripPhoto> photos) { this.photos = photos; }
 }
