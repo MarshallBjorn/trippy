@@ -156,9 +156,13 @@ class MainActivity : ComponentActivity() {
                                 onCurrencyClick = { navController.navigate(Screen.Currency.route) },
                                 onPasswordClick = { navController.navigate(Screen.ChangePassword.route) },
                                 onLogoutClick = {
-                                    TokenManager.clearToken()
-                                    navController.navigate(Screen.Login.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    profileViewModel.logout {
+
+                                        TokenManager.clearToken()
+                                        navController.navigate(Screen.Login.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                        Toast.makeText(context, "Wylogowano bezpiecznie", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )

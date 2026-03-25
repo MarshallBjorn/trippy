@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewModelScope
+
 
 class ProfileViewModel(private val userDao: UserDao) : ViewModel() {
 
@@ -65,7 +67,15 @@ class ProfileViewModel(private val userDao: UserDao) : ViewModel() {
             }
         }
     }
+    fun logout(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            userDao.deleteAll()
+            onComplete()
+        }
+    }
 }
+
+
 
 class ProfileViewModelFactory(private val userDao: UserDao) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
