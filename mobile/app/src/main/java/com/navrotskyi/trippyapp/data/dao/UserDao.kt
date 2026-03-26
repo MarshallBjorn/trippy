@@ -34,4 +34,7 @@ interface UserDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM users WHERE id = :id AND isBlocked = 1)")
     suspend fun isBlocked(id:Long): Boolean
+
+    @Query("DELETE FROM users")
+    suspend fun deleteAll()
 }
