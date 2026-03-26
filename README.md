@@ -16,6 +16,29 @@ Zamiast żmudnego wpisywania wydatków do arkuszy kalkulacyjnych, Trippy oferuje
 
 Projekt realizowany jest w architekturze mikrousługowej/monolitycznej z wykorzystaniem konteneryzacji, co ułatwia wdrożenie i utrzymanie spójnego środowiska deweloperskiego.
 
+
+
+## 🗄️ Model Danych (ERD)
+
+![Diagram ERD bazy danych Trippy](docs/imgs/erd/ERD.png)
+
+Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i została zaprojektowana w taki sposób, aby sprawnie zarządzać użytkownikami, wyjazdami oraz skomplikowanymi rozliczeniami. Składa się z czterech głównych obszarów:
+
+### 1. Użytkownicy i Słowniki
+* **USER**: Centralna tabela przechowująca dane kont, zabezpieczone hasła, statusy weryfikacji/blokady oraz preferencje (domyślna waluta).
+* **ROLE / CURRENCY / TRIP_ROLE**: Tabele słownikowe standaryzujące uprawnienia w aplikacji, dostępne waluty oraz role pełnione podczas konkretnego wyjazdu (np. Organizator, Uczestnik).
+
+### 2. Zarządzanie Podróżą (Trips)
+* **TRIP_EVENT**: Reprezentuje konkretny wyjazd. Zawiera powiązanie z twórcą (`owner`), nazwę, ramy czasowe, ustalony główny budżet oraz główną walutę wyjazdu.
+* **TRIP_PARTICIPANTS**: Tabela asocjacyjna łącząca wycieczkę z użytkownikami. Zarządza systemem zaproszeń (`isAccepted`), indywidualnym budżetem uczestnika na danym wyjeździe oraz jego specjalną rolą (`TRIP_ROLE`).
+
+### 3. Harmonogram i Rozliczenia (Nodes)
+* **TRIP_NODE**: Kluczowa tabela reprezentująca punkty na mapie wyjazdu, wydarzenia w harmonogramie lub konkretne transakcje. Każdy węzeł posiada czas trwania, koszt (`price`), przypisanego autora (`reporter`) oraz flagę `isSeparate`, decydującą o tym, czy dany wydatek wchodzi w skład równego podziału kosztów.
+
+### 4. Tablica Wspomnień (Social)
+* **TRIP_POST**: Wpisy (notatki, przemyślenia) dodawane przez uczestników do konkretnych węzłów wyjazdu.
+* **TRIP_PHOTO**: Adresy URL zdjęć powiązane z konkretnymi wpisami, pozwalające na tworzenie wirtualnego albumu podróży.
+
 ### 🛠️ Stack Technologiczny
 * **Frontend (Mobile):** Android (Kotlin, Jetpack Compose)
 * **Backend:** Java, Spring Boot, Spring Security
