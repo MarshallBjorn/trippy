@@ -3,6 +3,8 @@ package com.navrotskyi.trippyapi.controller;
 import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "Users", description = "Endpoints for managing user accounts")
 public class UserController {
 
     private final UserService userService;
@@ -19,6 +22,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Get current authenticated user", description = "Retrieves the details of the currently authenticated user context.")
     public ResponseEntity<UserResponse> getCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
@@ -27,6 +31,7 @@ public class UserController {
     }
 
     @PutMapping("/me")
+    @Operation(summary = "Update current user", description = "Updates details (name, email, password) for the currently authenticated user.")
     public ResponseEntity<UserResponse> updateCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody UpdateUserRequest request
