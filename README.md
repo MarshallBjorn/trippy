@@ -20,8 +20,7 @@ Projekt realizowany jest w architekturze mikrousługowej/monolitycznej z wykorzy
 
 ## 🗄️ Model Danych (ERD)
 
-![Diagram ERD bazy danych Trippy](docs/imgs/ERD.svg)
-
+![Diagram ERD bazy danych Trippy](docs/imgs/erd.svg)
 Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i została zaprojektowana w taki sposób, aby sprawnie zarządzać użytkownikami, wyjazdami oraz skomplikowanymi rozliczeniami. Składa się z czterech głównych obszarów:
 
 ### 1. Użytkownicy i Słowniki
