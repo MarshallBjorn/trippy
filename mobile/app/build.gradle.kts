@@ -45,7 +45,7 @@ android {
     }
 }
 
-val roomVersion = "2.6.1"
+val roomVersion = "2.7.0"
 
 dependencies {
     implementation(libs.androidx.core.ktx)
