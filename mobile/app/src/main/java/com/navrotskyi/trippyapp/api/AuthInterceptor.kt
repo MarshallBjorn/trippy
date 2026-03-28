@@ -8,12 +8,18 @@ class AuthInterceptor : Interceptor {
         val originalRequest = chain.request()
         val requestBuilder = originalRequest.newBuilder()
 
-        //Pobieranie zapisanego tokenu
-        val token = TokenManager.getToken()
+        // Sprawdzamy, czy zapytanie nie dotyczy logowania lub rejestracji
+        val path = originalRequest.url.encodedPath
+        val isAuthEndpoint = path.contains("/api/auth/login") || path.contains("/api/auth/register")
 
-        //Jesli token istnieje, doklejenie go do naglowka zapytania
-        if (!token.isNullOrEmpty()) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
+        if (!isAuthEndpoint) {
+            // Pobieranie zapisanego tokenu
+            val token = TokenManager.getToken()
+
+            // Jeśli token istnieje, doklejenie go do nagłówka zapytania
+            if (!token.isNullOrEmpty()) {
+                requestBuilder.addHeader("Authorization", "Bearer $token")
+            }
         }
 
         return chain.proceed(requestBuilder.build())

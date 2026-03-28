@@ -40,6 +40,10 @@ import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModelFactory
 import androidx.compose.runtime.Composable
+import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
+import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
                 val profileViewModel: ProfileViewModel = viewModel(
                     factory = ProfileViewModelFactory(userDao)
                 )
+                val tripViewModel: TripViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -71,7 +76,7 @@ class MainActivity : ComponentActivity() {
                             authViewModel.resetState()
 
                             //tutaj zmieniasz ekran docelowy po zalogowaniu, na razie jest widok profilu
-                            navController.navigate(Screen.Profile.route) {
+                            navController.navigate(Screen.Trips.route) {
                                 popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         }
@@ -196,8 +201,22 @@ class MainActivity : ComponentActivity() {
                         }
                         //EKRAN WYCIECZEK
                         composable(Screen.Trips.route) {
+                            JourneysScreen(
+                                viewModel = tripViewModel,
+                                onTripClick = { tripId -> 
+                                    navController.navigate(Screen.TripDetails.createRoute(tripId)) 
+                                },
+                                onAddTripClick = { /* Otwarcie formularza dodawania */ }
+                            )
+                        }
+                        //EKRAN SZCZEGOLOW WYCIECZKI
+                        composable(
+                            route = Screen.TripDetails.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId")
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Tu będą wycieczki - podmieńcie ten Box na swój ekran")
+                                Text("Szczegóły wycieczki o ID: $tripId")
                             }
                         }
                         //EKRAN WYDATKOW
@@ -221,4 +240,3 @@ fun navItemColors() = NavigationBarItemDefaults.colors(
     unselectedIconColor = Color.Gray,
     unselectedTextColor = Color.Gray
 )
-
