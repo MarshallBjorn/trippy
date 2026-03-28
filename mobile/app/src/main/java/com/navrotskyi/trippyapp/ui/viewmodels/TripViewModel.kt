@@ -1,18 +1,27 @@
 package com.navrotskyi.trippyapp.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.data.entity.User
 import com.navrotskyi.trippyapp.models.Trip
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class TripViewModel : ViewModel() {
     private val _trips = MutableStateFlow<List<Trip>>(emptyList())
     val trips: StateFlow<List<Trip>> = _trips.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
-        // Mocking some users and trips based on the new structure
+        loadTrips()
+    }
+
+    private fun loadTrips() {
         val currentUser = User(id = 1, name = "Dawid")
         val otherUser = User(id = 2, name = "Anna")
 
@@ -54,5 +63,15 @@ class TripViewModel : ViewModel() {
                 pickedCurrency = "PLN"
             )
         )
+    }
+
+    // Symulacja pobierania danych z API
+    fun refreshTrips() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            delay(1500)
+            loadTrips()
+            _isRefreshing.value = false
+        }
     }
 }
