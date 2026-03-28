@@ -42,6 +42,8 @@ import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModelFactory
 import androidx.compose.runtime.Composable
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -201,9 +203,21 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Trips.route) {
                             JourneysScreen(
                                 viewModel = tripViewModel,
-                                onTripClick = { /* Przejście do szczegółów */ },
+                                onTripClick = { tripId -> 
+                                    navController.navigate(Screen.TripDetails.createRoute(tripId)) 
+                                },
                                 onAddTripClick = { /* Otwarcie formularza dodawania */ }
                             )
+                        }
+                        //EKRAN SZCZEGOLOW WYCIECZKI
+                        composable(
+                            route = Screen.TripDetails.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId")
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Szczegóły wycieczki o ID: $tripId")
+                            }
                         }
                         //EKRAN WYDATKOW
                         composable(Screen.Expenses.route) {

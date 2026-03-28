@@ -6,16 +6,15 @@ sealed class Screen(val route: String) {
 
     //profil
     object Profile : Screen("profile")
-
     object EditProfile : Screen("edit_profile")
-
     object Currency : Screen("currency")
-
     object ChangePassword : Screen("change_password")
 
     //wycieczki
     object Trips : Screen("trips")
-
+    object TripDetails : Screen("trip_details/{tripId}") {
+        fun createRoute(tripId: String) = "trip_details/$tripId"
+    }
 
     //wydatki
     object Expenses : Screen("expenses")
