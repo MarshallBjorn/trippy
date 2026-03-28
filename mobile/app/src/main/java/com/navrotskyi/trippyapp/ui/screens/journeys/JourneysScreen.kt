@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.models.Trip
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JourneysScreen(
     viewModel: TripViewModel,
@@ -29,6 +31,7 @@ fun JourneysScreen(
     onAddTripClick: () -> Unit
 ) {
     val trips by viewModel.trips.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -43,28 +46,36 @@ fun JourneysScreen(
         },
         containerColor = Color(0xFFF8FAFC)
     ) { padding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshTrips() },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Twoje Podróże",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF142E50)
-                )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
             ) {
-                items(trips) { trip ->
-                    TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Twoje Podróże",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF142E50)
+                    )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(trips) { trip ->
+                        TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                    }
                 }
             }
         }
