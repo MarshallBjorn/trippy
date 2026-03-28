@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,13 +41,8 @@ fun ProfileScreen(
         .joinToString("")
         .ifEmpty { "U" }
 
-    val darkBlue = Color(0xFF142E50)
-    val lightGrayBg = Color(0xFFF9F9F9)
-    val avatarBg = Color(0xFFE8ECEF)
-    val redColor = Color(0xFFDC3545)
-
     Scaffold(
-        containerColor = lightGrayBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -62,7 +56,7 @@ fun ProfileScreen(
                 text = "Mój Profil",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = darkBlue
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -74,13 +68,13 @@ fun ProfileScreen(
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .background(avatarBg, shape = CircleShape),
+                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = initials,
                         fontSize = 42.sp,
-                        color = Color(0xFF5A6A7D),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -91,11 +85,11 @@ fun ProfileScreen(
                     text = userName,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = darkBlue
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = userEmail,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp
                 )
             }
@@ -104,8 +98,8 @@ fun ProfileScreen(
 
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
@@ -114,7 +108,7 @@ fun ProfileScreen(
                         title = "Edytuj profil",
                         onClick = onEditProfileClick
                     )
-                    HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
 
                     ProfileMenuItem(
                         icon = Icons.Outlined.AttachMoney,
@@ -122,7 +116,7 @@ fun ProfileScreen(
                         subtitle = userCurrency,
                         onClick = onCurrencyClick
                     )
-                    HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
 
                     ProfileMenuItem(
                         icon = Icons.Outlined.Lock,
@@ -140,8 +134,8 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, redColor),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = redColor)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
                 Text(
                     text = "Wyloguj się",
@@ -170,7 +164,7 @@ fun ProfileMenuItem(
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = Color(0xFF6C757D),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(26.dp)
         )
 
@@ -181,13 +175,13 @@ fun ProfileMenuItem(
                 text = title,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF142E50)
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -195,7 +189,7 @@ fun ProfileMenuItem(
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = "Przejdź",
-            tint = Color.Gray,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(22.dp)
         )
     }

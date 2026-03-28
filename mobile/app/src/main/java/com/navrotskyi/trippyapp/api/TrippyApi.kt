@@ -1,11 +1,11 @@
 package com.navrotskyi.trippyapp.api
 
-import com.navrotskyi.trippyapp.models.LoginRequest
-import com.navrotskyi.trippyapp.models.RegisterRequest
-import com.navrotskyi.trippyapp.models.AuthResponse
+import com.navrotskyi.trippyapp.models.*
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface TrippyApi {
     @POST("/api/auth/login")
@@ -13,4 +13,19 @@ interface TrippyApi {
 
     @POST("/api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    // Pobieranie moich wycieczek
+    @GET("/api/trips/my")
+    suspend fun getMyTrips(): Response<List<TripEventDto>>
+
+    // Pobieranie listy uczestników
+    @GET("/api/trips/{tripId}/participants")
+    suspend fun getTripParticipants(@Path("tripId") tripId: String): Response<List<TripParticipantDto>>
+
+    // Zapraszanie uczestnika
+    @POST("/api/trips/{tripId}/participants")
+    suspend fun inviteParticipant(
+        @Path("tripId") tripId: String,
+        @Body request: InviteParticipantRequest // Zmienione z TripParticipantDto
+    ): Response<TripParticipantDto>
 }

@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,15 +31,11 @@ fun EditProfileScreen(
         .joinToString("")
         .ifEmpty { "U" }
 
-    val darkBlue = Color(0xFF142E50)
-    val buttonBlue = Color(0xFF4C6A9C)
-    val avatarBg = Color(0xFFE8ECEF)
-
     Scaffold(
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Column {
                     Row(
@@ -58,7 +53,7 @@ fun EditProfileScreen(
                                 imageVector = Icons.Default.ArrowBackIosNew,
                                 contentDescription = "Wstecz",
                                 modifier = Modifier.size(20.dp),
-                                tint = darkBlue
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -66,18 +61,18 @@ fun EditProfileScreen(
                             text = "Edycja Profilu",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = darkBlue,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFE0E0E0))
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.surfaceVariant)
                 }
             }
         },
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Box(modifier = Modifier.padding(16.dp)) {
                     TrippyButton(
@@ -87,7 +82,7 @@ fun EditProfileScreen(
                 }
             }
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -104,14 +99,14 @@ fun EditProfileScreen(
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .background(avatarBg, shape = CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape)
                         .align(Alignment.TopCenter),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = initials,
                         fontSize = 38.sp,
-                        color = Color(0xFF5A6A7D),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -121,14 +116,14 @@ fun EditProfileScreen(
                         .size(32.dp)
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp)
-                        .background(buttonBlue, shape = CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
                         .clickable { /* Tu będzie logika wyboru zdjęcia */ },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Zmień zdjęcie",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -141,7 +136,7 @@ fun EditProfileScreen(
                     text = "Twoja nazwa / Nick",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
-                    color = darkBlue,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
@@ -152,17 +147,17 @@ fun EditProfileScreen(
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedBorderColor = buttonBlue,
-                        unfocusedBorderColor = Color(0xFFC4C4C4)
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
 
                 Text(
                     text = "Ta nazwa będzie widoczna dla Twoich znajomych w rozliczeniach.",
-                    fontSize = 16.sp,
-                    color = Color(0xFF6C757D),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Normal,
                     modifier = Modifier.padding(top = 8.dp)
                 )
