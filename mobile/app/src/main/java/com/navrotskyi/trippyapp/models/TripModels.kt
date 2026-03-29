@@ -22,3 +22,11 @@ data class TripParticipantDto(
     @SerializedName("accepted")
     val isAccepted: Boolean = false
 )
+
+data class CreateTripEventRequest(
+    val name: String,
+    val currencyCode: String,
+    val startDate: String,
+    val endDate: String,
+    val budget: Double
+)

@@ -39,6 +39,7 @@ import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.AuthState
@@ -212,7 +213,14 @@ class MainActivity : ComponentActivity() {
                                 onTripClick = { tripId ->
                                     navController.navigate(Screen.TripDetails.createRoute(tripId))
                                 },
-                                onAddTripClick = { /* Otwarcie formularza dodawania */ }
+                                onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
+                            )
+                        }
+                        // EKRAN DODAWANIA WYCIECZKI
+                        composable(Screen.AddTrip.route) {
+                            AddTripScreen(
+                                viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
                         // EKRAN SZCZEGÓŁÓW WYCIECZKI

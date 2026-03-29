@@ -20,6 +20,8 @@ sealed class Screen(val route: String) {
         fun createRoute(tripId: String) = "invite_participant/$tripId"
     }
 
+    object AddTrip : Screen("add_trip")
+
     //wydatki
     object Expenses : Screen("expenses")
 }
