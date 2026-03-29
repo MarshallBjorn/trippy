@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
+import com.navrotskyi.trippyapp.models.CreateTripEventRequest
 import com.navrotskyi.trippyapp.models.InviteParticipantRequest
 import com.navrotskyi.trippyapp.models.Trip
 import com.navrotskyi.trippyapp.models.TripParticipantDto
@@ -21,6 +22,12 @@ data class AddTripFormErrors(
     val endDateError: String? = null,
     val budgetError: String? = null
 )
+sealed class CreateTripState {
+    object Idle : CreateTripState()
+    object Loading : CreateTripState()
+    object Success : CreateTripState()
+    data class Error(val message: String) : CreateTripState()
+}
 sealed class InviteState {
     object Idle : InviteState()
     object Loading : InviteState()
@@ -45,6 +52,10 @@ class TripViewModel : ViewModel() {
 
     private val _addTripErrors = MutableStateFlow(AddTripFormErrors())
     val addTripErrors: StateFlow<AddTripFormErrors> = _addTripErrors.asStateFlow()
+
+    private val _createTripState = MutableStateFlow<CreateTripState>(CreateTripState.Idle)
+
+    val createTripState: StateFlow<CreateTripState> = _createTripState.asStateFlow()
 
     init {
         loadTrips()
@@ -193,6 +204,43 @@ class TripViewModel : ViewModel() {
 
     fun clearAddTripErrors() {
         _addTripErrors.value = AddTripFormErrors()
+    }
+    private fun formatDateForApi(date: String): String {
+        val parts = date.split(".")
+        if (parts.size == 3) {
+            return "${parts[2]}-${parts[1]}-${parts[0]}"
+        }
+        return date
+    }
+
+    fun createTrip(name: String, startDate: String, endDate: String, budget: String, currency: String) {
+        _createTripState.value = CreateTripState.Loading
+        viewModelScope.launch {
+            try {
+                val request = CreateTripEventRequest(
+                    name = name,
+                    currencyCode = currency,
+                    startDate = formatDateForApi(startDate),
+                    endDate = formatDateForApi(endDate),
+                    budget = budget.toDoubleOrNull() ?: 0.0
+                )
+
+                val response = api.createTrip(request)
+
+                if (response.isSuccessful) {
+                    _createTripState.value = CreateTripState.Success
+                    loadTrips()
+                } else {
+                    _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _createTripState.value = CreateTripState.Error("Brak połączenia: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun resetCreateTripState() {
+        _createTripState.value = CreateTripState.Idle
     }
 }
 
