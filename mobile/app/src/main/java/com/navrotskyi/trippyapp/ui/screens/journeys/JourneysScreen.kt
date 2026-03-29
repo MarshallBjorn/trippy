@@ -17,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.models.Trip
@@ -37,14 +36,14 @@ fun JourneysScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddTripClick,
-                containerColor = Color(0xFF4A6572),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Dodaj wycieczkę")
             }
         },
-        containerColor = Color(0xFFF8FAFC)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -63,7 +62,7 @@ fun JourneysScreen(
                     text = "Twoje Podróże",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF142E50)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -87,7 +86,7 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -105,10 +104,9 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                     text = trip.name,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF142E50)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                // Assuming ID 1 is the current user for demonstration
                 val isOwner = trip.owner?.id == 1L
                 RoleBadge(isOwner = isOwner)
             }
@@ -120,13 +118,13 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                     imageVector = Icons.Default.DateRange,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = Color.Gray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${trip.startDate} - ${trip.endDate}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -136,12 +134,12 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                 text = "Budżet: ${trip.budget} ${trip.pickedCurrency}",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF142E50)
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -154,19 +152,19 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = Color(0xFF94A3B8)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Organizator: ${trip.owner?.name ?: "Nieznany"}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = Color.Gray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -175,8 +173,8 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
 
 @Composable
 fun RoleBadge(isOwner: Boolean) {
-    val backgroundColor = if (isOwner) Color(0xFFE0E7FF) else Color(0xFFF1F5F9)
-    val textColor = if (isOwner) Color(0xFF4338CA) else Color(0xFF64748B)
+    val backgroundColor = if (isOwner) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer
+    val textColor = if (isOwner) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
     val label = if (isOwner) "Właściciel" else "Uczestnik"
 
     Surface(

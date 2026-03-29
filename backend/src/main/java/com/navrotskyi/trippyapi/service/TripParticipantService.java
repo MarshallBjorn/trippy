@@ -56,6 +56,7 @@ public class TripParticipantService {
         return tripParticipantRepository.save(newParticipant);
     }
 
+    @Transactional(readOnly = true)
     public List<TripParticipant> getParticipantsForEvent(UUID eventId) {
         return tripParticipantRepository.findAllByEventId(eventId);
     }

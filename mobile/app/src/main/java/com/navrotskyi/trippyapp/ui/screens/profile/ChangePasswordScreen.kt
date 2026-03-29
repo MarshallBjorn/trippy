@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,11 +25,9 @@ fun ChangePasswordScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    val darkBlue = Color(0xFF142E50)
-
     Scaffold(
         topBar = {
-            Surface(modifier = Modifier.fillMaxWidth(), color = Color.White) {
+            Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
                 Column {
                     Row(
                         modifier = Modifier
@@ -44,23 +41,23 @@ fun ChangePasswordScreen(
                                 imageVector = Icons.Default.ArrowBackIosNew,
                                 contentDescription = "Wstecz",
                                 modifier = Modifier.size(20.dp),
-                                tint = darkBlue
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         Text(
                             text = "Zmiana hasła",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = darkBlue,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
-                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFE0E0E0))
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.surfaceVariant)
                 }
             }
         },
         bottomBar = {
-            Surface(modifier = Modifier.fillMaxWidth(), color = Color.White) {
+            Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
                 Box(modifier = Modifier.padding(16.dp)) {
                     TrippyButton(
                         text = "Zapisz nowe hasło",
@@ -71,7 +68,7 @@ fun ChangePasswordScreen(
                 }
             }
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -94,15 +91,12 @@ fun ChangePasswordScreen(
 
 @Composable
 fun PasswordInputField(value: String, onValueChange: (String) -> Unit, label: String) {
-    val darkBlue = Color(0xFF142E50)
-    val buttonBlue = Color(0xFF4C6A9C)
-
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            color = darkBlue,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -115,10 +109,10 @@ fun PasswordInputField(value: String, onValueChange: (String) -> Unit, label: St
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = buttonBlue,
-                unfocusedBorderColor = Color(0xFFE0E0E0)
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
             )
         )
     }
