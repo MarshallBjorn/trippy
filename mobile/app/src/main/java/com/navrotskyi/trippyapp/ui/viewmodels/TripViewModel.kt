@@ -11,7 +11,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
+data class AddTripFormErrors(
+    val nameError: String? = null,
+    val startDateError: String? = null,
+    val endDateError: String? = null,
+    val budgetError: String? = null
+)
 sealed class InviteState {
     object Idle : InviteState()
     object Loading : InviteState()
@@ -33,6 +42,9 @@ class TripViewModel : ViewModel() {
 
     private val _inviteState = MutableStateFlow<InviteState>(InviteState.Idle)
     val inviteState: StateFlow<InviteState> = _inviteState.asStateFlow()
+
+    private val _addTripErrors = MutableStateFlow(AddTripFormErrors())
+    val addTripErrors: StateFlow<AddTripFormErrors> = _addTripErrors.asStateFlow()
 
     init {
         loadTrips()
@@ -112,4 +124,76 @@ class TripViewModel : ViewModel() {
     fun resetInviteState() {
         _inviteState.value = InviteState.Idle
     }
+
+    fun validateAddTripForm(name: String, startDate: String, endDate: String, budget: String): Boolean {
+        var isValid = true
+        var nameErr: String? = null
+        var startErr: String? = null
+        var endErr: String? = null
+        var budgetErr: String? = null
+
+        // Walidacja nazwy
+        if (name.isBlank()) {
+            nameErr = "Nazwa wycieczki jest wymagana"
+            isValid = false
+        }
+
+        // Walidacja dat
+        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        var parsedStart: LocalDate? = null
+        var parsedEnd: LocalDate? = null
+
+        // Sprawdzanie daty rozpoczecia
+        if (startDate.isBlank()) {
+            startErr = "Data rozpoczęcia jest wymagana"
+            isValid = false
+        } else {
+            try {
+                parsedStart = LocalDate.parse(startDate, dateFormatter)
+            } catch (e: DateTimeParseException) {
+                startErr = "Niepoprawny format lub data (DD.MM.RRRR)"
+                isValid = false
+            }
+        }
+
+        // Sprawdzanie daty zakonczenia
+        if (endDate.isBlank()) {
+            endErr = "Data zakończenia jest wymagana"
+            isValid = false
+        } else {
+            try {
+                parsedEnd = LocalDate.parse(endDate, dateFormatter)
+            } catch (e: DateTimeParseException) {
+                endErr = "Niepoprawny format lub data (DD.MM.RRRR)"
+                isValid = false
+            }
+        }
+
+        // PORÓWNANIE DAT
+        if (parsedStart != null && parsedEnd != null) {
+            if (parsedEnd.isBefore(parsedStart)) {
+                endErr = "Data zakończenia musi być po dacie rozpoczęcia"
+                isValid = false
+            }
+        }
+
+        // Walidacja budżetu
+        if (budget.isBlank()) {
+            budgetErr = "Budżet jest wymagany"
+            isValid = false
+        } else if (budget.toDoubleOrNull() == null || budget.toDouble() < 0) {
+            budgetErr = "Podaj poprawną kwotę (np. 2000.50)"
+            isValid = false
+        }
+
+
+        _addTripErrors.value = AddTripFormErrors(nameErr, startErr, endErr, budgetErr)
+        return isValid
+    }
+
+    fun clearAddTripErrors() {
+        _addTripErrors.value = AddTripFormErrors()
+    }
 }
+
+
