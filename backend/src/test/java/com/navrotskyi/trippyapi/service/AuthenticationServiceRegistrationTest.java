@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ import com.navrotskyi.trippyapi.dto.RegisterRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.repository.VerificationTokenRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
+import com.navrotskyi.trippyapi.domain.RefreshToken;
+import org.mockito.Mockito;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceRegistrationTest {
@@ -38,6 +41,7 @@ class AuthenticationServiceRegistrationTest {
     @Mock private EmailService emailService;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtService jwtService;
+    @Mock private RefreshTokenService refreshTokenService;
 
     @InjectMocks
     private AuthenticationService authenticationService;
@@ -59,12 +63,23 @@ class AuthenticationServiceRegistrationTest {
     void shouldSuccessfullyRegisterUserAndReturnJwt() {
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(request.getPassword())).thenReturn("ZaszyfrowaneHasloHash");
+
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(UUID.randomUUID());
+            return u;
+        });
+
+        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
+        when(mockRefreshToken.getToken()).thenReturn("mock-refresh-token");
+        when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
+
         when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
         AuthResponse response = authenticationService.register(request);
 
         assertNotNull(response);
-        assertEquals("mock-jwt-token", response.getToken());
+        assertEquals("mock-jwt-token", response.getAccessToken());
 
         verify(emailService, times(1)).sendVerificationEmail(eq("john.doe@email.com"), anyString());
         verify(userRepository, times(1)).save(any(User.class));
@@ -81,7 +96,7 @@ class AuthenticationServiceRegistrationTest {
             authenticationService.register(request);
         });
 
-        assertEquals("Użytkownik z tym adresem email już istnieje!", exception.getMessage());
+        assertEquals("User with this email already exists", exception.getMessage());
 
         verify(userRepository, never()).save(any(User.class));
         verify(tokenRepository, never()).save(any(VerificationToken.class));
@@ -92,6 +107,16 @@ class AuthenticationServiceRegistrationTest {
     void shouldEnforceSecurityConstraintsOnNewUser() {
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(request.getPassword())).thenReturn("Szyfr123");
+
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(UUID.randomUUID());
+            return u;
+        });
+
+        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
+        Mockito.lenient().when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
+        Mockito.lenient().when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
         authenticationService.register(request);
 
@@ -109,6 +134,16 @@ class AuthenticationServiceRegistrationTest {
     @Test
     void shouldGenerateValidVerificationToken() {
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User u = i.getArgument(0);
+            u.setId(UUID.randomUUID());
+            return u;
+        });
+
+        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
+        Mockito.lenient().when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
+        Mockito.lenient().when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
         authenticationService.register(request);
 

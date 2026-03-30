@@ -31,7 +31,8 @@ class AuthViewModel : ViewModel() {
             try {
                 val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body() != null) {
-                    authState = AuthState.Success(response.body()!!.token)
+                    // Update: use accessToken from the response
+                    authState = AuthState.Success(response.body()!!.accessToken)
                 } else {
                     authState = AuthState.Error("Błędny e-mail lub hasło")
                 }
@@ -48,7 +49,8 @@ class AuthViewModel : ViewModel() {
                 val response = api.register(RegisterRequest(name, email, password))
 
                 if (response.isSuccessful && response.body() != null) {
-                    val token = response.body()!!.token
+                    // Update: use accessToken from the response
+                    val token = response.body()!!.accessToken
                     TokenManager.saveToken(token)
                     authState = AuthState.Success(token)
                 } else {

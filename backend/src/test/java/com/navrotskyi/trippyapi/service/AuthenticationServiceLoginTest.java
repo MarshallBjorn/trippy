@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,8 @@ import com.navrotskyi.trippyapi.dto.AuthResponse;
 import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
+import com.navrotskyi.trippyapi.domain.RefreshToken;
+import org.mockito.Mockito;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +40,7 @@ class AuthenticationServiceLoginTest {
     @Mock private UserRepository userRepository;
     @Mock private AuthenticationManager authManager;
     @Mock private JwtService jwtService;
+    @Mock private RefreshTokenService refreshTokenService;
 
     @InjectMocks
     private AuthenticationService authenticationService;
@@ -54,15 +58,20 @@ class AuthenticationServiceLoginTest {
     @Test
     void shouldSuccessfullyAuthenticateAndReturnJwt() {
         User savedUser = new User();
+        savedUser.setId(UUID.randomUUID());
         savedUser.setVerified(true);
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(savedUser));
         when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
+        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
+        when(mockRefreshToken.getToken()).thenReturn("mock-refresh-token");
+        when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
+
         AuthResponse response = authenticationService.authenticate(request);
 
         assertNotNull(response);
-        assertEquals("mock-jwt-token", response.getToken());
+        assertEquals("mock-jwt-token", response.getAccessToken());
         
         verify(authManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
@@ -70,9 +79,13 @@ class AuthenticationServiceLoginTest {
     @Test
     void shouldThrowExceptionWhenUserIsNotVerified() {
         User nonVerifiedUser = new User();
+        nonVerifiedUser.setId(UUID.randomUUID());
         nonVerifiedUser.setVerified(false);
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(nonVerifiedUser));
+
+        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
+        Mockito.lenient().when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             authenticationService.authenticate(request);

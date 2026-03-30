@@ -8,6 +8,8 @@ import com.navrotskyi.trippyapi.dto.RegisterRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.repository.VerificationTokenRepository;
 import com.navrotskyi.trippyapi.service.AuthenticationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication (Legacy)", description = "Additional or legacy authentication endpoints")
 public class AuthController {
 
     private final AuthenticationService service;
@@ -35,32 +38,26 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(service.register(request));
-    }
-
     @GetMapping("/register")
+    @Operation(summary = "Get registration info payload template")
     public ResponseEntity<RegisterRequest> getRegisterInfo() {
         return ResponseEntity.ok(new RegisterRequest("John Doe", "john@example.com", "password123"));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> authenticate(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(service.authenticate(request));
-    }
-
     @GetMapping("/login")
+    @Operation(summary = "Get login payload template")
     public ResponseEntity<LoginRequest> getLoginInfo() {
         return ResponseEntity.ok(new LoginRequest("john@example.com", "password123"));
     }
 
     @GetMapping("/check")
+    @Operation(summary = "Check authentication status")
     public ResponseEntity<String> check() {
         return ResponseEntity.ok("Authorized");
     }
 
     @GetMapping("/verify")
+    @Operation(summary = "Verify email via token", description = "Confirms a user's email address using the token sent to their inbox.")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
         VerificationToken vToken = tokenRepository.findByToken(token)
             .orElseThrow(() -> new RuntimeException("Nieprawidłowy lub nieistniejący token!"));
