@@ -67,6 +67,24 @@ services:
       - ./backend/pom.xml:/app/pom.xml
       - ./backend/target:/app/target
 
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trippy_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - trippy_network
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
 volumes:
   postgres_data:
 
