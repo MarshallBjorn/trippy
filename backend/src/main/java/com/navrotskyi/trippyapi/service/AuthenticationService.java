@@ -84,6 +84,7 @@ public class AuthenticationService {
         return AuthResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken.getToken())
+                .role(user.getAuthorities().stream().findFirst().map(Object::toString).orElse("USER"))
                 .build();
     }
 }

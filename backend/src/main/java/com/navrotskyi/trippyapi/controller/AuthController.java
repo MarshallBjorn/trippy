@@ -2,7 +2,6 @@ package com.navrotskyi.trippyapi.controller;
 
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.domain.VerificationToken;
-import com.navrotskyi.trippyapi.dto.AuthResponse;
 import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.dto.RegisterRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
@@ -14,12 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,14 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication (Legacy)", description = "Additional or legacy authentication endpoints")
 public class AuthController {
 
-    private final AuthenticationService service;
     private final VerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
 
     public AuthController(AuthenticationService service,
                           VerificationTokenRepository tokenRepository,
                           UserRepository userRepository) {
-        this.service = service;
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
     }
@@ -61,12 +54,20 @@ public class AuthController {
 
     @GetMapping("/verify")
     @Operation(summary = "Verify email via token", description = "Confirms a user's email address using the token sent to their inbox.")
-    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
-        VerificationToken vToken = tokenRepository.findByToken(token)
-            .orElseThrow(() -> new RuntimeException("Nieprawidłowy lub nieistniejący token!"));
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam("token") String token) {
+        
+        var vTokenOpt = tokenRepository.findByToken(token);
+        
+        if (vTokenOpt.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Nieprawidłowy lub nieistniejący token!"));
+        }
+
+        VerificationToken vToken = vTokenOpt.get();
 
         if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body("Błąd: Token weryfikacyjny wygasł!");
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Błąd: Token weryfikacyjny wygasł!"));
         }
 
         User user = vToken.getUser();
@@ -75,6 +76,6 @@ public class AuthController {
 
         tokenRepository.delete(vToken);
 
-        return ResponseEntity.ok("Sukces! Twoje konto zostało pomyślnie zweryfikowane.");
+        return ResponseEntity.ok(Map.of("message", "Sukces! Twoje konto zostało pomyślnie zweryfikowane."));
     }
 }

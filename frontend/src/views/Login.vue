@@ -57,10 +57,20 @@ const handleLogin = async () => {
       email: email.value,
       password: password.value
     })
+
+    localStorage.setItem('trippy_token', response.data.accessToken);
+    localStorage.setItem('trippy_refresh_token', response.data.refreshToken);
+    localStorage.setItem('trippy_role', response.data.role);
   
-    localStorage.setItem('trippy_token', response.data.token)
+    if (response.data.role !== 'ROLE_ADMIN') {
+      errorMessage.value = 'Odmowa dostępu. Ten panel jest dostępny wyłącznie dla administratorów.'
+      localStorage.clear();
+      return
+    }
+
+    localStorage.setItem('trippy_token', response.data.accessToken)
     
-    router.push('/dashboard')
+    router.push('/admin/users')
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Nie można się zalogować. Sprawdź dane i spróbuj ponownie.'
   }

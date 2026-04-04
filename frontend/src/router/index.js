@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
-
-const Dashboard = { template: '<div class="p-8 text-2xl">Witaj w Panelu! <button @click="logout" class="text-red-500 text-sm ml-4">Wyloguj</button></div>', methods: { logout() { localStorage.removeItem('trippy_token'); this.$router.push('/login'); } } }
+import VerifyEmail from '../views/VerifyEmail.vue'
+import AdminLayout from '../layouts/AdminLayout.vue'
+import UsersView from '../views/UsersView.vue'
 
 const routes = [
   {
@@ -10,14 +11,27 @@ const routes = [
     component: Login
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true }
+    path: '/verify',
+    name: 'VerifyEmail',
+    component: VerifyEmail
   },
   {
-    path: '/',
-    redirect: '/dashboard'
+    path: '/admin',
+    component: AdminLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '', 
+        redirect: '/admin/users'
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: UsersView
+      },
+      // { path: 'content', component: ContentView },
+      // { path: 'dictionaries', component: DictionariesView }
+    ]
   }
 ]
 
@@ -27,13 +41,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('trippy_token')
-  
-  if (to.meta.requiresAuth && !token) {
+  const isAuthenticated = !!localStorage.getItem('trippy_token')
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
   } 
-  else if (to.path === '/login' && token) {
-    next('/dashboard')
+  else if (to.path === '/login' && isAuthenticated) {
+    next('/admin/users')
   } 
   else {
     next()
