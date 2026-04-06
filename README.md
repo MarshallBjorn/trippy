@@ -209,3 +209,12 @@ Aby wywołać proces od zera (na czystej bazie), zresetuj kontenery Dockerowe ko
 docker compose down -v
 
 docker compose up --build -d
+
+```
+#### 4. Dane Dostępowe (Konta Testowe)
+Poniższe dane są generowane automatycznie przez `UserSeeder`. Wszystkie konta mają przypisane to samo hasło testowe.
+
+| Rola w systemie | Adres E-mail | Hasło | Uprawnienia (Systemowe) |
+| :--- | :--- | :--- | :--- |
+| **Administrator** | `admin@trippy.pl` | `password` | Pełny dostęp (ADMIN) |
+| **Użytkownik 1** | `jan@trippy.pl` | `password` | Standardowe (USER) |
