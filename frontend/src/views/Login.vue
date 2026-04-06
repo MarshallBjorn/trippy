@@ -61,13 +61,15 @@ const handleLogin = async () => {
     localStorage.setItem('trippy_token', response.data.accessToken);
     localStorage.setItem('trippy_refresh_token', response.data.refreshToken);
     localStorage.setItem('trippy_role', response.data.role);
-  
+
+    console.log(response.data.role)
+
     if (response.data.role !== 'ROLE_ADMIN') {
       errorMessage.value = 'Odmowa dostępu. Ten panel jest dostępny wyłącznie dla administratorów.'
       localStorage.clear();
       return
-    }
-
+    }    
+  
     localStorage.setItem('trippy_token', response.data.accessToken)
     
     router.push('/admin/users')

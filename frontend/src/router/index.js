@@ -29,9 +29,27 @@ const routes = [
         name: 'AdminUsers',
         component: UsersView
       },
+      {
+        path: 'users/create',
+        name: 'AdminUserCreate',
+        component: () => import('../views/UserCreateView.vue')
+      },
+      {
+        path: 'users/:id/edit',
+        name: 'AdminUserEdit',
+        component: () => import('../views/UserEditView.vue')
+      },
       // { path: 'content', component: ContentView },
       // { path: 'dictionaries', component: DictionariesView }
     ]
+  },
+  {
+    path: '/',
+    redirect: '/admin/users' 
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/login'
   }
 ]
 
@@ -45,7 +63,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
-  } 
+  }  
   else if (to.path === '/login' && isAuthenticated) {
     next('/admin/users')
   } 

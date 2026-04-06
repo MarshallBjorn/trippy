@@ -24,12 +24,6 @@
         <div class="text-red-500 text-5xl mb-4">✗</div>
         <h3 class="text-xl font-medium text-red-600">Wystąpił błąd</h3>
         <p class="text-gray-600">{{ message }}</p>
-        <button 
-          @click="goToLogin" 
-          class="mt-6 w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-        >
-          Wróć do logowania
-        </button>
       </div>
     </div>
   </div>
@@ -45,10 +39,6 @@ const router = useRouter()
 
 const status = ref('loading')
 const message = ref('')
-
-const goToLogin = () => {
-  router.push('/login')
-}
 
 onMounted(async () => {
   const token = route.query.token

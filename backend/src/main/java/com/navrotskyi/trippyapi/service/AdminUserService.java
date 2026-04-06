@@ -66,7 +66,14 @@ public class AdminUserService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("[ERROR] User with ID: " + id + " was not found."));
 
+        userRepository.findByEmail(request.email()).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(id)) {
+                throw new IllegalArgumentException("[ERROR] Email is already taken by another user");
+            }
+        });
+
         user.setName(request.name());
+        user.setEmail(request.email());
         user.setRole(request.role());
         user.setBlocked(request.isBlocked());
         user.setVerified(request.isVerified());

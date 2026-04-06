@@ -3,7 +3,10 @@
     
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <h2 class="text-2xl font-bold text-gray-800">Zarządzanie użytkownikami</h2>
-      <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">
+      <button 
+        @click="router.push('/admin/users/create')"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
+      >
         + Dodaj użytkownika
       </button>
     </div>
@@ -42,7 +45,12 @@
                 </span>
               </td>
               <td class="p-4 flex justify-end gap-2">
-                <button class="text-indigo-600 hover:text-indigo-900 transition-colors px-2 py-1 font-medium">Edytuj</button>
+                <button 
+                  @click="router.push(`/admin/users/${user.id}/edit`)" 
+                  class="text-indigo-600 hover:text-indigo-900 transition-colors px-2 py-1 font-medium"
+                >
+                  Edytuj
+                </button>
                 <button class="text-red-600 hover:text-red-900 transition-colors px-2 py-1 font-medium">Usuń</button>
               </td>
             </tr>
