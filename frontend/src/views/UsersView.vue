@@ -51,7 +51,12 @@
                 >
                   Edytuj
                 </button>
-                <button class="text-red-600 hover:text-red-900 transition-colors px-2 py-1 font-medium">Usuń</button>
+                <button 
+                  @click="deleteUser(user.id, user.name)"
+                  class="text-red-600 hover:text-red-900 transition-colors px-2 py-1 font-medium"
+                >
+                  Usuń
+                </button>
               </td>
             </tr>
             
@@ -107,4 +112,33 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const deleteUser = async (id, name) => {
+  const isConfirmed = window.confirm(`CZY NA PEWNO chcesz trwale usunąć użytkownika: ${name}?\n\nTa operacja jest nieodwracalna! Jeśli ten użytkownik założył wyjazdy, one również mogą zostać usunięte (zależnie od ustawień bazy).`)
+  
+  if (!isConfirmed) return
+
+  try {
+    const token = localStorage.getItem('trippy_token')
+    
+    await axios.delete(
+      `${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${id}`, 
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    users.value = users.value.filter(u => u.id !== id)
+  } catch (error) {
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      errorMsg.value = 'Brak uprawnień do usunięcia użytkownika.'
+    } else {
+      errorMsg.value = 'Nie udało się usunąć użytkownika. Serwer zwrócił błąd.'
+    }
+    console.error("Błąd usuwania użytkownika:", error)
+  }
+}
+
 </script>

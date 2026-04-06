@@ -3,6 +3,13 @@ import Login from '../views/Login.vue'
 import VerifyEmail from '../views/VerifyEmail.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import UsersView from '../views/UsersView.vue'
+import UserCreateView from '../views/UserCreateView.vue'
+import UserEditView from '../views/UserEditView.vue'
+import DictionariesView from '../views/DictionariesView.vue'
+import CurrencyCreateView from '../views/CurrencyCreateView.vue'
+import RoleCreateView from '../views/RoleCreateView.vue'
+import TripsView from '../views/TripsView.vue'
+import ModerationView from '../views/ModerationView.vue'
 
 const routes = [
   {
@@ -32,15 +39,43 @@ const routes = [
       {
         path: 'users/create',
         name: 'AdminUserCreate',
-        component: () => import('../views/UserCreateView.vue')
+        component: UserCreateView
       },
       {
         path: 'users/:id/edit',
         name: 'AdminUserEdit',
-        component: () => import('../views/UserEditView.vue')
+        component: UserEditView,
       },
-      // { path: 'content', component: ContentView },
-      // { path: 'dictionaries', component: DictionariesView }
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: UsersView
+      },
+      { 
+        path: 'dictionaries', 
+        name: 'AdminDictionaries',
+        component: DictionariesView
+      },
+      { 
+        path: 'dictionaries/currencies/create', 
+        name: 'AdminCurrencyCreate',
+        component: CurrencyCreateView
+      },
+      { 
+        path: 'dictionaries/roles/create', 
+        name: 'AdminRoleCreate',
+        component: RoleCreateView
+      },
+      {
+        path: 'trips',
+        name: 'AdminTrips',
+        component: TripsView
+      },
+      {
+        path: 'moderation',
+        name: 'AdminModeration',
+        component: ModerationView
+      }
     ]
   },
   {

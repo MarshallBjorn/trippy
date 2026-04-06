@@ -32,7 +32,7 @@
           </router-link>
           
           <router-link 
-            to="/admin/content" 
+            to="/admin/trips" 
             class="block px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg font-medium transition-colors"
             active-class="bg-indigo-50 text-indigo-600 border-l-4 border-indigo-600"
           >
