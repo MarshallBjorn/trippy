@@ -175,3 +175,37 @@ docker-compose up -d --build
 
 docker-compose down -v
 ```
+## Dokumentacja Mechanizmu Seedowania Bazy Danych
+
+#### 1. Architektura i Sposób Działania
+Proces automatycznego wypełniania bazy danych opiera się na klasie centralnej oraz dedykowanych skryptach.
+
+| Komponent / Krok | Akcja (Zasada działania) | Znaczenie / Cel |
+| :--- | :--- | :--- |
+| **Punkt wejściowy (`DataInitializer`)** | Weryfikuje przy starcie aplikacji, czy baza danych jest pusta (sprawdza liczbę rekordów w tabeli `users`). | Zapobiega dublowaniu danych. Skrypty uruchamiają się wyłącznie na "czystej" bazie. |
+| **Podział odpowiedzialności** | Uruchamia sekwencyjnie dedykowane klasy `*Seeder` (np. `UserSeeder`, `CurrencySeeder`, `TripEventSeeder`). | Utrzymanie czystości kodu – każda klasa odpowiada wyłącznie za jedną tabelę. |
+| **Zachowanie Kolejności** | Najpierw ładowane są słowniki (waluty, role) i użytkownicy, a następnie wycieczki, posty i punkty planu. | Gwarantuje zachowanie integralności relacyjnej bazy danych i poprawne przypisanie kluczy obcych (Foreign Keys). |
+
+---
+
+#### 2. Instrukcja rozszerzania seedów o nowe dane
+Mechanizm jest w pełni skalowalny. W zależności od potrzeb, dodawanie danych opiera się na poniższych scenariuszach:
+
+| Typ Rozszerzenia | Wymagane Kroki | Kontekst / Przykład                                                                                                                                   |
+| :--- | :--- |:------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Dodanie nowych rekordów do istniejącej tabeli** | Edycja odpowiedniej klasy w pakiecie `com.navrotskyi.trippyapi.seeder`. | Chcąc dodać nową walutę (np. JPY), wystarczy dopisać nowy obiekt do listy wewnątrz klasy `CurrencySeeder`.                                            |
+| **Dodanie nowej tabeli (Krok 1: Utworzenie)** | Stworzenie nowej klasy `*Seeder` i oznaczenie jej jako komponent Springa. | Tworzymy np. klasę `TripReviewSeeder` z własnymi danymi startowymi.                                                                                   |
+| **Dodanie nowej tabeli (Krok 2: Wstrzyknięcie)**| Wstrzyknięcie nowo utworzonego Seedera do klasy centralnej `DataInitializer`. | Dodanie repozytorium oraz seedera przez Dependency Injection (konstruktor).                                                                           |
+| **Dodanie nowej tabeli (Krok 3: Wywołanie)** | Wywołanie seedera wewnątrz metody `run()` w `DataInitializer`. | **Kluczowe:** Wywołanie musi nastąpić *po* zapisaniu danych, od których zależy nowa tabela (np. posty dopiero po zapisaniu użytkowników i wycieczek). |
+
+---
+
+#### 3. Instrukcja uruchomienia
+
+Aby wywołać proces od zera (na czystej bazie), zresetuj kontenery Dockerowe komendami w terminalu:
+
+```bash
+
+docker compose down -v
+
+docker compose up --build -d
