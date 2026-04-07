@@ -9,16 +9,46 @@
     </div>
 
     <div v-if="loading" class="text-center py-10 text-gray-500">Pobieranie danych...</div>
-    <div v-else-if="errorMsg" class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">
+    <div v-else-if="errorMsg" class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 whitespace-pre-line">
       {{ errorMsg }}
     </div>
 
     <form v-else @submit.prevent="saveUser" class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
       
       <div class="p-6 space-y-6">
+        
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-gray-100">
+          
+          <div class="shrink-0">
+            <img 
+              v-if="imagePreview || user.photoUrl" 
+              :src="imagePreview || user.photoUrl" 
+              alt="Avatar użytkownika" 
+              class="w-24 h-24 rounded-full object-cover border border-gray-200 shadow-sm"
+            >
+            <div v-else class="w-24 h-24 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shadow-sm">
+              <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex-1 w-full text-center sm:text-left">
+            <label for="photo" class="block text-sm font-bold text-gray-700 mb-2">Zdjęcie profilowe</label>
+            <input 
+              id="photo" 
+              type="file" 
+              accept="image/jpeg, image/png, image/webp"
+              @change="handleFileUpload"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+            >
+            <p class="text-xs text-gray-500 mt-2">Maksymalny rozmiar pliku: 5MB. Dozwolone: JPG, PNG, WEBP.</p>
+          </div>
+        </div>
+
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">ID Użytkownika</label>
-          <div class="text-gray-500 font-mono text-sm bg-gray-50 p-2 rounded border border-gray-200">
+          <div class="text-gray-500 font-mono text-sm bg-gray-50 p-2 rounded border border-gray-200 truncate">
             {{ user.id }}
           </div>
         </div>
@@ -113,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -130,6 +160,9 @@ const formData = ref({
   isBlocked: false
 })
 
+const selectedFile = ref(null)
+const imagePreview = ref(null)
+
 const loading = ref(true)
 const saving = ref(false)
 const errorMsg = ref('')
@@ -137,6 +170,27 @@ const saveSuccess = ref(false)
 
 const getToken = () => localStorage.getItem('trippy_token')
 const getAuthHeaders = () => ({ headers: { Authorization: `Bearer ${getToken()}` } })
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    imagePreview.value = URL.createObjectURL(file)
+  } else {
+    selectedFile.value = null
+    imagePreview.value = null
+  }
+}
+
+onUnmounted(() => {
+  try {
+    if (imagePreview.value) {
+      URL.revokeObjectURL(imagePreview.value)
+    }
+  } catch (err) {
+    console.warn("[DEBUG] Zignorowano błąd czyszczenia URL zdjęcia:", err)
+  }
+})
 
 onMounted(async () => {
   try {
@@ -171,10 +225,35 @@ const saveUser = async () => {
       formData.value,
       getAuthHeaders()
     )
+    
+    if (selectedFile.value) {
+      const uploadData = new FormData()
+      uploadData.append('file', selectedFile.value)
+
+      const multipartHeaders = {
+        headers: { 
+          Authorization: `Bearer ${getToken()}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+
+      const photoResponse = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${userId}/photo`, 
+        uploadData,
+        multipartHeaders
+      )
+
+      user.value.photoUrl = photoResponse.data.photoUrl
+    }
     saveSuccess.value = true
     
   } catch (error) {
-    errorMsg.value = error.response?.data?.error || 'Wystąpił błąd podczas zapisywania.'
+    if (error.response?.status === 400 && error.response.data && !error.response.data.message) {
+      const errorMap = error.response.data
+      errorMsg.value = Object.values(errorMap).join('\n')
+    } else {
+      errorMsg.value = error.response?.data?.error || error.response?.data?.message || 'Wystąpił błąd podczas zapisywania.'
+    }
   } finally {
     saving.value = false
   }

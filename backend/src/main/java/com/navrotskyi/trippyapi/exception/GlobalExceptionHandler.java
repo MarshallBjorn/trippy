@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
@@ -42,6 +43,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleMaxSizeException(MaxUploadSizeExceededException exc) {
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
                 .body(Map.of("error", "Plik jest za duży! Maksymalny dopuszczalny rozmiar to 5MB."));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        String paramName = ex.getName();
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "message", "Nieprawidłowy format parametru: '" + paramName + "'. Upewnij się, że podajesz poprawne dane (np. właściwy format UUID)."
+                ));
     }
 
     private ResponseEntity<Map<String, String>> buildErrorResponse(String message, HttpStatus status) {

@@ -41,6 +41,18 @@
         </div>
 
         <div>
+          <label for="photo" class="block text-sm font-bold text-gray-700 mb-1">Zdjęcie profilowe (opcjonalne)</label>
+          <input 
+            id="photo" 
+            type="file" 
+            accept="image/jpeg, image/png, image/webp"
+            @change="handleFileUpload"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          >
+          <p class="text-xs text-gray-500 mt-1">Maksymalny rozmiar pliku: 5MB.</p>
+        </div>
+
+        <div>
           <label for="password" class="block text-sm font-bold text-gray-700 mb-1">Hasło tymczasowe *</label>
           <input 
             id="password" 
@@ -109,7 +121,6 @@ import axios from 'axios'
 
 const router = useRouter()
 
-// Czysty stan dla nowego użytkownika
 const formData = ref({
   name: '',
   email: '',
@@ -118,6 +129,18 @@ const formData = ref({
   isVerified: true,
   isBlocked: false
 })
+
+const selectedFile = ref(null)
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0]
+
+  if (file) {
+    selectedFile.value = file
+  } else {
+    selectedFile.value = null
+  }
+}
 
 const saving = ref(false)
 const errorMsg = ref('')
@@ -130,13 +153,29 @@ const createUser = async () => {
   errorMsg.value = ''
 
   try {
-    await axios.post(
+    const response = await axios.post(
       `${import.meta.env.VITE_API_BASE_URL}/api/admin/users`, 
       formData.value,
       getAuthHeaders()
     )
     
-    // Po udanym zapisie od razu wracamy do tabeli
+    const newUserId = response.data?.id
+
+    if (!newUserId) {
+       throw new Error("Backend nie zwrócił ID nowo utworzonego użytkownika.");
+    }
+
+    if (selectedFile.value) {
+      const uploadData = new FormData()
+      uploadData.append('file', selectedFile.value)
+
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/users/${userId}/photo`, 
+        uploadData,
+        getAuthHeaders()
+      )
+    }
+
     router.push('/admin/users')
   } catch (error) {
     if (error.response?.status === 400 && error.response.data) {

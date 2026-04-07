@@ -97,10 +97,10 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('trippy_token')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
+    return '/login'
   }  
   else if (to.path === '/login' && isAuthenticated) {
-    next('/admin/users')
+    return '/admin/users'
   } 
   else {
     next()

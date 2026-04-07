@@ -20,7 +20,7 @@ public record UserCreateRequest(
     @NotBlank(message = "[ERROR] Password is required")
     @Size(min = 8, max = 128, message = "[ERROR] Password must be between 8 and 128 characters")
     @Pattern(
-        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]+$",
         message = "[ERROR] Password must contain at least one uppercase, one lowercase, one digit, and one special character"
     )
     String password,
