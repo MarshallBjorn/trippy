@@ -4,11 +4,14 @@ import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -37,6 +40,29 @@ public class UserController {
             @RequestBody UpdateUserRequest request
     ) {
         UserResponse response = userService.updateCurrentUser(userDetails.getUsername(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Uploads or replaces a profile photo for a specific user via admin panel.
+     *
+     * @param id the identifier of the user
+     * @param file the image file to upload
+     * @return the updated user object
+     */
+    @PostMapping("/me/photo")
+    @Operation(summary = "Upload profile photo", description = "Uploads a new profile picture for the currently authenticated user.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully uploaded the photo"),
+        @ApiResponse(responseCode = "400", description = "Invalid file or size exceeded"),
+        @ApiResponse(responseCode = "403", description = "Missing administrator privileges"),
+        @ApiResponse(responseCode = "404", description = "User with the specified ID not found")
+    })
+    public ResponseEntity<UserResponse> uploadProfilePhoto (
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestParam("file") MultipartFile file
+    ) {
+        UserResponse response = userService.uploadProfilePhoto(userDetails.getUsername(), file);
         return ResponseEntity.ok(response);
     }
 }

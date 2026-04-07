@@ -4,18 +4,38 @@ import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.repository.UserRepository;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
+    }
+
+    @Value("${app.file-server.base-url:http://localhost:8888/uploads/}")
+    private String fileServerBaseUrl;
+
+    public UserResponse uploadProfilePhoto(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String savedFilename = fileStorageService.savePhoto(file);
+
+        user.setPhotoUrl(savedFilename);
+        User savedUser = userRepository.save(user);
+
+        return mapToResponse(savedUser);
     }
 
     public UserResponse getCurrentUser(String email) {
@@ -52,12 +72,15 @@ public class UserService {
     }
 
     private UserResponse mapToResponse(User user) {
+        String fullPhotoUrl = (user.getPhotoUrl() != null) ? fileServerBaseUrl + user.getPhotoUrl() : null;
+
         return new UserResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
-                user.isVerified()
+                user.isVerified(),
+                fullPhotoUrl
         );
     }
 }

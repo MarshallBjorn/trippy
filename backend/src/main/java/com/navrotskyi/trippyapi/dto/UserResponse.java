@@ -10,13 +10,15 @@ public class UserResponse {
     private String email;
     private Role role;
     private boolean isVerified;
+    private String photoUrl;
 
-    public UserResponse(UUID id, String name, String email, Role role, boolean isVerified) {
+    public UserResponse(UUID id, String name, String email, Role role, boolean isVerified, String photoUrl) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.role = role;
         this.isVerified = isVerified;
+        this.photoUrl = photoUrl;
     }
 
     public UUID getId() { return id; }
@@ -24,4 +26,5 @@ public class UserResponse {
     public String getEmail() { return email; }
     public Role getRole() { return role; }
     public boolean isVerified() { return isVerified; }
+    public String getPhotoUrl() { return photoUrl; }
 }
