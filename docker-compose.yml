@@ -55,6 +55,7 @@ services:
       - SPRING_MAIL_PORT=${MAIL_PORT}
       - SPRING_MAIL_USERNAME=${MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD}
+      - APP_UPLOAD_DIR=/app/uploads
     ports:
       - "8080:8080"
     depends_on:
@@ -66,6 +67,7 @@ services:
       - ./backend/src:/app/src
       - ./backend/pom.xml:/app/pom.xml
       - ./backend/target:/app/target
+      - trippy_uploads:/app/uploads
 
   frontend:
     build: 
@@ -85,8 +87,21 @@ services:
       - ./frontend:/app
       - /app/node_modules
 
+  file_server:
+    image: nginx:alpine
+    container_name: trippy_file_server
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - trippy_uploads:/usr/share/nginx/html/uploads:ro 
+    networks:
+      - trippy_network
+
 volumes:
   postgres_data:
+  trippy_uploads:
 
 networks:
   trippy_network:
