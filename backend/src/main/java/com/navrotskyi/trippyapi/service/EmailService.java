@@ -13,7 +13,7 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(String toEmail, String token) {
-        String confirmationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+        String confirmationUrl = "http://localhost:5173/verify?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("kontakt@tomoiolo.pl");

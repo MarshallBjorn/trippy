@@ -32,6 +32,8 @@ import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
 import com.navrotskyi.trippyapi.domain.RefreshToken;
+import com.navrotskyi.trippyapi.domain.Role;
+
 import org.mockito.Mockito;
 
 
@@ -60,6 +62,7 @@ class AuthenticationServiceLoginTest {
         User savedUser = new User();
         savedUser.setId(UUID.randomUUID());
         savedUser.setVerified(true);
+        savedUser.setRole(Role.USER);
 
         when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(savedUser));
         when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
