@@ -218,3 +218,27 @@ Poniższe dane są generowane automatycznie przez `UserSeeder`. Wszystkie konta 
 | :--- | :--- | :--- | :--- |
 | **Administrator** | `admin@trippy.pl` | `password` | Pełny dostęp (ADMIN) |
 | **Użytkownik 1** | `jan@trippy.pl` | `password` | Standardowe (USER) |
+
+## Serwer plików
+
+### Zabezpiecznia:
+- Przed wysłaniem plików nie będących obrazami.
+- Przed przekroczeniem 5MB rozmiaru jednego pliku.
+- Przed wysłaniem ukrytego złośliwego programu pod dozwolonymi rozszerzeniami.
+- Przed indeksacją plików.
+- Przed spamem zdjęć (limit rate)
+
+### Do zrobienia:
+- Wyciek prywatniści: Należy wycinać metadane z plików.
+- Całkowity limit dyskowy dla użytkownika: ograniczenie ilości pamięci dla każdego użytkownika.
+- WAF/CDN: Podpięcie domeny pod darmową wersję CloudFlare.
+
+### Do przetestowania na Postman:
+- Wstaw podany link do ścieżki i ustaw metodę `POST`.
+```
+http://localhost:8080/api/photos/upload
+```
+- W Body ustaw typ na `form-data`.
+- Dodaj nową wartość, nazwij ją `file`.
+- Wstaw w value z eksploratora plików dowolny plik.
+- Kliknij `Send`.

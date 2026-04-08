@@ -40,7 +40,7 @@ public class EmailServiceTest {
 
         assertEquals(toEmail, Objects.requireNonNull(capturedMessage.getTo())[0]);
         assertEquals("Trippy - Potwierdź swój adres email", capturedMessage.getSubject());
-        assertTrue(Objects.requireNonNull(capturedMessage.getText()).contains("http://localhost:8080/api/auth/verify?token=" + token),
+        assertTrue(Objects.requireNonNull(capturedMessage.getText()).contains("http://localhost:5173/verify?token=" + token),
                 "Treść maila musi zawierać poprawny link aktywacyjny");
     }
 }

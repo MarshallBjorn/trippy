@@ -12,7 +12,12 @@ import com.navrotskyi.trippyapi.service.RefreshTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,10 +43,20 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     @Operation(summary = "Authenticate user", description = "Authenticates a user and returns an access token along with a refresh token.")
-    public ResponseEntity<AuthResponse> authenticate(
-            @RequestBody LoginRequest request
-    ) {
-        return ResponseEntity.ok(authenticationService.authenticate(request));
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            AuthResponse response = authenticationService.authenticate(request);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Konto nie zostało zweryfikowane")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", e.getMessage()));
+            }
+            
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Nieprawidłowy adres email lub hasło."));
+        }
     }
 
     @PostMapping("/refresh")
@@ -58,5 +73,10 @@ public class AuthenticationController {
                             .build());
                 })
                 .orElseThrow(() -> new TokenRefreshException(request.getRefreshToken(), "Refresh token is not in database!"));
+    }
+
+    public ResponseEntity<Map<String, String>> handleDisabledUser(DisabledException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "Konto nie zostało zweryfikowane. Sprawdź swój email."));
     }
 }
