@@ -1,4 +1,4 @@
-package com.navrotskyi.trippyapi.service;
+package com.navrotskyi.trippyapi.service.admin;
 
 import com.navrotskyi.trippyapi.dto.admin.AdminPhotoResponse;
 import com.navrotskyi.trippyapi.dto.admin.AdminPostResponse;
@@ -6,6 +6,7 @@ import com.navrotskyi.trippyapi.repository.TripPhotoRepository;
 import com.navrotskyi.trippyapi.repository.TripPostRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class AdminModerationService {
     }
 
     // --- POSTS MODERATION ---
+    @Transactional(readOnly = true)
     public List<AdminPostResponse> getAllPosts() {
         return postRepository.findAll().stream()
                 .map(post -> new AdminPostResponse(
@@ -42,6 +44,7 @@ public class AdminModerationService {
     }
 
     // --- PHOTOS MODERATION ---
+    @Transactional(readOnly = true)
     public List<AdminPhotoResponse> getAllPhotos() {
         return photoRepository.findAll().stream()
                 .map(photo -> new AdminPhotoResponse(

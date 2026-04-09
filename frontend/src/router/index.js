@@ -9,7 +9,7 @@ import DictionariesView from '../views/DictionariesView.vue'
 import CurrencyCreateView from '../views/CurrencyCreateView.vue'
 import RoleCreateView from '../views/RoleCreateView.vue'
 import TripsView from '../views/TripsView.vue'
-import ModerationView from '../views/ModerationView.vue'
+import TripDetailsView from '../views/TripDetailsView.vue'
 
 const routes = [
   {
@@ -72,9 +72,9 @@ const routes = [
         component: TripsView
       },
       {
-        path: 'moderation',
-        name: 'AdminModeration',
-        component: ModerationView
+        path: 'trips/:id',
+        name: 'TripDetails',
+        component: TripDetailsView
       }
     ]
   },
@@ -97,10 +97,10 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('trippy_token')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
+    return '/login'
   }  
   else if (to.path === '/login' && isAuthenticated) {
-    next('/admin/users')
+    return '/admin/users'
   } 
   else {
     next()

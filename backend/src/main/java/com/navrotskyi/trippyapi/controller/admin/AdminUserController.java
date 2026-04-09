@@ -11,14 +11,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.navrotskyi.trippyapi.dto.admin.UserAdminResponse;
 import com.navrotskyi.trippyapi.dto.admin.UserCreateRequest;
 import com.navrotskyi.trippyapi.dto.admin.UserUpdateRequest;
-import com.navrotskyi.trippyapi.service.AdminUserService;
+import com.navrotskyi.trippyapi.service.admin.AdminUserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -146,5 +148,28 @@ public class AdminUserController {
     ) {
         adminUserService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Uploads or replaces a profile photo for a specific user via admin panel.
+     *
+     * @param id the identifier of the user
+     * @param file the image file to upload
+     * @return the updated user object
+     */
+    @Operation(summary = "Upload user photo", description = "Uploads or replaces the profile photo for a specific user.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully uploaded the photo"),
+        @ApiResponse(responseCode = "400", description = "Invalid file or size exceeded"),
+        @ApiResponse(responseCode = "403", description = "Missing administrator privileges"),
+        @ApiResponse(responseCode = "404", description = "User with the specified ID not found")
+    })
+    @PostMapping("/{id}/photo")
+    public ResponseEntity<UserAdminResponse> uploadUserPhoto(
+        @Parameter(description = "User ID", required = true) @PathVariable UUID id,
+        @RequestParam("file") MultipartFile file
+    ) {
+        UserAdminResponse updatedUser = adminUserService.uploadUserPhoto(id, file);
+        return ResponseEntity.ok(updatedUser);
     }
 }

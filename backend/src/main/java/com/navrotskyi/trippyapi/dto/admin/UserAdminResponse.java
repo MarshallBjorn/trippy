@@ -10,6 +10,7 @@ public record UserAdminResponse(
         String email,
         Role role,
         boolean isVerified,
-        boolean isBlocked
+        boolean isBlocked,
+        String photoUrl
 ) {
 }

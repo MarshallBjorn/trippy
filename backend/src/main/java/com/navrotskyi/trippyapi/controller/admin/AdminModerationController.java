@@ -2,7 +2,8 @@ package com.navrotskyi.trippyapi.controller.admin;
 
 import com.navrotskyi.trippyapi.dto.admin.AdminPhotoResponse;
 import com.navrotskyi.trippyapi.dto.admin.AdminPostResponse;
-import com.navrotskyi.trippyapi.service.AdminModerationService;
+import com.navrotskyi.trippyapi.service.admin.AdminModerationService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

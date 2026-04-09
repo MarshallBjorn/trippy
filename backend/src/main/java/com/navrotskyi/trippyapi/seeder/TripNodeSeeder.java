@@ -14,7 +14,6 @@ public class TripNodeSeeder {
 
     public List<TripNode> getSampleTripNodes(List<TripEvent> trips, List<User> users) {
         List<TripNode> nodes = new ArrayList<>();
-        User admin = users.get(0);
         User jan = users.get(1);
         User anna = users.get(2);
         User marek = users.get(3);
