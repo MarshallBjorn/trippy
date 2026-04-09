@@ -27,25 +27,41 @@ class ExpensesViewModel : ViewModel() {
         _uiState.value = ExpensesState.Loading
         viewModelScope.launch {
             try {
-                // If tripId is null, we might want a global summary or just the first trip
-                // For now, let's assume we have a way to get a general summary or we pass a specific tripId
-                val response = if (tripId != null) {
-                    api.getExpensesSummary(tripId)
+                val targetTripId = if (tripId != null) {
+                    tripId
                 } else {
-                    // Fallback or general summary if implemented
-                    // For demo purposes, we can try to get the first trip's summary if tripId is null
                     val tripsResponse = api.getMyTrips()
                     if (tripsResponse.isSuccessful && !tripsResponse.body().isNullOrEmpty()) {
-                        api.getExpensesSummary(tripsResponse.body()!![0].id)
+                        tripsResponse.body()!![0].id
                     } else {
                         null
                     }
                 }
 
-                if (response?.isSuccessful == true && response.body() != null) {
-                    _uiState.value = ExpensesState.Success(response.body()!!)
+                if (targetTripId == null) {
+                    _uiState.value = ExpensesState.Error("Brak wybranej wycieczki")
+                    return@launch
+                }
+
+                val response = api.getTripNodes(targetTripId)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val nodes = response.body()!!
+                    val totalSpent = nodes.sumOf { it.price }
+                    val categoryBreakdown = nodes.groupBy { it.category ?: "Inne" }
+                        .mapValues { entry -> entry.value.sumOf { it.price } }
+
+                    val summary = ExpensesSummaryDto(
+                        totalSpent = totalSpent,
+                        currency = "PLN",
+                        categoryBreakdown = categoryBreakdown,
+                        userBalance = 0.0,
+                        pendingSettlements = emptyList()
+                    )
+
+                    _uiState.value = ExpensesState.Success(summary)
                 } else {
-                    _uiState.value = ExpensesState.Error("Błąd pobierania danych: ${response?.code()}")
+                    _uiState.value = ExpensesState.Error("Błąd pobierania danych: ${response.code()}")
                 }
             } catch (e: Exception) {
                 _uiState.value = ExpensesState.Error("Błąd połączenia: ${e.localizedMessage}")
@@ -54,6 +70,6 @@ class ExpensesViewModel : ViewModel() {
     }
 
     fun settle(settlementId: String) {
-        // Implement settlement logic
+        // logika rozdzielenia wydatkow
     }
 }

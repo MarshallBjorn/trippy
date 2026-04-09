@@ -26,9 +26,13 @@ interface TrippyApi {
     @POST("/api/trips/{tripId}/participants")
     suspend fun inviteParticipant(
         @Path("tripId") tripId: String,
-        @Body request: InviteParticipantRequest // Zmienione z TripParticipantDto
+        @Body request: InviteParticipantRequest
     ): Response<TripParticipantDto>
 
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
+
+    // Pobieranie wydatków (nodes) danej wycieczki
+    @GET("/api/trips/{eventId}/nodes")
+    suspend fun getTripNodes(@Path("eventId") eventId: String): Response<List<TripNodeDto>>
 }

@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -36,17 +34,14 @@ import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
+import com.navrotskyi.trippyapp.ui.screens.expenses.ExpensesScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
-import com.navrotskyi.trippyapp.ui.viewmodels.AuthState
-import com.navrotskyi.trippyapp.ui.viewmodels.AuthViewModel
-import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
-import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModelFactory
-import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import com.navrotskyi.trippyapp.ui.viewmodels.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,6 +62,7 @@ class MainActivity : ComponentActivity() {
                     factory = ProfileViewModelFactory(userDao)
                 )
                 val tripViewModel: TripViewModel = viewModel()
+                val expensesViewModel: ExpensesViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -96,7 +92,6 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        // Lista ekranów "głównych"
                         val rootScreens = listOf(Screen.Trips.route, Screen.Expenses.route, Screen.Profile.route)
 
                         if (currentRoute in rootScreens) {
@@ -134,7 +129,6 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.Login.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        // Definicja ekranu logowania
                         composable(Screen.Login.route) {
                             LoginScreen(
                                 onLoginClick = { email, password ->
@@ -147,7 +141,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Definicja ekranu rejestracji
                         composable(Screen.Register.route) {
                             RegisterScreen(
                                 onRegisterClick = { name, email, password ->
@@ -158,7 +151,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        // EKRAN PROFILU
+
                         composable(Screen.Profile.route) {
                             ProfileScreen(
                                 viewModel = profileViewModel,
@@ -168,9 +161,7 @@ class MainActivity : ComponentActivity() {
                                 onLogoutClick = {
                                     profileViewModel.logout {
                                         TokenManager.clearToken()
-
                                         tripViewModel.clearData()
-
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }
@@ -179,7 +170,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        // EKRAN EDYCJI PROFILU
+
                         composable(Screen.EditProfile.route) {
                             val userState by profileViewModel.user.collectAsState()
                             EditProfileScreen(
@@ -188,7 +179,7 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN ZMIANY WALUTY
+
                         composable(Screen.Currency.route) {
                             val userState by profileViewModel.user.collectAsState()
                             val currencies by profileViewModel.currencies.collectAsState()
@@ -199,14 +190,14 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN ZMIANY HASŁA
+
                         composable(Screen.ChangePassword.route) {
                             ChangePasswordScreen(
                                 onSaveClick = { _, newPass -> profileViewModel.updatePassword(newPass); navController.popBackStack() },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN WYCIECZEK
+
                         composable(Screen.Trips.route) {
                             JourneysScreen(
                                 viewModel = tripViewModel,
@@ -216,20 +207,19 @@ class MainActivity : ComponentActivity() {
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
                             )
                         }
-                        // EKRAN DODAWANIA WYCIECZKI
+
                         composable(Screen.AddTrip.route) {
                             AddTripScreen(
                                 viewModel = tripViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN SZCZEGÓŁÓW WYCIECZKI
+
                         composable(
                             route = Screen.TripDetails.route,
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
-
                             TripDetailsScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
@@ -240,24 +230,22 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // Ekran formularza zapraszania
                         composable(
                             route = Screen.InviteParticipant.route,
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
-
                             InviteParticipantScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN WYDATKÓW
+
                         composable(Screen.Expenses.route) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Tu będą Wydatki - podmieńcie ten Box na swój ekran")
-                            }
+                            ExpensesScreen(
+                                viewModel = expensesViewModel
+                            )
                         }
                     }
                 }

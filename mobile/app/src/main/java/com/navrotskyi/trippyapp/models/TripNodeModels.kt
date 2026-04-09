@@ -13,7 +13,7 @@ data class TripNodeDto(
     val price: Double,
     @SerializedName("separate")
     val isSeparate: Boolean,
-    val category: String? = "Inne" // Adding category as it's in the mockup
+    val category: String? = "Inne"
 )
 
 data class SettlementDto(
@@ -24,13 +24,13 @@ data class SettlementDto(
     val currency: String,
     val tripName: String,
     val date: String,
-    val isIncoming: Boolean // To distinguish "Oddajesz" vs "Otrzymujesz"
+    val isIncoming: Boolean
 )
 
 data class ExpensesSummaryDto(
     val totalSpent: Double,
     val currency: String,
     val categoryBreakdown: Map<String, Double>,
-    val userBalance: Double, // positive if others owe me, negative if I owe
+    val userBalance: Double,
     val pendingSettlements: List<SettlementDto>
 )
