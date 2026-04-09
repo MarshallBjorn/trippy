@@ -1,4 +1,4 @@
-package com.navrotskyi.trippyapi.service;
+package com.navrotskyi.trippyapi.service.admin;
 
 import com.navrotskyi.trippyapi.domain.Currency;
 import com.navrotskyi.trippyapi.domain.TripRole;

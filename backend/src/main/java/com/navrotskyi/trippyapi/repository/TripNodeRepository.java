@@ -10,4 +10,6 @@ import java.util.UUID;
 @Repository
 public interface TripNodeRepository extends JpaRepository<TripNode, UUID> {
     List<TripNode> findAllByEventIdOrderByStartTimeAsc(UUID eventId);
+
+    List<TripNode> findByEventId(UUID eventId);
 }

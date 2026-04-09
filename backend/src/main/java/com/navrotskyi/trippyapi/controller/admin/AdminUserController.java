@@ -20,7 +20,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.navrotskyi.trippyapi.dto.admin.UserAdminResponse;
 import com.navrotskyi.trippyapi.dto.admin.UserCreateRequest;
 import com.navrotskyi.trippyapi.dto.admin.UserUpdateRequest;
-import com.navrotskyi.trippyapi.service.AdminUserService;
+import com.navrotskyi.trippyapi.service.admin.AdminUserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -4,7 +4,6 @@ import com.navrotskyi.trippyapi.domain.*;
 import com.navrotskyi.trippyapi.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -53,7 +52,6 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     @Override
-    @Transactional
     public void run(String... args) {
         if (userRepository.count() == 0) {
             System.out.println("[SEEDER] Wykryto pustą bazę. Uruchamianie skryptów seedujących...");

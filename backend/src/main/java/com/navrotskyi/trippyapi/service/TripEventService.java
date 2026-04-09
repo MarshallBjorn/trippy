@@ -16,14 +16,12 @@ import java.util.UUID;
 public class TripEventService {
 
     private final TripEventRepository tripEventRepository;
-    private final UserRepository userRepository;
     private final CurrencyRepository currencyRepository;
     private final TripRoleRepository tripRoleRepository;
     private final TripParticipantRepository tripParticipantRepository;
 
     public TripEventService(TripEventRepository tripEventRepository, UserRepository userRepository, CurrencyRepository currencyRepository, TripRoleRepository tripRoleRepository, TripParticipantRepository tripParticipantRepository) {
         this.tripEventRepository = tripEventRepository;
-        this.userRepository = userRepository;
         this.currencyRepository = currencyRepository;
         this.tripRoleRepository = tripRoleRepository;
         this.tripParticipantRepository = tripParticipantRepository;

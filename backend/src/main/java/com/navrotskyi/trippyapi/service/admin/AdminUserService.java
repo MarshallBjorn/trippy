@@ -1,4 +1,4 @@
-package com.navrotskyi.trippyapi.service;
+package com.navrotskyi.trippyapi.service.admin;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +14,7 @@ import com.navrotskyi.trippyapi.dto.admin.UserAdminResponse;
 import com.navrotskyi.trippyapi.dto.admin.UserCreateRequest;
 import com.navrotskyi.trippyapi.dto.admin.UserUpdateRequest;
 import com.navrotskyi.trippyapi.repository.UserRepository;
+import com.navrotskyi.trippyapi.service.FileStorageService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
