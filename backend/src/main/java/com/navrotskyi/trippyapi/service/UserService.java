@@ -49,22 +49,22 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (request.getName() != null && !request.getName().isBlank()) {
-            user.setName(request.getName());
+        if (request.name() != null && !request.name().isBlank()) {
+            user.setName(request.name());
         }
 
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            boolean emailTaken = userRepository.findByEmail(request.getEmail())
+        if (request.email() != null && !request.email().isBlank()) {
+            boolean emailTaken = userRepository.findByEmail(request.email())
                     .filter(existing -> !existing.getId().equals(user.getId()))
                     .isPresent();
             if (emailTaken) {
                 throw new IllegalArgumentException("Email is already in use");
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(request.email());
         }
 
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.password()));
         }
 
         User saved = userRepository.save(user);

@@ -4,6 +4,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -11,6 +12,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.navrotskyi.trippyapi.dto.ErrorResponse;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -41,6 +43,17 @@ public class GlobalExceptionHandler {
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedRequest(RuntimeException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.FORBIDDEN.value(),
+            HttpStatus.FORBIDDEN.name(),
+            ex.getMessage(),
+            LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(SecurityException.class)
@@ -130,7 +143,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.CONFLICT.value(),
             HttpStatus.CONFLICT.name(),
-            "Konflikt danych. Sprawdź poprawność wprowadzonych informacji.",
+            "Konflikt danych. Sprawdź poprawność wprowadzonych informacji: " + ex.getMessage(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -138,10 +151,31 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof InvalidFormatException formatEx) {
+            String fieldName = formatEx.getPath().stream()
+                    .map(ref -> ref.getFieldName())
+                    .collect(Collectors.joining("."));
+
+            String expectedType = formatEx.getTargetType().getSimpleName();
+            String providedValue = formatEx.getValue().toString();
+
+            ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.name(),
+                String.format("Nieprawidłowy format danych w polu '%s'. Oczekiwano wartości typu: %s, a otrzymano: '%s'.", 
+                              fieldName, expectedType, providedValue),
+                LocalDateTime.now()
+            );
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
-            "Nieprawidłowe lub puste ciało zapytania (Request Body). Upewnij się, że wysyłasz poprawny format JSON.",
+            "Nieprawidłowe lub puste ciało zapytania. Sprawdź, czy wysyłasz poprawny format JSON.",
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

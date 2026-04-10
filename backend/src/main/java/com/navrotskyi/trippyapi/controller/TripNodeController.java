@@ -4,6 +4,7 @@ import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.CreateTripNodeRequest;
 import com.navrotskyi.trippyapi.dto.TripNodeDto;
+import com.navrotskyi.trippyapi.dto.admin.NodeResponse;
 import com.navrotskyi.trippyapi.mapper.TripNodeMapper;
 import com.navrotskyi.trippyapi.service.TripNodeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/trips/{eventId}/nodes")
@@ -37,9 +37,7 @@ public class TripNodeController {
 
     @GetMapping
     @Operation(summary = "Get trip nodes", description = "Retrieves all itinerary nodes for a specific trip event.")
-    public ResponseEntity<List<TripNodeDto>> getTripNodes(@PathVariable UUID eventId, @AuthenticationPrincipal User currentUser) {
-        List<TripNode> nodes = tripNodeService.getNodesForEvent(eventId, currentUser);
-        List<TripNodeDto> nodeDtos = nodes.stream().map(TripNodeMapper::toDto).collect(Collectors.toList());
-        return ResponseEntity.ok(nodeDtos);
+    public ResponseEntity<List<NodeResponse>> getTripNodes(@PathVariable UUID eventId, @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(tripNodeService.getNodesForEvent(eventId, currentUser));
     }
 }
