@@ -1,11 +1,16 @@
 package com.navrotskyi.trippyapp.api
 
 import com.navrotskyi.trippyapp.models.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
+
 
 interface TrippyApi {
     @POST("/api/auth/login")
@@ -31,4 +36,19 @@ interface TrippyApi {
 
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
+
+    @GET("/api/users/me")
+    suspend fun getCurrentUser(): Response<UserResponseDto>
+
+    @PUT("/api/users/me")
+    suspend fun updateCurrentUser(@Body request: UpdateUserRequest): Response<UserResponseDto>
+
+    @GET("/api/dictionaries/currencies")
+    suspend fun getCurrencies(): Response<List<CurrencyDto>>
+
+    @Multipart
+    @POST("api/users/me/photo")
+    suspend fun uploadProfilePhoto(
+        @Part file: MultipartBody.Part
+    ): Response<UserResponseDto>
 }

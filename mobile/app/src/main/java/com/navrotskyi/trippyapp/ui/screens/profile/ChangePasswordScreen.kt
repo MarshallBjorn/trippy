@@ -18,12 +18,50 @@ import com.navrotskyi.trippyapp.ui.components.TrippyButton
 
 @Composable
 fun ChangePasswordScreen(
-    onSaveClick: (String, String) -> Unit,
-    onBackClick: () -> Unit
+    onSaveClick: (String, String, (String?) -> Unit) -> Unit,
+    onBackClick: () -> Unit,
+    viewModel: com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 ) {
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val isLoading = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Loading
+    val backendError = (uiState as? com.navrotskyi.trippyapp.models.ProfileUiState.Error)?.message
+
+    val passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}\$".toRegex()
+
+    fun validateAndSave() {
+
+        if (isSaving) return
+
+        errorMessage = when {
+            oldPassword.isBlank() -> "Wprowadź obecne hasło."
+            newPassword.isBlank() -> "Wprowadź nowe hasło."
+            newPassword == oldPassword -> "Nowe hasło musi być inne niż obecne."
+            !passwordPattern.matches(newPassword) -> "Hasło musi mieć min. 8 znaków, w tym wielką i małą literę, cyfrę oraz znak specjalny."
+            confirmPassword.isBlank() -> "Powtórz nowe hasło."
+            newPassword != confirmPassword -> "Nowe hasła nie są identyczne."
+            else -> null
+        }
+        if (errorMessage == null) {
+            isSaving = true
+
+            onSaveClick(oldPassword, newPassword) { backendError ->
+                isSaving = false
+
+                if (backendError != null) {
+                    errorMessage = backendError
+                } else {
+                    onBackClick()
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,12 +96,26 @@ fun ChangePasswordScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
-                Box(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    val errorText = backendError ?: errorMessage
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = errorText != null
+                    ) {
+                        Text(
+                            text = errorText ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                                .fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+
                     TrippyButton(
                         text = "Zapisz nowe hasło",
-                        onClick = {
-                            onSaveClick(oldPassword, newPassword)
-                        }
+                        onClick = { validateAndSave() },
+                        enabled = !isLoading && !isSaving
                     )
                 }
             }
@@ -78,13 +130,35 @@ fun ChangePasswordScreen(
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            PasswordInputField(value = oldPassword, onValueChange = { oldPassword = it }, label = "Obecne hasło")
+            PasswordInputField(
+                value = oldPassword,
+                onValueChange = { oldPassword = it; errorMessage = null },
+                label = "Obecne hasło"
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
-            PasswordInputField(value = newPassword, onValueChange = { newPassword = it }, label = "Nowe hasło")
+            PasswordInputField(
+                value = newPassword,
+                onValueChange = { newPassword = it; errorMessage = null },
+                label = "Nowe hasło"
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
-            PasswordInputField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Powtórz nowe hasło")
+            PasswordInputField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it; errorMessage = null },
+                label = "Powtórz nowe hasło"
+            )
+
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

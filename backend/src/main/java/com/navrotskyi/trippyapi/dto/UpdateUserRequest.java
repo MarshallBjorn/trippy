@@ -1,18 +1,25 @@
 package com.navrotskyi.trippyapi.dto;
 
-public class UpdateUserRequest {
-    private String name;
-    private String email;
-    private String password;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
-    public UpdateUserRequest() {}
+public record UpdateUserRequest(
+        @Size(min = 2, max = 50, message = "[ERROR] Name must be between 2 and 50 characters")
+        String name,
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+        @Email(message = "[ERROR] Email must be correct.")
+        String email,
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+        @Pattern(
+                regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]+$",
+                message = "[ERROR] Password must contain at least one uppercase, one lowercase, one digit, and one special character"
+        )
+        String password,
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+        String currentPassword,
+
+        @Size(min = 3, max = 3, message = "Currency code expected")
+        String currency_code
+) {
 }

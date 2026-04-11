@@ -20,6 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
+import com.navrotskyi.trippyapp.models.ProfileUiState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.navrotskyi.trippyapp.R
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun ProfileScreen(
@@ -29,11 +37,113 @@ fun ProfileScreen(
     onLogoutClick: () -> Unit,
     onPasswordClick: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val user by viewModel.user.collectAsState()
 
-    val userName = user?.name ?: "Brak nazwy"
-    val userEmail = user?.email ?: "Brak e-maila"
-    val userCurrency = user?.currency ?: "PLN"
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var wasError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchUserFromApi()
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            viewModel.fetchUserFromApi()
+
+            kotlinx.coroutines.delay(500)
+
+            if (uiState is ProfileUiState.Error) {
+                wasError = true
+                snackbarHostState.showSnackbar(
+                    message = (uiState as ProfileUiState.Error).message,
+                    duration = SnackbarDuration.Short
+                )
+            } else if (uiState is ProfileUiState.Success && wasError) {
+                wasError = false
+                snackbarHostState.showSnackbar(
+                    message = "Połączenie przywrócone!",
+                    duration = SnackbarDuration.Short
+                )
+            }
+            kotlinx.coroutines.delay(5000)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                val isSuccessMessage = data.visuals.message.contains("przywrócone") ||
+                        data.visuals.message.contains("zaktualizowane")
+
+                val containerColor = if (isSuccessMessage) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.errorContainer
+                }
+
+                val contentColor = if (isSuccessMessage) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onErrorContainer
+                }
+                Snackbar(
+                    containerColor = containerColor,
+                    contentColor = contentColor,
+                    shape = RoundedCornerShape(12.dp),
+                    snackbarData = data
+                )
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            user?.let { userData ->
+                ProfileContent(
+                    userData = userData,
+                    onEditProfileClick = onEditProfileClick,
+                    onCurrencyClick = onCurrencyClick,
+                    onLogoutClick = onLogoutClick,
+                    onPasswordClick = onPasswordClick
+                )
+            }
+            if (user == null && uiState is ProfileUiState.Loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            if (user == null && uiState is ProfileUiState.Error) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = (uiState as ProfileUiState.Error).message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Button(onClick = { viewModel.fetchUserFromApi() }) {
+                        Text("Ponów próbę")
+                    }
+                }
+            }
+        }
+    }
+}
+@Composable
+fun ProfileContent(
+    userData: com.navrotskyi.trippyapp.data.entity.User,
+    onEditProfileClick: () -> Unit,
+    onCurrencyClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onPasswordClick: () -> Unit
+) {
+    val userName = userData.name ?: "Użytkownik"
+    val userEmail = userData.email ?: "brak@email.pl"
+    val userCurrency = userData.currency ?: "PLN"
 
     val initials = userName.split(" ")
         .mapNotNull { it.firstOrNull()?.uppercase() }
@@ -41,108 +151,114 @@ fun ProfileScreen(
         .joinToString("")
         .ifEmpty { "U" }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+    ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Mój Profil",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+
+                if (userData.stringUrl != null) {
+                    AsyncImage(
+                        model = userData.stringUrl,
+                        contentDescription = "Zdjęcie profilowe",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = R.drawable.ic_launcher_foreground)
+                    )
+                } else {
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Mój Profil",
-                fontSize = 28.sp,
+                text = userName,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            Text(
+                text = userEmail,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 16.sp
+            )
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = initials,
-                        fontSize = 42.sp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = userName,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                ProfileMenuItem(
+                    icon = Icons.Outlined.Edit,
+                    title = "Edytuj profil",
+                    onClick = onEditProfileClick
                 )
-                Text(
-                    text = userEmail,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 16.sp
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
+
+                ProfileMenuItem(
+                    icon = Icons.Outlined.AttachMoney,
+                    title = "Domyślna waluta",
+                    subtitle = userCurrency,
+                    onClick = onCurrencyClick
                 )
-            }
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
 
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    ProfileMenuItem(
-                        icon = Icons.Outlined.Edit,
-                        title = "Edytuj profil",
-                        onClick = onEditProfileClick
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
-
-                    ProfileMenuItem(
-                        icon = Icons.Outlined.AttachMoney,
-                        title = "Domyślna waluta",
-                        subtitle = userCurrency,
-                        onClick = onCurrencyClick
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
-
-                    ProfileMenuItem(
-                        icon = Icons.Outlined.Lock,
-                        title = "Zmień hasło",
-                        onClick = onPasswordClick
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            OutlinedButton(
-                onClick = onLogoutClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(
-                    text = "Wyloguj się",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                ProfileMenuItem(
+                    icon = Icons.Outlined.Lock,
+                    title = "Zmień hasło",
+                    onClick = onPasswordClick
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        OutlinedButton(
+            onClick = onLogoutClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text(
+                text = "Wyloguj się",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
