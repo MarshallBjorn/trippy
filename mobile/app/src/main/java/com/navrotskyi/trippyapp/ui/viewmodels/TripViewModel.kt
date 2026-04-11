@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.models.CreateTripEventRequest
+import com.navrotskyi.trippyapp.models.CreateTripNodeRequest
 import com.navrotskyi.trippyapp.models.InviteParticipantRequest
 import com.navrotskyi.trippyapp.models.Trip
+import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,7 +70,7 @@ class TripViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     _trips.value = response.body()!!.map { dto ->
                         Trip(
-                            id = dto.id, // Retrofit/Gson zamieni UUID na String
+                            id = dto.id,
                             owner = null,
                             name = dto.name,
                             pickedCurrency = dto.currencyCode,
@@ -242,6 +244,139 @@ class TripViewModel : ViewModel() {
     fun resetCreateTripState() {
         _createTripState.value = CreateTripState.Idle
     }
+
+
+    private val _nodes = MutableStateFlow<List<TripNodeDto>>(emptyList())
+    val nodes: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
+
+    fun loadNodes(tripId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.getTripNodes(tripId)
+                if (response.isSuccessful && response.body() != null) {
+                    _nodes.value = response.body()!!
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deleteNode(tripId: String, nodeId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.deleteTripNode(tripId, nodeId)
+                if (response.isSuccessful) {
+                    loadNodes(tripId)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private val _createNodeState = MutableStateFlow<CreateTripState>(CreateTripState.Idle)
+    val createNodeState: StateFlow<CreateTripState> = _createNodeState.asStateFlow()
+
+    fun resetCreateNodeState() {
+        _createNodeState.value = CreateTripState.Idle
+    }
+
+    // Funkcja pomocnicza: "14.05.2026 10:30" -> "2026-05-14T10:30:00" dla backendu
+    private fun formatDateTimeForApi(input: String): String {
+        return try {
+            val parts = input.split(" ")
+            val dateParts = parts[0].split(".")
+            val timePart = parts[1]
+            "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${timePart}:00"
+        } catch (e: Exception) {
+            input
+        }
+    }
+
+    fun createTripNode(tripId: String, name: String, startTime: String, endTime: String, price: String, note: String, isSeparate: Boolean) {
+        _createNodeState.value = CreateTripState.Loading
+        viewModelScope.launch {
+            try {
+                val request = CreateTripNodeRequest(
+                    name = name,
+                    startTime = formatDateTimeForApi(startTime),
+                    endTime = formatDateTimeForApi(endTime),
+                    note = note.ifBlank { null },
+                    price = price.toDoubleOrNull() ?: 0.0,
+                    isSeparate = isSeparate
+                )
+
+                val response = api.createTripNode(tripId, request)
+                if (response.isSuccessful) {
+                    _createNodeState.value = CreateTripState.Success
+                    loadNodes(tripId)
+                } else {
+                    _createNodeState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _createNodeState.value = CreateTripState.Error("Brak połączenia: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    private val _selectedNode = MutableStateFlow<TripNodeDto?>(null)
+    val selectedNode: StateFlow<TripNodeDto?> = _selectedNode.asStateFlow()
+
+    fun loadNode(tripId: String, nodeId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.getTripNode(tripId, nodeId)
+                if (response.isSuccessful) {
+                    _selectedNode.value = response.body()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun clearSelectedNode() {
+        _selectedNode.value = null
+    }
+
+    fun updateTripNode(
+        tripId: String,
+        nodeId: String,
+        name: String,
+        startTime: String,
+        endTime: String,
+        price: String,
+        note: String,
+        isSeparate: Boolean
+    ) {
+        _createNodeState.value = CreateTripState.Loading
+        viewModelScope.launch {
+            try {
+                val request = CreateTripNodeRequest(
+                    name = name,
+                    startTime = formatDateTimeForApi(startTime),
+                    endTime = formatDateTimeForApi(endTime),
+                    note = note.ifBlank { null },
+                    price = price.toDoubleOrNull() ?: 0.0,
+                    isSeparate = isSeparate
+                )
+                val response = api.updateTripNode(tripId, nodeId, request)
+                if (response.isSuccessful) {
+                    _createNodeState.value = CreateTripState.Success
+                    loadNodes(tripId)
+                    loadNode(tripId, nodeId)
+                } else {
+                    _createNodeState.value = CreateTripState.Error("Błąd: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _createNodeState.value = CreateTripState.Error(e.localizedMessage ?: "Błąd połączenia")
+            }
+        }
+    }
+
+
+
 }
 
 

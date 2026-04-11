@@ -24,4 +24,18 @@ sealed class Screen(val route: String) {
 
     //wydatki
     object Expenses : Screen("expenses")
+
+    object AddNode : Screen("add_node/{tripId}") {
+        fun createRoute(tripId: String) = "add_node/$tripId"
+    }
+
+
+    object NodeDetails : Screen("node_details/{tripId}/{nodeId}") {
+        fun createRoute(tripId: String, nodeId: String) = "node_details/$tripId/$nodeId"
+    }
+
+    // W trippyapp/ui/Screen.kt
+    object EditNode : Screen("edit_node/{tripId}/{nodeId}") {
+        fun createRoute(tripId: String, nodeId: String) = "edit_node/$tripId/$nodeId"
+    }
 }

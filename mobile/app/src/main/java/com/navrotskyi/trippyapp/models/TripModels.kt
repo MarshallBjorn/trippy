@@ -30,3 +30,26 @@ data class CreateTripEventRequest(
     val endDate: String,
     val budget: Double
 )
+
+data class TripNodeDto(
+    val id: String,
+    val eventId: String,
+    val reporterId: String,
+    val reporterName: String,
+    val startTime: String,
+    val endTime: String,
+    val name: String,
+    val note: String?,
+    val price: Double,
+    @SerializedName("separate")
+    val isSeparate: Boolean
+)
+
+data class CreateTripNodeRequest(
+    val name: String,
+    val startTime: String,
+    val endTime: String,
+    val note: String?,
+    val price: Double,
+    val isSeparate: Boolean
+)

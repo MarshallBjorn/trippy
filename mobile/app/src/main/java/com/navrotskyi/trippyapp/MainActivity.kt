@@ -20,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,10 +35,13 @@ import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.TripNodeDetailsScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.EditNodeScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.AuthState
@@ -78,7 +80,6 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "Sukces!", Toast.LENGTH_SHORT).show()
 
                             tripViewModel.loadTrips()
-
                             authViewModel.resetState()
 
                             navController.navigate(Screen.Trips.route) {
@@ -96,12 +97,11 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        // Lista ekranów "głównych"
                         val rootScreens = listOf(Screen.Trips.route, Screen.Expenses.route, Screen.Profile.route)
 
                         if (currentRoute in rootScreens) {
                             NavigationBar(
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 8.dp
                             ) {
                                 NavigationBarItem(
@@ -134,31 +134,21 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.Login.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        // Definicja ekranu logowania
                         composable(Screen.Login.route) {
                             LoginScreen(
-                                onLoginClick = { email, password ->
-                                    authViewModel.login(email, password)
-                                },
-                                onRegisterClick = {
-                                    navController.navigate(Screen.Register.route)
-                                },
+                                onLoginClick = { email, password -> authViewModel.login(email, password) },
+                                onRegisterClick = { navController.navigate(Screen.Register.route) },
                                 modifier = Modifier
                             )
                         }
 
-                        // Definicja ekranu rejestracji
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password ->
-                                    authViewModel.register(name, email, password)
-                                },
-                                onBackToLoginClick = {
-                                    navController.popBackStack()
-                                }
+                                onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
+                                onBackToLoginClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN PROFILU
+
                         composable(Screen.Profile.route) {
                             ProfileScreen(
                                 viewModel = profileViewModel,
@@ -168,9 +158,7 @@ class MainActivity : ComponentActivity() {
                                 onLogoutClick = {
                                     profileViewModel.logout {
                                         TokenManager.clearToken()
-
                                         tripViewModel.clearData()
-
                                         navController.navigate(Screen.Login.route) {
                                             popUpTo(0) { inclusive = true }
                                         }
@@ -179,7 +167,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        // EKRAN EDYCJI PROFILU
+
                         composable(Screen.EditProfile.route) {
                             val userState by profileViewModel.user.collectAsState()
                             EditProfileScreen(
@@ -188,7 +176,7 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN ZMIANY WALUTY
+
                         composable(Screen.Currency.route) {
                             val userState by profileViewModel.user.collectAsState()
                             val currencies by profileViewModel.currencies.collectAsState()
@@ -199,61 +187,110 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN ZMIANY HASŁA
+
                         composable(Screen.ChangePassword.route) {
                             ChangePasswordScreen(
                                 onSaveClick = { _, newPass -> profileViewModel.updatePassword(newPass); navController.popBackStack() },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN WYCIECZEK
+
                         composable(Screen.Trips.route) {
                             JourneysScreen(
                                 viewModel = tripViewModel,
-                                onTripClick = { tripId ->
-                                    navController.navigate(Screen.TripDetails.createRoute(tripId))
-                                },
+                                onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
                             )
                         }
-                        // EKRAN DODAWANIA WYCIECZKI
+
                         composable(Screen.AddTrip.route) {
                             AddTripScreen(
                                 viewModel = tripViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN SZCZEGÓŁÓW WYCIECZKI
+
                         composable(
                             route = Screen.TripDetails.route,
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
-
                             TripDetailsScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
+                                profileViewModel = profileViewModel,
                                 onBackClick = { navController.popBackStack() },
-                                onInviteClick = { id ->
-                                    navController.navigate(Screen.InviteParticipant.createRoute(id))
+                                onInviteClick = { id -> navController.navigate(Screen.InviteParticipant.createRoute(id)) },
+                                onAddNodeClick = { id -> navController.navigate(Screen.AddNode.createRoute(id)) },
+                                onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.NodeDetails.route,
+                            arguments = listOf(
+                                navArgument("tripId") { type = NavType.StringType },
+                                navArgument("nodeId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val nodeId = backStackEntry.arguments?.getString("nodeId") ?: ""
+                            TripNodeDetailsScreen(
+                                tripId = tripId,
+                                nodeId = nodeId,
+                                viewModel = tripViewModel,
+                                profileViewModel = profileViewModel,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                    tripViewModel.clearSelectedNode()
+                                },
+                                onEditClick = { id ->
+                                    navController.navigate(Screen.EditNode.createRoute(tripId, id))
                                 }
                             )
                         }
 
-                        // Ekran formularza zapraszania
+                        composable(
+                            route = Screen.EditNode.route,
+                            arguments = listOf(
+                                navArgument("tripId") { type = NavType.StringType },
+                                navArgument("nodeId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val nodeId = backStackEntry.arguments?.getString("nodeId") ?: ""
+                            EditNodeScreen(
+                                tripId = tripId,
+                                nodeId = nodeId,
+                                viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.AddNode.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            AddNodeScreen(
+                                tripId = tripId,
+                                viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
                         composable(
                             route = Screen.InviteParticipant.route,
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
-
                             InviteParticipantScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
-                        // EKRAN WYDATKÓW
+
                         composable(Screen.Expenses.route) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("Tu będą Wydatki - podmieńcie ten Box na swój ekran")
