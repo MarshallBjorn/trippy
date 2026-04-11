@@ -2,10 +2,7 @@ package com.navrotskyi.trippyapp.api
 
 import com.navrotskyi.trippyapp.models.*
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
+import retrofit2.http.*
 
 interface TrippyApi {
     @POST("/api/auth/login")
@@ -35,4 +32,26 @@ interface TrippyApi {
     // Pobieranie wydatków (nodes) danej wycieczki
     @GET("/api/trips/{eventId}/nodes")
     suspend fun getTripNodes(@Path("eventId") eventId: String): Response<List<TripNodeDto>>
+
+    // Dodawanie wydatku (node)
+    @POST("/api/trips/{eventId}/nodes")
+    suspend fun createTripNode(
+        @Path("eventId") eventId: String,
+        @Body request: CreateTripNodeRequest
+    ): Response<TripNodeDto>
+
+    // Edycja wydatku
+    @PUT("/api/trips/{eventId}/nodes/{nodeId}")
+    suspend fun updateTripNode(
+        @Path("eventId") eventId: String,
+        @Path("nodeId") nodeId: String,
+        @Body request: CreateTripNodeRequest
+    ): Response<TripNodeDto>
+
+    // Usuwanie wydatku
+    @DELETE("/api/trips/{eventId}/nodes/{nodeId}")
+    suspend fun deleteTripNode(
+        @Path("eventId") eventId: String,
+        @Path("nodeId") nodeId: String
+    ): Response<Unit>
 }

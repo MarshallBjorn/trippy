@@ -4,10 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
-import com.navrotskyi.trippyapp.models.CreateTripEventRequest
-import com.navrotskyi.trippyapp.models.InviteParticipantRequest
-import com.navrotskyi.trippyapp.models.Trip
-import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.models.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +32,13 @@ sealed class InviteState {
     data class Error(val message: String) : InviteState()
 }
 
+sealed class CreateTripNodeState {
+    object Idle : CreateTripNodeState()
+    object Loading : CreateTripNodeState()
+    object Success : CreateTripNodeState()
+    data class Error(val message: String) : CreateTripNodeState()
+}
+
 class TripViewModel : ViewModel() {
     private val api = RetrofitClient.retrofit.create(TrippyApi::class.java)
 
@@ -47,6 +51,9 @@ class TripViewModel : ViewModel() {
     private val _participants = MutableStateFlow<List<TripParticipantDto>>(emptyList())
     val participants: StateFlow<List<TripParticipantDto>> = _participants.asStateFlow()
 
+    private val _expenses = MutableStateFlow<List<TripNodeDto>>(emptyList())
+    val expenses: StateFlow<List<TripNodeDto>> = _expenses.asStateFlow()
+
     private val _inviteState = MutableStateFlow<InviteState>(InviteState.Idle)
     val inviteState: StateFlow<InviteState> = _inviteState.asStateFlow()
 
@@ -54,8 +61,10 @@ class TripViewModel : ViewModel() {
     val addTripErrors: StateFlow<AddTripFormErrors> = _addTripErrors.asStateFlow()
 
     private val _createTripState = MutableStateFlow<CreateTripState>(CreateTripState.Idle)
-
     val createTripState: StateFlow<CreateTripState> = _createTripState.asStateFlow()
+
+    private val _createTripNodeState = MutableStateFlow<CreateTripNodeState>(CreateTripNodeState.Idle)
+    val createTripNodeState: StateFlow<CreateTripNodeState> = _createTripNodeState.asStateFlow()
 
     init {
         loadTrips()
@@ -68,7 +77,7 @@ class TripViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     _trips.value = response.body()!!.map { dto ->
                         Trip(
-                            id = dto.id, // Retrofit/Gson zamieni UUID na String
+                            id = dto.id,
                             owner = null,
                             name = dto.name,
                             pickedCurrency = dto.currencyCode,
@@ -105,6 +114,88 @@ class TripViewModel : ViewModel() {
         }
     }
 
+    fun loadExpenses(tripId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.getTripNodes(tripId)
+                if (response.isSuccessful && response.body() != null) {
+                    _expenses.value = response.body()!!
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun createTripNode(tripId: String, name: String, price: Double, category: String, start: String, end: String, isSeparate: Boolean, note: String?) {
+        _createTripNodeState.value = CreateTripNodeState.Loading
+        viewModelScope.launch {
+            try {
+                val request = CreateTripNodeRequest(
+                    name = name,
+                    price = price,
+                    category = category,
+                    start = start,
+                    end = end,
+                    isSeparate = isSeparate,
+                    note = note
+                )
+                val response = api.createTripNode(tripId, request)
+                if (response.isSuccessful) {
+                    _createTripNodeState.value = CreateTripNodeState.Success
+                    loadExpenses(tripId)
+                } else {
+                    _createTripNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _createTripNodeState.value = CreateTripNodeState.Error("Brak połączenia: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun updateTripNode(tripId: String, nodeId: String, name: String, price: Double, category: String, start: String, end: String, isSeparate: Boolean, note: String?) {
+        _createTripNodeState.value = CreateTripNodeState.Loading
+        viewModelScope.launch {
+            try {
+                val request = CreateTripNodeRequest(
+                    name = name,
+                    price = price,
+                    category = category,
+                    start = start,
+                    end = end,
+                    isSeparate = isSeparate,
+                    note = note
+                )
+                val response = api.updateTripNode(tripId, nodeId, request)
+                if (response.isSuccessful) {
+                    _createTripNodeState.value = CreateTripNodeState.Success
+                    loadExpenses(tripId)
+                } else {
+                    _createTripNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _createTripNodeState.value = CreateTripNodeState.Error("Brak połączenia: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun deleteTripNode(tripId: String, nodeId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.deleteTripNode(tripId, nodeId)
+                if (response.isSuccessful) {
+                    loadExpenses(tripId)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun resetCreateTripNodeState() {
+        _createTripNodeState.value = CreateTripNodeState.Idle
+    }
+
     fun inviteParticipant(tripId: String, email: String) {
         _inviteState.value = InviteState.Loading
         viewModelScope.launch {
@@ -130,6 +221,7 @@ class TripViewModel : ViewModel() {
     fun clearData() {
         _trips.value = emptyList()
         _participants.value = emptyList()
+        _expenses.value = emptyList()
     }
 
     fun resetInviteState() {
@@ -143,18 +235,15 @@ class TripViewModel : ViewModel() {
         var endErr: String? = null
         var budgetErr: String? = null
 
-        // Walidacja nazwy
         if (name.isBlank()) {
             nameErr = "Nazwa wycieczki jest wymagana"
             isValid = false
         }
 
-        // Walidacja dat
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         var parsedStart: LocalDate? = null
         var parsedEnd: LocalDate? = null
 
-        // Sprawdzanie daty rozpoczecia
         if (startDate.isBlank()) {
             startErr = "Data rozpoczęcia jest wymagana"
             isValid = false
@@ -167,7 +256,6 @@ class TripViewModel : ViewModel() {
             }
         }
 
-        // Sprawdzanie daty zakonczenia
         if (endDate.isBlank()) {
             endErr = "Data zakończenia jest wymagana"
             isValid = false
@@ -180,7 +268,6 @@ class TripViewModel : ViewModel() {
             }
         }
 
-        // PORÓWNANIE DAT
         if (parsedStart != null && parsedEnd != null) {
             if (parsedEnd.isBefore(parsedStart)) {
                 endErr = "Data zakończenia musi być po dacie rozpoczęcia"
@@ -188,7 +275,6 @@ class TripViewModel : ViewModel() {
             }
         }
 
-        // Walidacja budżetu
         if (budget.isBlank()) {
             budgetErr = "Budżet jest wymagany"
             isValid = false
@@ -243,5 +329,3 @@ class TripViewModel : ViewModel() {
         _createTripState.value = CreateTripState.Idle
     }
 }
-
-

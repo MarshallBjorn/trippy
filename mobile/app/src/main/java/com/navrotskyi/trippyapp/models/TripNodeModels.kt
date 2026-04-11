@@ -6,14 +6,29 @@ data class TripNodeDto(
     val id: String,
     val eventId: String,
     val reporterId: String,
-    val start: String,
-    val end: String,
+    @SerializedName("startTime")
+    val start: String?,
+    @SerializedName("endTime")
+    val end: String?,
     val name: String,
     val note: String?,
     val price: Double,
     @SerializedName("separate")
     val isSeparate: Boolean,
     val category: String? = "Inne"
+)
+
+data class CreateTripNodeRequest(
+    val name: String,
+    val price: Double,
+    @SerializedName("startTime")
+    val start: String,
+    @SerializedName("endTime")
+    val end: String,
+    val note: String? = null,
+    @SerializedName("separate")
+    val isSeparate: Boolean = false,
+    val category: String = "Inne"
 )
 
 data class SettlementDto(
