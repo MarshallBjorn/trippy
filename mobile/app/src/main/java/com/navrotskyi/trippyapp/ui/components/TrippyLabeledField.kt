@@ -1,4 +1,3 @@
-// Nowy plik: trippyapp/ui/components/TrippyLabeledField.kt
 package com.navrotskyi.trippyapp.ui.components
 
 import androidx.compose.foundation.layout.*

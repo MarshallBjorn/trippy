@@ -64,14 +64,15 @@ public class TripNodeController {
     }
 
 
-    @PutMapping("/{nodeId}")
+@PutMapping("/{nodeId}")
     public ResponseEntity<TripNodeDto> updateNode(
         @PathVariable UUID eventId, 
         @PathVariable UUID nodeId, 
         @RequestBody CreateTripNodeRequest request, 
         @AuthenticationPrincipal User currentUser) {
-    TripNode updated = tripNodeService.updateTripNode(eventId, nodeId, request, currentUser);
-    return ResponseEntity.ok(TripNodeMapper.toDto(updated));
-}
-
+        
+        TripNode updated = tripNodeService.updateTripNode(eventId, nodeId, request, currentUser);
+        
+        return ResponseEntity.ok(TripNodeMapper.toDto(updated));
+    }
 }

@@ -17,7 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
 import com.navrotskyi.trippyapp.ui.components.TrippyLabeledField
-import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripState
+import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,22 +28,23 @@ fun AddNodeScreen(
     onBackClick: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var isSeparate by remember { mutableStateOf(false) }
+    var separate by remember { mutableStateOf(false) }
 
     val createNodeState by viewModel.createNodeState.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(createNodeState) {
-        if (createNodeState is CreateTripState.Success) {
-            Toast.makeText(context, "Dodano wydarzenie do planu!", Toast.LENGTH_SHORT).show()
+        if (createNodeState is CreateTripNodeState.Success) {
+            Toast.makeText(context, "Dodano pomyślnie!", Toast.LENGTH_SHORT).show()
             viewModel.resetCreateNodeState()
             onBackClick()
-        } else if (createNodeState is CreateTripState.Error) {
-            Toast.makeText(context, (createNodeState as CreateTripState.Error).message, Toast.LENGTH_LONG).show()
+        } else if (createNodeState is CreateTripNodeState.Error) {
+            Toast.makeText(context, (createNodeState as CreateTripNodeState.Error).message, Toast.LENGTH_LONG).show()
             viewModel.resetCreateNodeState()
         }
     }
@@ -51,22 +52,32 @@ fun AddNodeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dodaj wydarzenie", fontWeight = FontWeight.Bold) },
+                title = { Text("Dodaj element", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, contentDescription = "Wstecz") }
                 }
             )
         },
         bottomBar = {
-            Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
+            Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
                 Box(modifier = Modifier.padding(16.dp)) {
                     TrippyButton(
-                        text = if (createNodeState is CreateTripState.Loading) "Zapisywanie..." else "Zapisz w planie",
+                        text = if (createNodeState is CreateTripNodeState.Loading) "Zapisywanie..." else "Zapisz",
                         onClick = {
-                            if (name.isNotBlank() && startTime.isNotBlank() && endTime.isNotBlank()) {
-                                viewModel.createTripNode(tripId, name, startTime, endTime, price, note, isSeparate)
+                            if (name.isBlank() || startTime.isBlank() || endTime.isBlank()) {
+                                Toast.makeText(context, "Wypełnij wymagane pola!", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, "Wypełnij wymagane pola (Nazwa, Daty)", Toast.LENGTH_SHORT).show()
+
+                                viewModel.createTripNode(
+                                    tripId = tripId,
+                                    name = name,
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    price = price,
+                                    note = note,
+                                    separate = separate,
+                                    category = if (category.isBlank()) "Inne" else category
+                                )
                             }
                         }
                     )
@@ -80,27 +91,62 @@ fun AddNodeScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            TrippyLabeledField(label = "Tytuł", value = name, placeholder = "np. Lot, Hotel, Zwiedzanie", onValueChange = { name = it })
-            TrippyLabeledField(label = "Start (DD.MM.YYYY HH:mm)", value = startTime, placeholder = "np. 14.05.2026 10:00", onValueChange = { startTime = it })
-            TrippyLabeledField(label = "Koniec (DD.MM.YYYY HH:mm)", value = endTime, placeholder = "np. 14.05.2026 12:30", onValueChange = { endTime = it })
             TrippyLabeledField(
-                label = "Szacowany Koszt",
+                label = "Tytuł",
+                value = name,
+                placeholder = "np. Lot, Hotel, Obiad",
+                onValueChange = { name = it }
+            )
+
+            TrippyLabeledField(
+                label = "Typ / Lokalizacja",
+                value = category,
+                placeholder = "np. Transport, Restauracja",
+                onValueChange = { category = it }
+            )
+
+            TrippyLabeledField(
+                label = "Start",
+                value = startTime,
+                placeholder = "DD.MM.YYYY HH:MM",
+                onValueChange = { startTime = it }
+            )
+
+            TrippyLabeledField(
+                label = "Koniec",
+                value = endTime,
+                placeholder = "DD.MM.YYYY HH:MM",
+                onValueChange = { endTime = it }
+            )
+
+            TrippyLabeledField(
+                label = "Koszt",
                 value = price,
-                placeholder = "np. 150.50",
+                placeholder = "np. 150.00",
                 onValueChange = { price = it },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            TrippyLabeledField(label = "Notatka / Opis", value = note, placeholder = "Dodatkowe informacje...", onValueChange = { note = it })
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isSeparate, onCheckedChange = { isSeparate = it })
-                Text(text = "Koszty rozdzielne (Każdy płaci za siebie)", style = MaterialTheme.typography.bodyMedium)
+            TrippyLabeledField(
+                label = "Notatka",
+                value = note,
+                placeholder = "Opcjonalnie dodatkowe informacje",
+                onValueChange = { note = it }
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Checkbox(checked = separate, onCheckedChange = { separate = it })
+                Text(text = "Koszty rozdzielne", style = MaterialTheme.typography.bodySmall)
             }
-            Spacer(modifier = Modifier.height(40.dp))
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

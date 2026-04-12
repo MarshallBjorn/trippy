@@ -2,7 +2,9 @@ package com.navrotskyi.trippyapp.ui.screens.journeys
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -35,32 +37,27 @@ fun TripNodeDetailsScreen(
         viewModel.loadParticipants(tripId)
     }
 
-    // Bezpieczne sprawdzanie uprawnień
     val currentUserName = currentUser?.name ?: ""
-    val reporterName = node?.reporterName ?: ""
-
-    val myParticipantData = participants.find { it.userName == currentUserName }
-    val amIOrganizer = myParticipantData?.tripRole?.equals("ORGANIZER", ignoreCase = true) == true
-    val isAuthor = reporterName.isNotEmpty() && reporterName == currentUserName
-
-    // TYMCZASOWA ZMIANA DO TESTÓW: '|| true' wymusza pojawienie się ikon edycji/usuwania
-    val canModify = isAuthor || amIOrganizer || true
+    val reporterName = node?.reporterName ?: "Nieznany"
+    val amIOrganizer = participants.find { it.userName == currentUserName }?.tripRole?.equals("ORGANIZER", true) == true
+    val canModify = (currentUserName == reporterName) || amIOrganizer
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Szczegóły", fontWeight = FontWeight.Bold) },
+                title = { Text("Szczegóły wydarzenia", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, contentDescription = "Wróć") }
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Wróć")
+                    }
                 },
                 actions = {
-                    // Obejście błędu z wczytaniem roli usera, na razie jest takie obejście
                     if (canModify && node != null) {
                         IconButton(onClick = { onEditClick(node!!.id) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Edytuj")
                         }
                         IconButton(onClick = {
-                            viewModel.deleteNode(tripId, nodeId)
+                            viewModel.deleteTripNode(tripId, nodeId)
                             onBackClick()
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error)
@@ -72,15 +69,18 @@ fun TripNodeDetailsScreen(
     ) { padding ->
         val safeNode = node
         if (safeNode == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 20.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // NAGŁÓWEK (Autor i Rola)
+                // Nagłówek Autora
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -92,20 +92,16 @@ fun TripNodeDetailsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("Autor", style = MaterialTheme.typography.labelSmall)
-                            Text(safeNode.reporterName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text("Reporter", style = MaterialTheme.typography.labelSmall)
+                            Text(reporterName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
-
-                        //Rola
-                        val reporterData = participants.find { it.userName == safeNode.reporterName }
-                        val roleLabel = reporterData?.tripRole?.uppercase() ?: "UCZESTNIK"
-
                         Surface(
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
+                            val role = participants.find { it.userName == reporterName }?.tripRole ?: "Uczestnik"
                             Text(
-                                text = roleLabel,
+                                text = role.uppercase(),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
@@ -115,18 +111,40 @@ fun TripNodeDetailsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(safeNode.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = safeNode.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // KAFFELKI Z INFO
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    InfoTile(Modifier.weight(1f), Icons.Default.Schedule, "Czas", "${formatDate(safeNode.startTime)}\n${formatDate(safeNode.endTime)}")
-                    InfoTile(Modifier.weight(1f), Icons.Default.Payments, "Budżet", "${safeNode.price} PLN")
+                    NodeInfoTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Schedule,
+                        label = "Czas",
+                        value = formatTimeRangeDetails(safeNode.startTime, safeNode.endTime)
+                    )
+                    NodeInfoTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.AttachMoney,
+                        label = "Koszt",
+                        value = "${safeNode.price} PLN"
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                InfoTile(Modifier.fillMaxWidth(), Icons.Default.LocationOn, "Lokalizacja", "Warszawa, Polska") // Placeholder
 
-                if (safeNode.isSeparate) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val categoryText = if (safeNode.category.isNullOrBlank()) "Brak podanego typu" else safeNode.category!!
+                NodeInfoTile(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Default.Label,
+                    label = "Typ / Lokalizacja",
+                    value = categoryText
+                )
+
+                if (safeNode.separate) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
@@ -141,28 +159,47 @@ fun TripNodeDetailsScreen(
                     }
                 }
 
+
+                if (!safeNode.note.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Notatka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = safeNode.note!!,
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // SEKCJA POSTÓW
                 Text("Posty", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .height(150.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("Brak postów. Bądź pierwszym, który skomentuje!", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
+                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
 
 @Composable
-fun InfoTile(modifier: Modifier, icon: ImageVector, label: String, value: String) {
+fun NodeInfoTile(modifier: Modifier, icon: ImageVector, label: String, value: String) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -173,5 +210,26 @@ fun InfoTile(modifier: Modifier, icon: ImageVector, label: String, value: String
             Text(label, style = MaterialTheme.typography.labelSmall)
             Text(value, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
+    }
+}
+
+fun formatTimeRangeDetails(start: String?, end: String?): String {
+    if (start.isNullOrBlank() || end.isNullOrBlank()) return "Brak czasu"
+    return try {
+
+        val sTime = start.substring(11, 16)
+        val sDate = "${start.substring(8, 10)}.${start.substring(5, 7)}"
+        val eTime = end.substring(11, 16)
+        val eDate = "${end.substring(8, 10)}.${end.substring(5, 7)}"
+
+        if (sDate == eDate) {
+            "$sDate\n$sTime - $eTime"
+        } else {
+            "$sDate $sTime\n$eDate $eTime"
+        }
+    } catch (e: Exception) {
+        val cleanStart = start.replace("T", " ").take(16)
+        val cleanEnd = end.replace("T", " ").take(16)
+        "$cleanStart\n$cleanEnd"
     }
 }
