@@ -75,6 +75,8 @@ class MainActivity : ComponentActivity() {
 
                             tripViewModel.loadTrips()
 
+                            profileViewModel.fetchUserFromApi()
+
                             authViewModel.resetState()
 
                             navController.navigate(Screen.Trips.route) {
@@ -96,7 +98,7 @@ class MainActivity : ComponentActivity() {
 
                         if (currentRoute in rootScreens) {
                             NavigationBar(
-                                containerColor = Color.White,
+                                containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 8.dp
                             ) {
                                 NavigationBarItem(
@@ -175,7 +177,14 @@ class MainActivity : ComponentActivity() {
                             val userState by profileViewModel.user.collectAsState()
                             EditProfileScreen(
                                 currentName = userState?.name ?: "",
-                                onSaveClick = { profileViewModel.updateUserName(it); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { newName ->
+                                    profileViewModel.updateUserName(newName) { success ->
+                                        if (success) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -186,14 +195,26 @@ class MainActivity : ComponentActivity() {
                             CurrencyScreen(
                                 currentCurrency = userState?.currency ?: "PLN",
                                 currencies = currencies,
-                                onSaveClick = { profileViewModel.updateCurrency(it); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { selectedCurrency ->
+                                    profileViewModel.updateCurrency(selectedCurrency) { success ->
+                                        if (success) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
 
                         composable(Screen.ChangePassword.route) {
                             ChangePasswordScreen(
-                                onSaveClick = { _, newPass -> profileViewModel.updatePassword(newPass); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { oldPass, newPass, onResult ->
+                                    profileViewModel.updatePassword(oldPass, newPass) { success ->
+                                        onResult(if (success) null else "Błąd")
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }

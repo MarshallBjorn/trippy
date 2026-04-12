@@ -15,18 +15,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.navrotskyi.trippyapp.models.CurrencyDto
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
 
-data class CurrencyItem(val code: String, val name: String)
 
 @Composable
 fun CurrencyScreen(
     currentCurrency: String,
-    currencies: List<CurrencyItem>,
+    currencies: List<CurrencyDto>,
     onSaveClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 ) {
     var selectedCurrency by remember { mutableStateOf(currentCurrency) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val isError = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Error
+    val isLoading = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Loading
+
+    LaunchedEffect(uiState) {
+        if (uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Error) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.resetError()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -50,12 +62,31 @@ fun CurrencyScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
-                Box(modifier = Modifier.padding(16.dp)) {
-                    TrippyButton(text = "Potwierdź wybór", onClick = { onSaveClick(selectedCurrency) })
+                Column(modifier = Modifier.padding(16.dp)) {
+
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isError,
+                        enter = androidx.compose.animation.fadeIn(),
+                        exit = androidx.compose.animation.fadeOut()
+                    ) {
+                        Text(
+                            text = "Błąd sieci. Nie udało się zapisać waluty.",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+
+                    TrippyButton(
+                        text = "Potwierdź wybór",
+                        onClick = { onSaveClick(selectedCurrency) },
+                        enabled = !isLoading
+                    )
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp)) {
             Spacer(modifier = Modifier.height(24.dp))

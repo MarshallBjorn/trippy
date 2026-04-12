@@ -42,6 +42,7 @@ public class AuthenticationService {
                 passwordEncoder.encode(request.getPassword()),
                 Role.USER,
                 null,
+                null,
                 false,
                 false
         );

@@ -29,7 +29,6 @@ public class TripNodeService {
         this.tripParticipantRepository = tripParticipantRepository;
     }
 
-    @Transactional
     public TripNode createTripNode(UUID eventId, CreateTripNodeRequest request, User reporter) {
         TripEvent event = tripEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
@@ -65,13 +64,13 @@ public class TripNodeService {
 
     private NodeResponse mapToNodeResponse(TripNode node) {
         return new NodeResponse(
-                node.getId(),
-                node.getName(),
-                node.getNote(),
-                node.getPrice(),
-                node.isSeparate(),
-                node.getReporter().getName(),
-                List.of()
+            node.getId(),
+            node.getName(),
+            node.getNote(),
+            node.getPrice(),
+            node.isSeparate(),
+            node.getReporter().getName(),
+            List.of()
         );
     }
 }

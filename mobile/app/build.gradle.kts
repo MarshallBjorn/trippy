@@ -80,7 +80,11 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    
+    androidTestImplementation ("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation ("com.google.truth:truth:1.4.2")
+    androidTestImplementation ("androidx.room:room-testing:2.6.1")
+    androidTestImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.retrofit.core)
@@ -91,4 +95,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.navigation:navigation-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
