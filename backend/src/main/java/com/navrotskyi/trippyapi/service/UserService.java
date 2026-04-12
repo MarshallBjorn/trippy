@@ -4,6 +4,8 @@ import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.repository.UserRepository;
+import com.navrotskyi.trippyapi.repository.CurrencyRepository;
+import com.navrotskyi.trippyapi.domain.Currency;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,11 +18,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
+    private final CurrencyRepository currencyRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, CurrencyRepository currencyRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
+        this.currencyRepository = currencyRepository;
     }
 
     @Value("${app.file-server.base-url:http://localhost:8888/uploads/}")
@@ -64,7 +68,19 @@ public class UserService {
         }
 
         if (request.password() != null && !request.password().isBlank()) {
+            if (request.currentPassword() == null ||
+                    !passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                throw new IllegalAccessError("Wrong password");
+            }
+
             user.setPassword(passwordEncoder.encode(request.password()));
+        }
+
+        if (request.currency_code() != null && !request.currency_code().isBlank()) {
+            Currency currency = currencyRepository.findById(request.currency_code())
+                    .orElseThrow(() -> new RuntimeException("Currency not found"));
+
+            user.setCurrency(currency);
         }
 
         User saved = userRepository.save(user);
@@ -73,6 +89,7 @@ public class UserService {
 
     private UserResponse mapToResponse(User user) {
         String fullPhotoUrl = (user.getPhotoUrl() != null) ? fileServerBaseUrl + user.getPhotoUrl() : null;
+        String userCurrencyCode = (user.getCurrency() != null) ? user.getCurrency().getCode() : null;
 
         return new UserResponse(
                 user.getId(),
@@ -80,7 +97,8 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.isVerified(),
-                fullPhotoUrl
+                fullPhotoUrl,
+                userCurrencyCode
         );
     }
 }

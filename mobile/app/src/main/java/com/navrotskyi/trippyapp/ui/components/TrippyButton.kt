@@ -13,14 +13,18 @@ import androidx.compose.ui.unit.dp
 fun TrippyButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .height(50.dp),
         shape = MaterialTheme.shapes.medium
+
     ) {
         Text(
             text = text,
