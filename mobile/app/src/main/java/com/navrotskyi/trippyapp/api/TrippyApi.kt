@@ -56,4 +56,19 @@ interface TrippyApi {
         @Path("eventId") eventId: String,
         @Path("nodeId") nodeId: String
     ): Response<Unit>
+
+    @GET("/api/users/me")
+    suspend fun getCurrentUser(): Response<UserResponseDto>
+
+    @PUT("/api/users/me")
+    suspend fun updateCurrentUser(@Body request: UpdateUserRequest): Response<UserResponseDto>
+
+    @GET("/api/dictionaries/currencies")
+    suspend fun getCurrencies(): Response<List<CurrencyDto>>
+
+    @Multipart
+    @POST("api/users/me/photo")
+    suspend fun uploadProfilePhoto(
+        @Part file: MultipartBody.Part
+    ): Response<UserResponseDto>
 }
