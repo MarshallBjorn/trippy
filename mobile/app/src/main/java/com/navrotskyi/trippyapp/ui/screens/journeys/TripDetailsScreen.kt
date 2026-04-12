@@ -1,5 +1,6 @@
 package com.navrotskyi.trippyapp.ui.screens.journeys
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,11 +12,13 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,7 +26,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
+import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,17 +39,42 @@ fun TripDetailsScreen(
     onBackClick: () -> Unit,
     onInviteClick: (String) -> Unit,
     onAddNodeClick: (String) -> Unit,
-    onNodeClick: (String) -> Unit // <--- DODANO
+    onNodeClick: (String) -> Unit 
 ) {
     val trips by viewModel.trips.collectAsState()
     val trip = trips.find { it.id == tripId }
+    
     val participants by viewModel.participants.collectAsState()
     val nodes by viewModel.nodes.collectAsState()
+    val expenses by viewModel.expenses.collectAsState()
     val currentUser by profileViewModel.user.collectAsState()
+    
+    val createNodeState by viewModel.createTripNodeState.collectAsState()
+    val context = LocalContext.current
+
+    var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var expenseToEdit by remember { mutableStateOf<TripNodeDto?>(null) }
 
     LaunchedEffect(tripId) {
         viewModel.loadParticipants(tripId)
-        viewModel.loadNodes(tripId)
+        viewModel.loadNodes(tripId)     
+        viewModel.loadExpenses(tripId)  
+    }
+
+    LaunchedEffect(createNodeState) {
+        when (createNodeState) {
+            is CreateTripNodeState.Success -> {
+                Toast.makeText(context, "Operacja udana!", Toast.LENGTH_SHORT).show()
+                viewModel.resetCreateTripNodeState()
+                showAddExpenseDialog = false
+                expenseToEdit = null
+            }
+            is CreateTripNodeState.Error -> {
+                Toast.makeText(context, (createNodeState as CreateTripNodeState.Error).message, Toast.LENGTH_LONG).show()
+                viewModel.resetCreateTripNodeState()
+            }
+            else -> {}
+        }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -56,6 +86,19 @@ fun TripDetailsScreen(
             Text("Nie znaleziono wycieczki", color = MaterialTheme.colorScheme.onBackground)
         }
         return
+    }
+
+
+    if (showAddExpenseDialog || expenseToEdit != null) {
+        AddTripNodeDialog(
+            tripId = tripId,
+            viewModel = viewModel,
+            expenseToEdit = expenseToEdit,
+            onDismiss = {
+                showAddExpenseDialog = false
+                expenseToEdit = null
+            }
+        )
     }
 
     Scaffold(
@@ -87,15 +130,34 @@ fun TripDetailsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (selectedTabIndex == 2) onInviteClick(tripId)
-                    else if (selectedTabIndex == 0) onAddNodeClick(tripId)
-                },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj")
+            when (selectedTabIndex) {
+                0 -> {
+                    FloatingActionButton(
+                        onClick = { onAddNodeClick(tripId) },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Dodaj wydarzenie")
+                    }
+                }
+                1 -> {
+                    FloatingActionButton(
+                        onClick = { showAddExpenseDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Dodaj wydatek")
+                    }
+                }
+                2 -> {
+                    FloatingActionButton(
+                        onClick = { onInviteClick(tripId) },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Zaproś uczestnika")
+                    }
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -125,16 +187,23 @@ fun TripDetailsScreen(
                     nodes = nodes,
                     participants = participants,
                     currentUserName = currentUser?.name ?: "",
-                    onDeleteNode = { nodeId -> viewModel.deleteNode(tripId, nodeId) },
-                    onNodeClick = onNodeClick // <--- PRZEKAZANO
+                    onDeleteNode = { nodeId -> viewModel.deleteTripNode(tripId, nodeId) },
+                    onNodeClick = onNodeClick
                 )
-                1 -> ExpensesTabPlaceholder()
+                1 -> ExpensesTab(
+                    expenses = expenses,
+                    currency = trip.pickedCurrency,
+                    onEdit = { expenseToEdit = it },
+                    onDelete = { viewModel.deleteTripNode(tripId, it.id) }
+                )
                 2 -> ParticipantsTab(participants = participants)
             }
         }
     }
 }
 
+
+// PANEL WYDARZEŃ
 @Composable
 fun EventsTab(
     tripId: String,
@@ -263,9 +332,6 @@ fun NodeCard(
 
                 if (canEditOrDelete) {
                     Row {
-                        IconButton(onClick = { /* Edycja */ }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edytuj", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
                         IconButton(onClick = onDeleteClick, modifier = Modifier.size(32.dp)) {
                             Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error)
                         }
@@ -275,7 +341,8 @@ fun NodeCard(
         }
     }
 }
-//Formater dla dat
+
+
 fun formatDate(isoDate: String): String {
     return try {
         isoDate.substring(0, 16).replace("T", " ")
@@ -284,6 +351,134 @@ fun formatDate(isoDate: String): String {
     }
 }
 
+// PANEL WYDATKÓW
+@Composable
+fun ExpensesTab(
+    expenses: List<TripNodeDto>,
+    currency: String,
+    onEdit: (TripNodeDto) -> Unit,
+    onDelete: (TripNodeDto) -> Unit
+) {
+    if (expenses.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Brak wydatków. Dodaj pierwszy wydatek!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val total = expenses.sumOf { it.price }
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Suma wydatków",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = String.format(Locale.getDefault(), "%.2f %s", total, currency),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
+            items(expenses) { expense ->
+                ExpenseCard(
+                    expense = expense,
+                    currency = currency,
+                    onEdit = { onEdit(expense) },
+                    onDelete = { onDelete(expense) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ExpenseCard(
+    expense: TripNodeDto,
+    currency: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(MaterialTheme.colorScheme.secondary, shape = androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Receipt, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = expense.name,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = expense.category ?: "Inne",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = String.format(Locale.getDefault(), "%.2f %s", expense.price, currency),
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row {
+                    IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edytuj",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Usuń",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Panel uczestników
 @Composable
 fun ParticipantsTab(participants: List<TripParticipantDto>) {
     if (participants.isEmpty()) {
@@ -343,12 +538,5 @@ fun ParticipantCard(participant: TripParticipantDto) {
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ExpensesTabPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Wydatki i rozliczenia (wkrótce)", color = MaterialTheme.colorScheme.onBackground)
     }
 }

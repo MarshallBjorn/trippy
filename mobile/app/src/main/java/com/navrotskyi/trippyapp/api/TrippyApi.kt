@@ -1,13 +1,9 @@
 package com.navrotskyi.trippyapp.api
 
 import com.navrotskyi.trippyapp.models.*
+import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import retrofit2.http.*
 
 interface TrippyApi {
     @POST("/api/auth/login")
@@ -28,12 +24,13 @@ interface TrippyApi {
     @POST("/api/trips/{tripId}/participants")
     suspend fun inviteParticipant(
         @Path("tripId") tripId: String,
-        @Body request: InviteParticipantRequest // Zmienione z TripParticipantDto
+        @Body request: InviteParticipantRequest
     ): Response<TripParticipantDto>
 
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
 
+    //OBSŁUGA WYDARZEŃ (NODE'ÓW) 
 
     // Pobieranie wydarzeń (Node'ów)
     @GET("/api/trips/{tripId}/nodes")
@@ -53,17 +50,35 @@ interface TrippyApi {
         @Path("nodeId") nodeId: String
     ): Response<Unit>
 
-    // Pobranie konkretnej wycieczki
+    // Pobranie konkretnego wydarzenia (Szczegóły)
     @GET("/api/trips/{tripId}/nodes/{nodeId}")
     suspend fun getTripNode(
         @Path("tripId") tripId: String,
         @Path("nodeId") nodeId: String
     ): Response<TripNodeDto>
 
+    // Edycja wydarzenia
     @PUT("/api/trips/{tripId}/nodes/{nodeId}")
     suspend fun updateTripNode(
         @Path("tripId") tripId: String,
         @Path("nodeId") nodeId: String,
         @Body request: CreateTripNodeRequest
     ): Response<TripNodeDto>
+
+    //OBSŁUGA PROFILU I SŁOWNIKÓW (Z gałęzi develop) 
+
+    @GET("/api/users/me")
+    suspend fun getCurrentUser(): Response<UserResponseDto>
+
+    @PUT("/api/users/me")
+    suspend fun updateCurrentUser(@Body request: UpdateUserRequest): Response<UserResponseDto>
+
+    @GET("/api/dictionaries/currencies")
+    suspend fun getCurrencies(): Response<List<CurrencyDto>>
+
+    @Multipart
+    @POST("api/users/me/photo")
+    suspend fun uploadProfilePhoto(
+        @Part file: MultipartBody.Part
+    ): Response<UserResponseDto>
 }

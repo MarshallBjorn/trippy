@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,6 +34,7 @@ import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
+import com.navrotskyi.trippyapp.ui.screens.expenses.ExpensesScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
@@ -44,11 +43,7 @@ import com.navrotskyi.trippyapp.ui.screens.journeys.TripNodeDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.EditNodeScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
-import com.navrotskyi.trippyapp.ui.viewmodels.AuthState
-import com.navrotskyi.trippyapp.ui.viewmodels.AuthViewModel
-import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
-import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModelFactory
-import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import com.navrotskyi.trippyapp.ui.viewmodels.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     factory = ProfileViewModelFactory(userDao)
                 )
                 val tripViewModel: TripViewModel = viewModel()
+                val expensesViewModel: ExpensesViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -80,6 +76,9 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(context, "Sukces!", Toast.LENGTH_SHORT).show()
 
                             tripViewModel.loadTrips()
+
+                            profileViewModel.fetchUserFromApi()
+
                             authViewModel.resetState()
 
                             navController.navigate(Screen.Trips.route) {
@@ -172,7 +171,14 @@ class MainActivity : ComponentActivity() {
                             val userState by profileViewModel.user.collectAsState()
                             EditProfileScreen(
                                 currentName = userState?.name ?: "",
-                                onSaveClick = { profileViewModel.updateUserName(it); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { newName ->
+                                    profileViewModel.updateUserName(newName) { success ->
+                                        if (success) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -183,14 +189,26 @@ class MainActivity : ComponentActivity() {
                             CurrencyScreen(
                                 currentCurrency = userState?.currency ?: "PLN",
                                 currencies = currencies,
-                                onSaveClick = { profileViewModel.updateCurrency(it); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { selectedCurrency ->
+                                    profileViewModel.updateCurrency(selectedCurrency) { success ->
+                                        if (success) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
 
                         composable(Screen.ChangePassword.route) {
                             ChangePasswordScreen(
-                                onSaveClick = { _, newPass -> profileViewModel.updatePassword(newPass); navController.popBackStack() },
+                                viewModel = profileViewModel,
+                                onSaveClick = { oldPass, newPass, onResult ->
+                                    profileViewModel.updatePassword(oldPass, newPass) { success ->
+                                        onResult(if (success) null else "Błąd")
+                                    }
+                                },
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -292,9 +310,9 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.Expenses.route) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Tu będą Wydatki - podmieńcie ten Box na swój ekran")
-                            }
+                            ExpensesScreen(
+                                viewModel = expensesViewModel
+                            )
                         }
                     }
                 }

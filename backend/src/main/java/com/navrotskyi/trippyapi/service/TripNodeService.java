@@ -5,6 +5,7 @@ import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.dto.CreateTripNodeRequest;
+import com.navrotskyi.trippyapi.dto.admin.NodeResponse;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
 import com.navrotskyi.trippyapi.repository.TripNodeRepository;
@@ -28,7 +29,6 @@ public class TripNodeService {
         this.tripParticipantRepository = tripParticipantRepository;
     }
 
-    @Transactional
     public TripNode createTripNode(UUID eventId, CreateTripNodeRequest request, User reporter) {
         TripEvent event = tripEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
@@ -50,10 +50,28 @@ public class TripNodeService {
         return tripNodeRepository.save(node);
     }
 
-    public List<TripNode> getNodesForEvent(UUID eventId, User user) {
+    @Transactional(readOnly = true)
+    public List<NodeResponse> getNodesForEvent(UUID eventId, User user) {
         tripParticipantRepository.findByEventIdAndUserId(eventId, user.getId())
                 .orElseThrow(() -> new SecurityException("You are not a participant of this trip."));
-        return tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+
+        List<TripNode> nodes = tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+
+        return nodes.stream()
+                .map(this::mapToNodeResponse)
+                .toList();
+    }
+
+    private NodeResponse mapToNodeResponse(TripNode node) {
+        return new NodeResponse(
+            node.getId(),
+            node.getName(),
+            node.getNote(),
+            node.getPrice(),
+            node.isSeparate(),
+            node.getReporter().getName(),
+            List.of()
+        );
     }
 
     @Transactional(readOnly = true)

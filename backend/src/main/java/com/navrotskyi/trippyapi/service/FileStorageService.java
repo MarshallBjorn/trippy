@@ -53,4 +53,17 @@ public class FileStorageService {
             throw new RuntimeException("Could not store file. Please try again!", ex);
         }
     }
+
+    public void deletePhoto(String filename) {
+        if (filename == null || filename.trim().isEmpty()) {
+            throw new IllegalArgumentException("Filename cannot be empty");
+        }
+
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+            Files.deleteIfExists(filePath);
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not delete physical file: " + filename, ex);
+        }
+    }
 }
