@@ -21,6 +21,7 @@ import com.navrotskyi.trippyapi.dto.trip.PostCreateRequest;
 import com.navrotskyi.trippyapi.dto.trip.PostUpdateRequest;
 import com.navrotskyi.trippyapi.repository.TripNodeRepository;
 import com.navrotskyi.trippyapi.repository.TripParticipantRepository;
+import com.navrotskyi.trippyapi.repository.TripPhotoRepository;
 import com.navrotskyi.trippyapi.repository.TripPostRepository;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.service.FileStorageService;
@@ -35,6 +36,7 @@ public class TripPostService {
     private final TripNodeRepository tripNodeRepository;
     private final TripParticipantRepository tripParticipantRepository;
     private final UserRepository userRepository;
+    private final TripPhotoRepository tripPhotoRepository;
     private final FileStorageService fileStorageService;
 
     @Value("${app.file-server.base-url:http://localhost:8888/uploads/}")
@@ -98,7 +100,30 @@ public class TripPostService {
             throw new AccessDeniedException("Nie masz uprawnień do usunięcia tego posta.");
         }
 
+        post.getPhotos().forEach(photo -> fileStorageService.deletePhoto(photo.getPhotoUrl()));
         tripPostRepository.delete(post);
+    }
+
+    @Transactional
+    public void deletePhoto(UUID photoId, String userEmail) {
+        TripPhoto tripPhoto = tripPhotoRepository.findById(photoId)
+                .orElseThrow(() -> new EntityNotFoundException("Zdjęcie nie istnieje"));
+
+        TripPost post = tripPhoto.getPost();
+        User user = getUserByEmail(userEmail);
+        TripEvent event = post.getNode().getEvent();
+
+        boolean isAuthor = post.getReporter().getEmail().equals(userEmail);
+        boolean hasManagementPower = isUserHasRole(user, event, List.of("ORGANIZER", "MODERATOR"));
+
+        if (!isAuthor && !hasManagementPower) {
+            throw new AccessDeniedException("Nie masz uprawnień do usunięcia tego zdjęcia.");
+        }
+
+        String filenameToDelete = tripPhoto.getPhotoUrl();
+
+        tripPhotoRepository.delete(tripPhoto);
+        fileStorageService.deletePhoto(filenameToDelete);
     }
 
     private User getUserByEmail(String email) {

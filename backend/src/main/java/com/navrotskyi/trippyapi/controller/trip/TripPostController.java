@@ -123,4 +123,27 @@ public class TripPostController {
         postService.deletePost(postId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Deletes a specific photo from a post.
+     * Can be performed by the post author, or trip ORGANIZER/MODERATOR.
+     *
+     * @param photoId     UUID of the photo to delete
+     * @param userDetails Authenticated user's details
+     * @return No content
+     */
+    @Operation(summary = "Delete a photo", description = "Deletes a specific photo. Requires post author, ORGANIZER, or MODERATOR role.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Photo deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "User lacks permission to delete this photo", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Photo not found", content = @Content)
+    })
+    @DeleteMapping("/photos/{photoId}")
+    public ResponseEntity<Void> deletePhoto(
+            @Parameter(description = "ID of the photo") @PathVariable UUID photoId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        postService.deletePhoto(photoId, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
 }
