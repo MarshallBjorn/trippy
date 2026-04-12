@@ -62,6 +62,8 @@ public class TripPostService {
         TripNode node = tripNodeRepository.findById(request.nodeId())
                 .orElseThrow(() -> new EntityNotFoundException("Nie znaleziono węzła wycieczki"));
 
+        validateUserIsActiveParticipant(reporter, node.getEvent());
+
         TripPost post = new TripPost();
         post.setNode(node);
         post.setReporter(reporter);
