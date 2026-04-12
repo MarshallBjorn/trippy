@@ -1,4 +1,4 @@
-package com.navrotskyi.trippyapi.controller;
+package com.navrotskyi.trippyapi.controller.trip;
 
 import com.navrotskyi.trippyapi.dto.admin.CurrencyResponse;
 import com.navrotskyi.trippyapi.service.admin.AdminDictionaryService;

@@ -3,13 +3,7 @@ package com.navrotskyi.trippyapp.api
 import com.navrotskyi.trippyapp.models.*
 import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.Multipart
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Part
-import retrofit2.http.Path
+import retrofit2.http.*
 
 
 interface TrippyApi {
@@ -31,11 +25,37 @@ interface TrippyApi {
     @POST("/api/trips/{tripId}/participants")
     suspend fun inviteParticipant(
         @Path("tripId") tripId: String,
-        @Body request: InviteParticipantRequest // Zmienione z TripParticipantDto
+        @Body request: InviteParticipantRequest
     ): Response<TripParticipantDto>
 
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
+
+    // Pobieranie wydatków (nodes) danej wycieczki
+    @GET("/api/trips/{eventId}/nodes")
+    suspend fun getTripNodes(@Path("eventId") eventId: String): Response<List<TripNodeDto>>
+
+    // Dodawanie wydatku (node)
+    @POST("/api/trips/{eventId}/nodes")
+    suspend fun createTripNode(
+        @Path("eventId") eventId: String,
+        @Body request: CreateTripNodeRequest
+    ): Response<TripNodeDto>
+
+    // Edycja wydatku
+    @PUT("/api/trips/{eventId}/nodes/{nodeId}")
+    suspend fun updateTripNode(
+        @Path("eventId") eventId: String,
+        @Path("nodeId") nodeId: String,
+        @Body request: CreateTripNodeRequest
+    ): Response<TripNodeDto>
+
+    // Usuwanie wydatku
+    @DELETE("/api/trips/{eventId}/nodes/{nodeId}")
+    suspend fun deleteTripNode(
+        @Path("eventId") eventId: String,
+        @Path("nodeId") nodeId: String
+    ): Response<Unit>
 
     @GET("/api/users/me")
     suspend fun getCurrentUser(): Response<UserResponseDto>
