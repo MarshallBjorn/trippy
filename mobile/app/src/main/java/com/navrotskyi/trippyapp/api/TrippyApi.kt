@@ -5,7 +5,6 @@ import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
 
-
 interface TrippyApi {
     @POST("/api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
@@ -31,31 +30,42 @@ interface TrippyApi {
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
 
-    // Pobieranie wydatków (nodes) danej wycieczki
-    @GET("/api/trips/{eventId}/nodes")
-    suspend fun getTripNodes(@Path("eventId") eventId: String): Response<List<TripNodeDto>>
+    //OBSŁUGA WYDARZEŃ (NODE'ÓW) 
 
-    // Dodawanie wydatku (node)
-    @POST("/api/trips/{eventId}/nodes")
+    // Pobieranie wydarzeń (Node'ów)
+    @GET("/api/trips/{tripId}/nodes")
+    suspend fun getTripNodes(@Path("tripId") tripId: String): Response<List<TripNodeDto>>
+
+    // Tworzenie wydarzenia
+    @POST("/api/trips/{tripId}/nodes")
     suspend fun createTripNode(
-        @Path("eventId") eventId: String,
+        @Path("tripId") tripId: String,
         @Body request: CreateTripNodeRequest
     ): Response<TripNodeDto>
 
-    // Edycja wydatku
-    @PUT("/api/trips/{eventId}/nodes/{nodeId}")
+    // Usuwanie wydarzenia
+    @DELETE("/api/trips/{tripId}/nodes/{nodeId}")
+    suspend fun deleteTripNode(
+        @Path("tripId") tripId: String,
+        @Path("nodeId") nodeId: String
+    ): Response<Unit>
+
+    // Pobranie konkretnego wydarzenia (Szczegóły)
+    @GET("/api/trips/{tripId}/nodes/{nodeId}")
+    suspend fun getTripNode(
+        @Path("tripId") tripId: String,
+        @Path("nodeId") nodeId: String
+    ): Response<TripNodeDto>
+
+    // Edycja wydarzenia
+    @PUT("/api/trips/{tripId}/nodes/{nodeId}")
     suspend fun updateTripNode(
-        @Path("eventId") eventId: String,
+        @Path("tripId") tripId: String,
         @Path("nodeId") nodeId: String,
         @Body request: CreateTripNodeRequest
     ): Response<TripNodeDto>
 
-    // Usuwanie wydatku
-    @DELETE("/api/trips/{eventId}/nodes/{nodeId}")
-    suspend fun deleteTripNode(
-        @Path("eventId") eventId: String,
-        @Path("nodeId") nodeId: String
-    ): Response<Unit>
+    //OBSŁUGA PROFILU I SŁOWNIKÓW (Z gałęzi develop) 
 
     @GET("/api/users/me")
     suspend fun getCurrentUser(): Response<UserResponseDto>

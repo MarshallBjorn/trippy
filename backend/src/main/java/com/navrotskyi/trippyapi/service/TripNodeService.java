@@ -29,6 +29,7 @@ public class TripNodeService {
         this.tripParticipantRepository = tripParticipantRepository;
     }
 
+    @Transactional 
     public TripNode createTripNode(UUID eventId, CreateTripNodeRequest request, User reporter) {
         TripEvent event = tripEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
@@ -47,7 +48,12 @@ public class TripNodeService {
         node.setPrice(request.getPrice());
         node.setSeparate(request.isSeparate());
 
-        return tripNodeRepository.save(node);
+        TripNode savedNode = tripNodeRepository.save(node);
+        
+        savedNode.getReporter().getName();
+        savedNode.getEvent().getId();
+
+        return savedNode; 
     }
 
     @Transactional(readOnly = true)
@@ -72,5 +78,62 @@ public class TripNodeService {
             node.getReporter().getName(),
             List.of()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public TripNode getTripNode(UUID nodeId, User currentUser) {
+        TripNode node = tripNodeRepository.findWithDetailsById(nodeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono wydarzenia."));
+
+        tripParticipantRepository.findByEventIdAndUserId(node.getEvent().getId(), currentUser.getId())
+                .orElseThrow(() -> new SecurityException("Nie masz dostępu do tej wycieczki."));
+
+        return node;
+    }
+
+    @Transactional
+    public TripNode updateTripNode(UUID eventId, UUID nodeId, CreateTripNodeRequest request, User currentUser) {
+        TripNode node = tripNodeRepository.findWithDetailsById(nodeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono wydarzenia."));
+
+        validatePermissions(eventId, node, currentUser);
+
+        node.setName(request.getName());
+        node.setStartTime(request.getStartTime());
+        node.setEndTime(request.getEndTime());
+        node.setNote(request.getNote());
+        node.setPrice(request.getPrice());
+        node.setSeparate(request.isSeparate());
+
+        TripNode savedNode = tripNodeRepository.save(node);
+        
+        savedNode.getReporter().getName(); 
+        
+        return savedNode; 
+    }
+
+    @Transactional
+    public void deleteTripNode(UUID eventId, UUID nodeId, User currentUser) {
+        TripNode node = tripNodeRepository.findById(nodeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono wydarzenia."));
+
+        validatePermissions(eventId, node, currentUser);
+        tripNodeRepository.delete(node);
+    }
+
+    private void validatePermissions(UUID eventId, TripNode node, User currentUser) {
+        if (!node.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("To wydarzenie nie należy do tej wycieczki.");
+        }
+
+        boolean isAuthor = node.getReporter().getId().equals(currentUser.getId());
+
+        TripParticipant participant = tripParticipantRepository.findByEventIdAndUserId(eventId, currentUser.getId())
+                .orElseThrow(() -> new SecurityException("Nie jesteś uczestnikiem tej wycieczki."));
+        boolean isOrganizer = participant.getTripRole().getName().equalsIgnoreCase("ORGANIZER");
+
+        if (!isAuthor && !isOrganizer) {
+            throw new SecurityException("Brak uprawnień. Musisz być autorem lub Organizatorem.");
+        }
     }
 }

@@ -1,11 +1,38 @@
 package com.navrotskyi.trippyapp.models
 
 import com.google.gson.annotations.SerializedName
+import com.navrotskyi.trippyapp.data.entity.User
+
+data class Trip(
+    val id: String,
+    val owner: User?,
+    val name: String,
+    val pickedCurrency: String,
+    val startDate: String,
+    val endDate: String,
+    val budget: Double
+)
+
+data class TripEventDto(
+    val id: String,
+    val name: String,
+    val startDate: String,
+    val endDate: String,
+    val budget: Double,
+    val currencyCode: String
+)
+
+data class CreateTripEventRequest(
+    val name: String,
+    val currencyCode: String,
+    val startDate: String,
+    val endDate: String,
+    val budget: Double
+)
 
 data class InviteParticipantRequest(
     @SerializedName("userEmail")
     val email: String,
-
     @SerializedName("roleName")
     val role: String = "PARTICIPANT"
 )
@@ -18,15 +45,50 @@ data class TripParticipantDto(
     val eventId: String? = null,
     val tripRole: String? = null,
     val personalBudget: Double? = null,
-
     @SerializedName("accepted")
     val isAccepted: Boolean = false
 )
 
-data class CreateTripEventRequest(
+data class TripNodeDto(
+    val id: String,
+    val eventId: String? = null,
+    val reporterId: String? = null,
+    val reporterName: String? = null,
+    val startTime: String? = null,
+    val endTime: String? = null,
     val name: String,
-    val currencyCode: String,
-    val startDate: String,
-    val endDate: String,
-    val budget: Double
+    val note: String? = null,
+    val price: Double = 0.0,
+    @SerializedName("separate")
+    val separate: Boolean = false,
+    val category: String? = "Inne"
+)
+
+data class CreateTripNodeRequest(
+    val name: String,
+    val startTime: String,
+    val endTime: String,
+    val note: String?,
+    val price: Double,
+    @SerializedName("separate")
+    val separate: Boolean,
+    val category: String? = null
+)
+data class SettlementDto(
+    val id: String,
+    val fromUserName: String,
+    val toUserName: String,
+    val amount: Double,
+    val currency: String,
+    val tripName: String,
+    val date: String,
+    val isIncoming: Boolean
+)
+
+data class ExpensesSummaryDto(
+    val totalSpent: Double,
+    val currency: String,
+    val categoryBreakdown: Map<String, Double>,
+    val userBalance: Double,
+    val pendingSettlements: List<SettlementDto>
 )
