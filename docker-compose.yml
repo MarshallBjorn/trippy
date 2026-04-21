@@ -48,13 +48,6 @@ services:
     env_file:
       - .env
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DB_NAME}
-      - SPRING_DATASOURCE_USERNAME=${DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - SPRING_MAIL_HOST=${MAIL_HOST}
-      - SPRING_MAIL_PORT=${MAIL_PORT}
-      - SPRING_MAIL_USERNAME=${MAIL_USERNAME}
-      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD}
       - APP_UPLOAD_DIR=/app/uploads
     ports:
       - "8080:8080"
@@ -68,6 +61,7 @@ services:
       - ./backend/pom.xml:/app/pom.xml
       - ./backend/target:/app/target
       - trippy_uploads:/app/uploads
+      - ./backend/logs:/app/logs
 
   frontend:
     build: 
