@@ -168,13 +168,120 @@ Weryfikacja logiki aktywacji konta przez endpointy REST API.
 | `shouldReturnBadRequestWhenTokenIsExpired` | W bazie istnieje token, ale jego data wygasła. | GET `/api/auth/verify?token=...` | Zwraca HTTP 400 (Bad Request). Flaga użytkownika to wciąż `false`. |
 | `shouldThrowExceptionWhenTokenDoesNotExist` | Podano zmyślony/błędny token. | GET `/api/auth/verify?token=fake`| Wyrzuca `RuntimeException` ("Nieprawidłowy token"). |
 
-## Instrukcja uruchomienia(TO DO)
+## Instrukcja uruchomienia
 
-```
-docker-compose up -d --build
+Całe środowisko (backend + PostgreSQL + pgAdmin + frontend + serwer plików nginx) uruchamiane jest przez `docker compose` z katalogu głównego repozytorium. Poniższa instrukcja pokrywa pierwszy start, codzienną pracę, restart oraz przełączanie między profilem deweloperskim a produkcyjnym.
 
-docker-compose down -v
+### 1. Prerekwizyty
+
+| Wymaganie | Wersja / Uwaga |
+| :--- | :--- |
+| Docker Engine | 24+ |
+| Docker Compose | v2 (wbudowane w Docker Desktop / `docker compose`, nie `docker-compose`) |
+| Wolne porty na hoście | `5432` (Postgres), `5050` (pgAdmin), `8080` (backend), `5173` (frontend), `8888` (serwer plików) |
+| Plik `.env` | Obecny w roocie repo — tworzony raz z `.env.example` |
+
+### 2. Pierwsze uruchomienie
+
+```bash
+# 1. Skopiuj szablon zmiennych środowiskowych
+cp .env.example .env
+
+# 2. (Opcjonalnie) Uzupełnij sekrety SMTP w .env — MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD.
+#    Na profilu dev nie są wymagane (emaile trafiają do logs/emails/).
+
+# 3. Zbuduj obrazy i uruchom stack w tle
+docker compose up -d --build
+
+# 4. Zweryfikuj że wszystkie kontenery wstały
+docker compose ps
 ```
+
+Po pierwszym starcie Flyway wykonuje migracje, a `DataInitializer` (tylko na profilu `dev`) zasiewa bazę kontami testowymi (patrz sekcja *Dane Dostępowe*).
+
+### 3. Codzienna praca
+
+| Cel | Komenda |
+| :--- | :--- |
+| Start całego stacku w tle | `docker compose up -d` |
+| Start konkretnego serwisu | `docker compose up -d backend` |
+| Stop bez usuwania kontenerów | `docker compose stop` |
+| Stop i usuń kontenery (volume'y zostają — dane w bazie nietknięte) | `docker compose down` |
+| Pokaż status kontenerów | `docker compose ps` |
+| Logi on-line z backendu | `docker compose logs -f backend` |
+| Logi on-line z wszystkich | `docker compose logs -f` |
+| Wejdź do shella w kontenerze backendu | `docker compose exec backend sh` |
+
+### 4. Restart i rebuild
+
+Różne poziomy „restartu" — od najtańszego do najcięższego:
+
+| Scenariusz | Komenda |
+| :--- | :--- |
+| Zmiana w `application*.properties` lub `.env` → wystarczy restart kontenera | `docker compose restart backend` |
+| Zmiana w kodzie Java (`src/**/*.java`) → DevTools hot-reload robi to automatycznie | — (tylko zapisz plik) |
+| Dodany nowy dependency w `pom.xml` lub zmiana `Dockerfile` → rebuild obrazu | `docker compose up -d --build backend` |
+| Pełny rebuild całego stacku | `docker compose up -d --build` |
+
+### 5. Profil dev vs prod
+
+Aktywny profil Spring Boot sterowany jest zmienną `SPRING_PROFILES_ACTIVE` w pliku `.env`:
+
+```bash
+# W .env
+SPRING_PROFILES_ACTIVE=dev    # lokalne środowisko (domyślnie)
+SPRING_PROFILES_ACTIVE=prod   # produkcyjne zachowanie (strict CORS, Mailtrap SMTP, seedery wyłączone)
+```
+
+Różnice między profilami:
+
+| Obszar | `dev` | `prod` |
+| :--- | :--- | :--- |
+| CORS | Dowolny origin (`allowedOriginPatterns: *`) | Tylko `app.frontend.url` |
+| Wysyłka emaili | `LocalFileEmailService` — zapis do `backend/logs/emails/` | `MailtrapEmailService` — realny SMTP |
+| Seedery (`DataInitializer`, `UserSeeder`, ...) | Aktywne na pustej bazie | Wyłączone (+ runtime guard `SeederGuardConfig`) |
+| DevTools hot-reload | Tak | Nie |
+
+Po zmianie profilu wymagany jest restart:
+
+```bash
+docker compose restart backend
+# lub pełny rebuild jeśli właśnie zmieniłeś też kod:
+docker compose up -d --build backend
+```
+
+### 6. Reset bazy danych (re-seed od zera)
+
+`DataInitializer` uruchamia seedery **tylko gdy baza jest pusta**. Żeby wywołać cały proces od nowa, trzeba usunąć wolumen Postgresa:
+
+```bash
+# UWAGA: -v usuwa wolumeny = kasuje CAŁĄ bazę oraz wszystkie uploady plików.
+docker compose down -v
+
+docker compose up -d --build
+```
+
+### 7. Porty i endpointy
+
+| Serwis | URL / port |
+| :--- | :--- |
+| Backend API | `http://localhost:8080` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| Frontend (Vite dev server) | `http://localhost:5173` |
+| Serwer plików (nginx) | `http://localhost:8888/uploads/` |
+| pgAdmin | `http://localhost:5050` (login z `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` z `.env`) |
+| PostgreSQL | `localhost:5432` (creds z `DB_USER` / `DB_PASSWORD`) |
+
+### 8. Troubleshooting
+
+| Problem | Przyczyna / rozwiązanie |
+| :--- | :--- |
+| `mvn clean` wyrzuca `Failed to delete /app/target: Resource busy` | Katalog `./backend/target` jest zbind-mountowany do kontenera. Buduj z flagą pomijającą `clean` (`./mvnw test` zamiast `./mvnw clean test`) albo tymczasowo wyłącz kontener backendu (`docker compose stop backend`) przed buildem lokalnym. |
+| Port `5432` / `8080` / `5173` zajęty | Zatrzymaj lokalnego Postgresa / inną appkę, albo zmień mapowanie portu w `docker-compose.yml`. |
+| Backend nie startuje, log: `UnknownHostException: db` | Zapomnij o `docker compose up` bez `db` — backend depend-suje na zdrowym Postgresie. Odpal `docker compose up -d` (bez nazwy serwisu) żeby podnieść zależności. |
+| Zmieniłem `SPRING_PROFILES_ACTIVE` w `.env`, ale appka dalej działa po staremu | `env_file` jest ładowany przy starcie kontenera — potrzebny `docker compose restart backend` (sam `stop` + `start` nie przeładowuje env w niektórych wersjach Compose). |
+| Emaile weryfikacyjne nie docierają na profilu `dev` | Są zapisywane do `backend/logs/emails/*.eml` jako pliki. Otwórz plik, skopiuj link weryfikacyjny, wklej w przeglądarce. |
+| Kontener `trippy_backend` w pętli restartu | Zobacz `docker compose logs backend` — najczęściej brak migracji Flyway, nieaktualny `.env` lub brakujący `JWT_SECRET_KEY`. |
 ## Dokumentacja Mechanizmu Seedowania Bazy Danych
 
 #### 1. Architektura i Sposób Działania
@@ -202,15 +309,7 @@ Mechanizm jest w pełni skalowalny. W zależności od potrzeb, dodawanie danych 
 
 #### 3. Instrukcja uruchomienia
 
-Aby wywołać proces od zera (na czystej bazie), zresetuj kontenery Dockerowe komendami w terminalu:
-
-```bash
-
-docker compose down -v
-
-docker compose up --build -d
-
-```
+Aby wywołać proces seedowania od zera (na czystej bazie), zobacz [sekcję *Reset bazy danych*](#6-reset-bazy-danych-re-seed-od-zera) w instrukcji uruchomienia. Kluczowe: `DataInitializer` jest aktywny tylko na profilu `dev` i tylko gdy baza jest pusta — reset wymaga usunięcia wolumenu Postgresa przez `docker compose down -v`.
 #### 4. Dane Dostępowe (Konta Testowe)
 Poniższe dane są generowane automatycznie przez `UserSeeder`. Wszystkie konta mają przypisane to samo hasło testowe.
 

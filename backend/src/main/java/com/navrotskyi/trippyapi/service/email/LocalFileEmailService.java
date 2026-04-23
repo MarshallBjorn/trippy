@@ -20,6 +20,9 @@ public class LocalFileEmailService implements EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    @Value("${app.email.local-dir:logs/emails}")
+    private String localEmailDir;
+
     @Override
     public void sendVerificationEmail(String to, String token) {
         String verificationLink = frontendUrl + "/verify?token=" + token;
@@ -39,7 +42,7 @@ public class LocalFileEmailService implements EmailService {
                 verificationLink);
 
         try {
-            Path directory = Paths.get("logs/emails");
+            Path directory = Paths.get(localEmailDir);
             if (!Files.exists(directory)) {
                 Files.createDirectories(directory);
             }
