@@ -1,5 +1,6 @@
 package com.navrotskyi.trippyapi.repository;
 
+import com.navrotskyi.trippyapi.domain.TripEvent;
 import com.navrotskyi.trippyapi.domain.TripNode;
 import org.springframework.data.jpa.repository.EntityGraph; 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,6 @@ public interface TripNodeRepository extends JpaRepository<TripNode, UUID> {
     Optional<TripNode> findWithDetailsById(UUID id);
 
     List<TripNode> findByEventId(UUID eventId);
+
+    List<TripNode> findByEvent(TripEvent trip);
 }
