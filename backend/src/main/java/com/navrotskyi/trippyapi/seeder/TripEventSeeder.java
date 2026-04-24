@@ -35,6 +35,13 @@ public class TripEventSeeder {
         trips.add(createTrip("Słoneczna Lizbona", users.get(3), eur, 60, 67, "3800.00"));
         trips.add(createTrip("Trekking w Norwegii", users.get(4), eur, 80, 90, "6000.00"));
 
+        // --- SHOWCASE: demonstracja endpointu /api/trips/{id}/balances ---
+        // Wycieczka owned by Jan, 5 zaakceptowanych uczestników + 1 zaproszony niezaakceptowany (Admin).
+        // 5 wydatków shared (total 4000 PLN) + 1 separate (150 PLN, pomijany).
+        // Oczekiwane bilanse: Jan +200, Anna +1200, Marek -600, Zofia -600, Piotr -200.
+        // Oczekiwane przelewy (optimum 3): Piotr→Jan 200, Marek→Anna 600, Zofia→Anna 600.
+        trips.add(createTrip("Wyjazd integracyjny: Zakopane 2026", users.get(1), pln, 30, 34, "5000.00"));
+
         return trips;
     }
 

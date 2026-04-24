@@ -34,10 +34,48 @@ public class TripNodeSeeder {
         nodes.add(createNode(mazury, zofia, "Odbiór żaglówki", "Port Sztynort.", mazury.getStartDate().atTime(14, 0), mazury.getStartDate().atTime(15, 0), "1500.00", false));
         nodes.add(createNode(paryz, piotr, "Wejście na Wieżę Eiffla", "Wjazd windą.", paryz.getStartDate().plusDays(1).atTime(18, 0), paryz.getStartDate().plusDays(1).atTime(20, 0), "300.00", false));
 
-        for (int i = 5; i < trips.size(); i++) {
+        // Ostatnia wycieczka to SHOWCASE — ma własny, custom zestaw wydatków.
+        int genericEnd = trips.size() - 1;
+        for (int i = 5; i < genericEnd; i++) {
             TripEvent trip = trips.get(i);
             nodes.add(createNode(trip, trip.getOwner(), "Planowanie dnia", "Krótkie spotkanie", trip.getStartDate().atTime(9, 0), trip.getStartDate().atTime(9, 30), "0.00", false));
         }
+
+        // --- SHOWCASE: 5 wydatków shared (total 4000) + 1 separate (pomijany w bilansie) ---
+        TripEvent showcase = trips.get(trips.size() - 1);
+        LocalDateTime day0 = showcase.getStartDate().atTime(10, 0);
+
+        nodes.add(createNode(showcase, jan,
+                "Transport busem Warszawa-Zakopane i z powrotem",
+                "Bus 8-osobowy, paliwo + opłaty.",
+                day0, day0.plusHours(6), "1000.00", false));
+
+        nodes.add(createNode(showcase, anna,
+                "Nocleg Willa Bachledówka (4 noce)",
+                "Pokój 6-osobowy z kuchnią.",
+                day0.plusHours(7), day0.plusDays(4), "2000.00", false));
+
+        nodes.add(createNode(showcase, marek,
+                "Wypożyczenie nart dla całej grupy",
+                "Pakiet: narty + buty + kijki x5.",
+                day0.plusDays(1).withHour(9), day0.plusDays(1).withHour(10), "200.00", false));
+
+        nodes.add(createNode(showcase, zofia,
+                "Obiad w Karczmie Regionalnej",
+                "Kwaśnica, pierogi, oscypki dla wszystkich.",
+                day0.plusDays(1).withHour(14), day0.plusDays(1).withHour(16), "200.00", false));
+
+        nodes.add(createNode(showcase, piotr,
+                "Zakupy do wspólnej kuchni",
+                "Biedronka + lokalny sklep. Śniadania i kolacje.",
+                day0.plusDays(1).withHour(17), day0.plusDays(1).withHour(18), "600.00", false));
+
+        // Wydatek SEPARATE — Jan kupił tylko dla siebie, pomijany w rozliczeniu grupy.
+        nodes.add(createNode(showcase, jan,
+                "Pamiątka: oscypek i ciupaga (tylko dla Jana)",
+                "Prezent dla żony. is_separate=true — nie wlicza się do bilansu grupy.",
+                day0.plusDays(2).withHour(12), day0.plusDays(2).withHour(13), "150.00", true));
+
         return nodes;
     }
 

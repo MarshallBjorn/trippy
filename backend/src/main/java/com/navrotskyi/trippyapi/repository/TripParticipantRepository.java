@@ -12,8 +12,12 @@ import java.util.UUID;
 @Repository
 public interface TripParticipantRepository extends JpaRepository<TripParticipant, UUID> {
     
-    @EntityGraph(attributePaths = {"user", "tripRole"}) 
+    @EntityGraph(attributePaths = {"user", "tripRole"})
     List<TripParticipant> findAllByEventId(UUID eventId);
-    
+
+    /** Tylko zaakceptowani uczestnicy (isAccepted=true) — używane przez endpoint balansów. */
+    @EntityGraph(attributePaths = {"user"})
+    List<TripParticipant> findAllByEventIdAndIsAcceptedTrue(UUID eventId);
+
     Optional<TripParticipant> findByEventIdAndUserId(UUID eventId, UUID userId);
 }
