@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.ui.components.TrippyOutlinedButton
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
@@ -34,7 +35,8 @@ fun TripDetailsScreen(
     onBackClick: () -> Unit,
     onInviteClick: (String) -> Unit,
     onAddNodeClick: (String) -> Unit,
-    onNodeClick: (String) -> Unit
+    onNodeClick: (String) -> Unit,
+    onGroupBalanceClick: (String) -> Unit
 ) {
     val trips by viewModel.trips.collectAsState()
     val trip = trips.find { it.id == tripId }
@@ -134,6 +136,12 @@ fun TripDetailsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            TrippyOutlinedButton(
+                text = "Zobacz bilans grupy",
+                onClick = { onGroupBalanceClick(tripId)},
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = MaterialTheme.colorScheme.surface,
