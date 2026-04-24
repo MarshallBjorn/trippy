@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
                 )
                 val tripViewModel: TripViewModel = viewModel()
                 val expensesViewModel: ExpensesViewModel = viewModel()
+                val groupBalanceViewModel: GroupBalanceViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -314,8 +315,12 @@ class MainActivity : ComponentActivity() {
                         composable(
                             route = Screen.GroupBalance.route,
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
-                        ) {
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+
                             GroupBalanceScreen(
+                                tripId = tripId,
+                                viewModel = groupBalanceViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }

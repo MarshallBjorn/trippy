@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,31 +26,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.navrotskyi.trippyapp.ui.theme.SuccessGreen
 import coil.compose.AsyncImage
+import com.navrotskyi.trippyapp.ui.viewmodels.GroupBalanceState
+import com.navrotskyi.trippyapp.ui.viewmodels.GroupBalanceViewModel
+import androidx.compose.runtime.getValue
 
 data class ParticipantBalance(val name: String, val balance: Double, val initials: String, val avatarUrl: String? = null, val isMe: Boolean = false)
 enum class SettlementType { I_OWE_THEM, THEY_OWE_ME }
 data class Settlement(val otherPersonName: String, val amount: Double, val type: SettlementType)
 
 
-val mockParticipants = listOf(
-    ParticipantBalance("Ty", -45.50, "Ty",  "https://i.pravatar.cc/150?img=68",true),
-    ParticipantBalance("Tomasz", 120.00, "T"),
-    ParticipantBalance("Ania", -75.00, "A"),
-    ParticipantBalance("Marek", 0.50, "M"),
-    ParticipantBalance("Kasia", 0.00, "K")
-)
-
-val mockSettlements = listOf(
-    Settlement("Tomaszowi", 45.50, SettlementType.I_OWE_THEM),
-    Settlement("Ania", 20.00, SettlementType.THEY_OWE_ME)
-)
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupBalanceScreen(
+    tripId: String,
+    viewModel: GroupBalanceViewModel,
     onBackClick: () -> Unit
-) {
+){
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(tripId) {
+        viewModel.loadBalancesForTrip(tripId)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,45 +74,59 @@ fun GroupBalanceScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
 
-            TotalBalanceCard(balance = -45.50)
+        when (val state = uiState) {
+            is GroupBalanceState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            is GroupBalanceState.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Błąd: ${state.message}", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            is GroupBalanceState.Success -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    TotalBalanceCard(balance = state.totalBalance)
 
-            Text(
-                text = "Stan uczestników",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            ParticipantsRow(participants = mockParticipants)
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Stan uczestników",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ParticipantsRow(participants = state.participants)
 
-            Text(
-                text = "Twoje rozliczenia",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            mockSettlements.forEach { settlement ->
-                SettlementCard(settlement)
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Twoje rozliczenia",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    state.settlements.forEach { settlement ->
+                        SettlementCard(settlement)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
             }
         }
     }
 }
-
 
 @Composable
 fun TotalBalanceCard(balance: Double) {
@@ -240,10 +253,4 @@ fun SettlementCard(settlement: Settlement) {
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GroupBalanceScreenPreview() {
-    GroupBalanceScreen(onBackClick = {})
 }
