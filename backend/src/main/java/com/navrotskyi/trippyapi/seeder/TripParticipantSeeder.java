@@ -18,7 +18,9 @@ public class TripParticipantSeeder {
         TripRole participant = roles.get(1);
         TripRole viewer = roles.get(2);
 
-        for (int i = 0; i < trips.size(); i++) {
+        // Ostatnia wycieczka to SHOWCASE — ma własny, custom zestaw uczestników.
+        int genericCount = trips.size() - 1;
+        for (int i = 0; i < genericCount; i++) {
             TripEvent t = trips.get(i);
             participants.add(new TripParticipant(t, t.getOwner(), organizer, BigDecimal.ZERO, true));
 
@@ -32,6 +34,24 @@ public class TripParticipantSeeder {
                 participants.add(new TripParticipant(t, vUser, viewer, BigDecimal.ZERO, true));
             }
         }
+
+        // --- SHOWCASE: 5 accepted + 1 invited-not-accepted (Admin) ---
+        TripEvent showcase = trips.get(trips.size() - 1);
+        User admin = users.get(0);
+        User jan    = users.get(1);
+        User anna   = users.get(2);
+        User marek  = users.get(3);
+        User zofia  = users.get(4);
+        User piotr  = users.get(5);
+
+        participants.add(new TripParticipant(showcase, jan,   organizer,   BigDecimal.ZERO, true));
+        participants.add(new TripParticipant(showcase, anna,  participant, new BigDecimal("500"), true));
+        participants.add(new TripParticipant(showcase, marek, participant, new BigDecimal("500"), true));
+        participants.add(new TripParticipant(showcase, zofia, participant, new BigDecimal("500"), true));
+        participants.add(new TripParticipant(showcase, piotr, participant, new BigDecimal("500"), true));
+        // Admin — zaproszony, ale jeszcze nie potwierdził. Nie powinien być w bilansach.
+        participants.add(new TripParticipant(showcase, admin, viewer,      BigDecimal.ZERO, false));
+
         return participants;
     }
 }

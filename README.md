@@ -168,6 +168,49 @@ Weryfikacja logiki aktywacji konta przez endpointy REST API.
 | `shouldReturnBadRequestWhenTokenIsExpired` | W bazie istnieje token, ale jego data wygasła. | GET `/api/auth/verify?token=...` | Zwraca HTTP 400 (Bad Request). Flaga użytkownika to wciąż `false`. |
 | `shouldThrowExceptionWhenTokenDoesNotExist` | Podano zmyślony/błędny token. | GET `/api/auth/verify?token=fake`| Wyrzuca `RuntimeException` ("Nieprawidłowy token"). |
 
+## Rozliczenia (Settlement Engine)
+
+Moduł rozliczeń odpowiada na pytanie *"kto komu ile jest winien po wycieczce?"* i zwraca **zminimalizowaną listę przelewów**, które wyrównają wszystkich uczestników do zera. Implementacja: `service/trip/TripBalanceService` (orchestrator) + `service/trip/DebtSettlementService` (czysty algorytm).
+
+### Endpoint
+
+```
+GET /api/trips/{tripId}/balances
+Authorization: Bearer <JWT>
+```
+
+Zwraca: łączną kwotę wydatków współdzielonych, netto-bilans każdego zaakceptowanego uczestnika oraz listę przelewów. Pełen kontrakt: Swagger UI (`/swagger-ui.html`), tag *Trip Balances*.
+
+### Reguły biznesowe
+
+- W rozliczeniu uczestniczą **tylko zaakceptowani uczestnicy** (`isAccepted=true`). Zaproszeni, ale nieaktywowani są pomijani.
+- Wydatki z flagą `isSeparate=true` są **wyłączone** z wspólnego budżetu (reporter zapłacił "za siebie").
+- Reszta wydatków dzielona jest **po równo** między zaakceptowanych uczestników, z deterministyczną dystrybucją groszy resztkowych (np. 100 zł / 3 osoby → pierwsi sortowani po `userId` dostają +0.01).
+- Bilanse liczone są **na żywo** — każde wywołanie odzwierciedla aktualny stan wydatków w DB. Wycieczki nie są obecnie "zamykane" (patrz *Future work*).
+- Dostęp tylko dla zaakceptowanych uczestników wycieczki — caller spoza listy dostaje `403`.
+
+### Algorytm
+
+Hybrydowy, zwraca wynik z mniejszą liczbą transakcji:
+
+1. **Greedy (Simplified Debt Graph)** — zawsze. Max-heap kredytorów, min-heap dłużników, pary największy-z-największym. Złożoność O(N log N), gwarancja ≤ N−1 transakcji.
+2. **DP + bitmask (Optimal Account Balancing)** — tylko gdy N ≤ 15. Znajduje partycję bilansów na maksymalną liczbę zero-sum subsetów; minimum transakcji = N − liczba_subsetów. Złożoność O(3^N · N) — dla N=15 to ~14M operacji, < 100 ms.
+
+Próg N=15 wynika z eksplozji 3^N: dla 16+ używany jest wyłącznie greedy. W praktyce grupy turystyczne nie przekraczają kilkunastu osób, więc DP odpala się w praktycznie każdym realnym przypadku.
+
+Pełna dokumentacja techniczna (model matematyczny, dowód optymalności, worked example, benchmarki): **`docs/Trippy-Algorytm-Rozliczen.docx`**.
+
+### Future work — Manual trip closure
+
+Obecnie bilanse są zawsze "live". W kolejnej iteracji planujemy ręczne zamykanie wycieczki przez ownera:
+
+- nowy stan `TripEvent.status = CLOSED` + `closedAt` timestamp
+- po zamknięciu kalkulacja jest **zamrożona** (snapshot w nowej tabeli `TripSettlementSnapshot`)
+- nowe wydatki wymagają jawnego "re-open" przez ownera
+- frontend pokazuje status zamknięcia + datę
+
+To pozwoli uniknąć sytuacji "ktoś dorzucił 50 zł po rozliczeniu i wszystko się rozjechało".
+
 ## Instrukcja uruchomienia
 
 Całe środowisko (backend + PostgreSQL + pgAdmin + frontend + serwer plików nginx) uruchamiane jest przez `docker compose` z katalogu głównego repozytorium. Poniższa instrukcja pokrywa pierwszy start, codzienną pracę, restart oraz przełączanie między profilem deweloperskim a produkcyjnym.
