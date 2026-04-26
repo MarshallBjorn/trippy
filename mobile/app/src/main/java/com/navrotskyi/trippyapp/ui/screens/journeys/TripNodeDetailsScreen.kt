@@ -1,7 +1,13 @@
 package com.navrotskyi.trippyapp.ui.screens.journeys
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -11,10 +17,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.navrotskyi.trippyapp.models.TripPostDto
+import com.navrotskyi.trippyapp.ui.viewmodels.CreatePostState
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
@@ -31,10 +43,40 @@ fun TripNodeDetailsScreen(
     val node by viewModel.selectedNode.collectAsState()
     val currentUser by profileViewModel.user.collectAsState()
     val participants by viewModel.participants.collectAsState()
+    val posts by viewModel.posts.collectAsState()
+    val createPostState by viewModel.createPostState.collectAsState()
+
+    val context = LocalContext.current
+
+    var showAddPostDialog by remember { mutableStateOf(false) }
+    var postNote by remember { mutableStateOf("") }
+    var selectedPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris -> selectedPhotoUris = uris }
 
     LaunchedEffect(nodeId) {
         viewModel.loadNode(tripId, nodeId)
         viewModel.loadParticipants(tripId)
+        viewModel.loadPosts(nodeId)
+    }
+
+    LaunchedEffect(createPostState) {
+        when (val state = createPostState) {
+            is CreatePostState.Success -> {
+                Toast.makeText(context, "Post dodany!", Toast.LENGTH_SHORT).show()
+                showAddPostDialog = false
+                postNote = ""
+                selectedPhotoUris = emptyList()
+                viewModel.resetCreatePostState()
+            }
+            is CreatePostState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                viewModel.resetCreatePostState()
+            }
+            else -> {}
+        }
     }
 
     val currentUserName = currentUser?.name ?: ""
@@ -65,6 +107,11 @@ fun TripNodeDetailsScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddPostDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Dodaj post")
+            }
         }
     ) { padding ->
         val safeNode = node
@@ -80,7 +127,6 @@ fun TripNodeDetailsScreen(
                     .padding(horizontal = 20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Nagłówek Autora
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -159,7 +205,6 @@ fun TripNodeDetailsScreen(
                     }
                 }
 
-
                 if (!safeNode.note.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Notatka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -182,17 +227,125 @@ fun TripNodeDetailsScreen(
 
                 Text("Posty", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Brak postów. Bądź pierwszym, który skomentuje!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                if (posts.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(16.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Brak postów. Bądź pierwszym, który skomentuje!",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        posts.forEach { post -> PostCard(post = post) }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+
+    if (showAddPostDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (createPostState !is CreatePostState.Loading) {
+                    showAddPostDialog = false
+                }
+            },
+            title = { Text("Nowy post") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = postNote,
+                        onValueChange = { postNote = it },
+                        label = { Text("Treść posta") },
+                        placeholder = { Text("Co się wydarzyło?") },
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedButton(
+                        onClick = { photoPickerLauncher.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (selectedPhotoUris.isEmpty()) "Wybierz zdjęcia"
+                            else "Wybrano: ${selectedPhotoUris.size} zdjęcie(a)"
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (postNote.isNotBlank()) {
+                            viewModel.createPost(nodeId, postNote, selectedPhotoUris, context)
+                        }
+                    },
+                    enabled = postNote.isNotBlank() && createPostState !is CreatePostState.Loading
+                ) {
+                    if (createPostState is CreatePostState.Loading) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Dodaj")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showAddPostDialog = false },
+                    enabled = createPostState !is CreatePostState.Loading
+                ) {
+                    Text("Anuluj")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun PostCard(post: TripPostDto) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(
+                text = post.reporterName,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(post.note, style = MaterialTheme.typography.bodyMedium)
+            if (post.photos.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(post.photos) { photo ->
+                        val imageUrl = photo.photoUrl?.replace("localhost", "10.0.2.2")
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
             }
         }
     }
@@ -216,17 +369,13 @@ fun NodeInfoTile(modifier: Modifier, icon: ImageVector, label: String, value: St
 fun formatTimeRangeDetails(start: String?, end: String?): String {
     if (start.isNullOrBlank() || end.isNullOrBlank()) return "Brak czasu"
     return try {
-
         val sTime = start.substring(11, 16)
         val sDate = "${start.substring(8, 10)}.${start.substring(5, 7)}"
         val eTime = end.substring(11, 16)
         val eDate = "${end.substring(8, 10)}.${end.substring(5, 7)}"
 
-        if (sDate == eDate) {
-            "$sDate\n$sTime - $eTime"
-        } else {
-            "$sDate $sTime\n$eDate $eTime"
-        }
+        if (sDate == eDate) "$sDate\n$sTime - $eTime"
+        else "$sDate $sTime\n$eDate $eTime"
     } catch (e: Exception) {
         val cleanStart = start.replace("T", " ").take(16)
         val cleanEnd = end.replace("T", " ").take(16)
