@@ -344,8 +344,8 @@ class TripViewModel : ViewModel() {
     private fun parseApiError(errorBody: String?, code: Int): String {
         if (errorBody == null) return "Błąd serwera: $code"
         return try {
-            val json = com.google.gson.JsonParser.parseString(errorBody).asJsonObject
-            json.get("message")?.asString ?: "Błąd serwera: $code"
+            val map = Gson().fromJson(errorBody, Map::class.java)
+            map["message"] as? String ?: "Błąd serwera: $code"
         } catch (e: Exception) {
             "Błąd serwera: $code"
         }
