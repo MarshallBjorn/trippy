@@ -330,7 +330,8 @@ class TripViewModel : ViewModel() {
                     _createPostState.value = CreatePostState.Success
                     loadPosts(nodeId)
                 } else {
-                    _createPostState.value = CreatePostState.Error("Błąd serwera: ${response.code()}")
+                    val msg = parseApiError(response.errorBody()?.string(), response.code())
+                    _createPostState.value = CreatePostState.Error(msg)
                 }
             } catch (e: Exception) {
                 _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
@@ -339,6 +340,16 @@ class TripViewModel : ViewModel() {
     }
 
     fun resetCreatePostState() { _createPostState.value = CreatePostState.Idle }
+
+    private fun parseApiError(errorBody: String?, code: Int): String {
+        if (errorBody == null) return "Błąd serwera: $code"
+        return try {
+            val json = com.google.gson.JsonParser.parseString(errorBody).asJsonObject
+            json.get("message")?.asString ?: "Błąd serwera: $code"
+        } catch (e: Exception) {
+            "Błąd serwera: $code"
+        }
+    }
 
     private fun copyUriToTempFile(context: Context, uri: Uri, index: Int = 0): File {
         val tempFile = File(context.cacheDir, "post_photo_${System.currentTimeMillis()}_$index.jpg")
