@@ -1,14 +1,24 @@
 package com.navrotskyi.trippyapp.ui.viewmodels
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.models.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -41,6 +51,13 @@ sealed class CreateTripNodeState {
     object Loading : CreateTripNodeState()
     object Success : CreateTripNodeState()
     data class Error(val message: String) : CreateTripNodeState()
+}
+
+sealed class CreatePostState {
+    object Idle : CreatePostState()
+    object Loading : CreatePostState()
+    object Success : CreatePostState()
+    data class Error(val message: String) : CreatePostState()
 }
 
 class TripViewModel : ViewModel() {
@@ -78,6 +95,12 @@ class TripViewModel : ViewModel() {
 
     private val _inviteState = MutableStateFlow<InviteState>(InviteState.Idle)
     val inviteState: StateFlow<InviteState> = _inviteState.asStateFlow()
+
+    private val _posts = MutableStateFlow<List<TripPostDto>>(emptyList())
+    val posts: StateFlow<List<TripPostDto>> = _posts.asStateFlow()
+
+    private val _createPostState = MutableStateFlow<CreatePostState>(CreatePostState.Idle)
+    val createPostState: StateFlow<CreatePostState> = _createPostState.asStateFlow()
 
     init {
         loadTrips()
@@ -277,6 +300,64 @@ class TripViewModel : ViewModel() {
     }
 
     // resetowanie stanow i czyszczenie ekranow
+
+    fun loadPosts(nodeId: String) {
+        viewModelScope.launch {
+            try {
+                val response = api.getPostsByNode(nodeId)
+                if (response.isSuccessful) {
+                    _posts.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun createPost(nodeId: String, note: String, photoUris: List<Uri>, context: Context) {
+        _createPostState.value = CreatePostState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val json = Gson().toJson(mapOf("nodeId" to nodeId, "note" to note))
+                val data = json.toRequestBody("application/json".toMediaTypeOrNull())
+
+                val parts = photoUris.mapIndexed { index, uri ->
+                    val file = copyUriToTempFile(context, uri, index)
+                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("photos", file.name, requestFile)
+                }
+
+                val response = api.createPost(data, parts)
+                if (response.isSuccessful) {
+                    _createPostState.value = CreatePostState.Success
+                    loadPosts(nodeId)
+                } else {
+                    val msg = parseApiError(response.errorBody()?.string(), response.code())
+                    _createPostState.value = CreatePostState.Error(msg)
+                }
+            } catch (e: Exception) {
+                _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun resetCreatePostState() { _createPostState.value = CreatePostState.Idle }
+
+    private fun parseApiError(errorBody: String?, code: Int): String {
+        if (errorBody == null) return "Błąd serwera: $code"
+        return try {
+            val map = Gson().fromJson(errorBody, Map::class.java)
+            map["message"] as? String ?: "Błąd serwera: $code"
+        } catch (e: Exception) {
+            "Błąd serwera: $code"
+        }
+    }
+
+    private fun copyUriToTempFile(context: Context, uri: Uri, index: Int = 0): File {
+        val tempFile = File(context.cacheDir, "post_photo_${System.currentTimeMillis()}_$index.jpg")
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+        }
+        return tempFile
+    }
 
     fun resetCreateTripState() { _createTripState.value = CreateTripState.Idle }
     fun resetCreateNodeState() { _createNodeState.value = CreateTripNodeState.Idle }

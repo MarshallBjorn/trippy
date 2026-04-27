@@ -516,3 +516,5 @@ MigrationBackup/
 
 .vscode/
 .idea/
+
+.claude

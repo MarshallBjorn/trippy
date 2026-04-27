@@ -85,6 +85,18 @@ data class SettlementDto(
     val isIncoming: Boolean
 )
 
+data class PostPhotoDto(
+    val id: String,
+    val photoUrl: String?
+)
+
+data class TripPostDto(
+    val id: String,
+    val note: String,
+    val reporterName: String,
+    val photos: List<PostPhotoDto> = emptyList()
+)
+
 data class ExpensesSummaryDto(
     val totalSpent: Double,
     val currency: String,
