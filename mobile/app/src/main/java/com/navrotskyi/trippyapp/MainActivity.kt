@@ -18,7 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,13 +31,17 @@ import androidx.navigation.navArgument
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
+import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
 import com.navrotskyi.trippyapp.ui.screens.expenses.ExpensesScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.TripNodeDetailsScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.EditNodeScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.*
@@ -63,6 +66,7 @@ class MainActivity : ComponentActivity() {
                 )
                 val tripViewModel: TripViewModel = viewModel()
                 val expensesViewModel: ExpensesViewModel = viewModel()
+                val groupBalanceViewModel: GroupBalanceViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -133,24 +137,16 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable(Screen.Login.route) {
                             LoginScreen(
-                                onLoginClick = { email, password ->
-                                    authViewModel.login(email, password)
-                                },
-                                onRegisterClick = {
-                                    navController.navigate(Screen.Register.route)
-                                },
+                                onLoginClick = { email, password -> authViewModel.login(email, password) },
+                                onRegisterClick = { navController.navigate(Screen.Register.route) },
                                 modifier = Modifier
                             )
                         }
 
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password ->
-                                    authViewModel.register(name, email, password)
-                                },
-                                onBackToLoginClick = {
-                                    navController.popBackStack()
-                                }
+                                onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
+                                onBackToLoginClick = { navController.popBackStack() }
                             )
                         }
 
@@ -222,9 +218,7 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Trips.route) {
                             JourneysScreen(
                                 viewModel = tripViewModel,
-                                onTripClick = { tripId ->
-                                    navController.navigate(Screen.TripDetails.createRoute(tripId))
-                                },
+                                onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
                             )
                         }
@@ -244,10 +238,65 @@ class MainActivity : ComponentActivity() {
                             TripDetailsScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
+                                profileViewModel = profileViewModel,
                                 onBackClick = { navController.popBackStack() },
-                                onInviteClick = { id ->
-                                    navController.navigate(Screen.InviteParticipant.createRoute(id))
+                                onInviteClick = { id -> navController.navigate(Screen.InviteParticipant.createRoute(id)) },
+                                onAddNodeClick = { id -> navController.navigate(Screen.AddNode.createRoute(id)) },
+                                onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) },
+                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))}
+                            )
+                        }
+
+                        composable(
+                            route = Screen.NodeDetails.route,
+                            arguments = listOf(
+                                navArgument("tripId") { type = NavType.StringType },
+                                navArgument("nodeId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val nodeId = backStackEntry.arguments?.getString("nodeId") ?: ""
+                            TripNodeDetailsScreen(
+                                tripId = tripId,
+                                nodeId = nodeId,
+                                viewModel = tripViewModel,
+                                profileViewModel = profileViewModel,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                    tripViewModel.clearSelectedNode()
+                                },
+                                onEditClick = { id ->
+                                    navController.navigate(Screen.EditNode.createRoute(tripId, id))
                                 }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.EditNode.route,
+                            arguments = listOf(
+                                navArgument("tripId") { type = NavType.StringType },
+                                navArgument("nodeId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val nodeId = backStackEntry.arguments?.getString("nodeId") ?: ""
+                            EditNodeScreen(
+                                tripId = tripId,
+                                nodeId = nodeId,
+                                viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.AddNode.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            AddNodeScreen(
+                                tripId = tripId,
+                                viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
 
@@ -259,6 +308,19 @@ class MainActivity : ComponentActivity() {
                             InviteParticipantScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.GroupBalance.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+
+                            GroupBalanceScreen(
+                                tripId = tripId,
+                                viewModel = groupBalanceViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }

@@ -40,4 +40,38 @@ public class TripNodeController {
     public ResponseEntity<List<NodeResponse>> getTripNodes(@PathVariable UUID eventId, @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(tripNodeService.getNodesForEvent(eventId, currentUser));
     }
+
+    @DeleteMapping("/{nodeId}")
+    @Operation(summary = "Delete a trip node", description = "Deletes a specific node. Only the author or the ORGANIZER can do this.")
+    public ResponseEntity<Void> deleteTripNode(
+            @PathVariable UUID eventId, 
+            @PathVariable UUID nodeId, 
+            @AuthenticationPrincipal User currentUser) {
+        tripNodeService.deleteTripNode(eventId, nodeId, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @GetMapping("/{nodeId}")
+    @Operation(summary = "Get single trip node details", description = "Retrieves details of a specific itinerary node.")
+    public ResponseEntity<TripNodeDto> getTripNode(
+            @PathVariable UUID eventId, 
+            @PathVariable UUID nodeId, 
+            @AuthenticationPrincipal User currentUser) {
+        TripNode node = tripNodeService.getTripNode(nodeId, currentUser);
+        return ResponseEntity.ok(TripNodeMapper.toDto(node));
+    }
+
+
+@PutMapping("/{nodeId}")
+    public ResponseEntity<TripNodeDto> updateNode(
+        @PathVariable UUID eventId, 
+        @PathVariable UUID nodeId, 
+        @RequestBody CreateTripNodeRequest request, 
+        @AuthenticationPrincipal User currentUser) {
+        
+        TripNode updated = tripNodeService.updateTripNode(eventId, nodeId, request, currentUser);
+        
+        return ResponseEntity.ok(TripNodeMapper.toDto(updated));
+    }
 }
