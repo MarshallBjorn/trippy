@@ -105,15 +105,18 @@ fun TripDetailsScreen(
                 )
             )
         },
+
         floatingActionButton = {
             when (selectedTabIndex) {
                 0, 1 -> {
-                    FloatingActionButton(
-                        onClick = { onAddNodeClick(tripId) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Dodaj")
+                    if (nodes.any { it.canEdit }) {
+                        FloatingActionButton(
+                            onClick = { onAddNodeClick(tripId) },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Dodaj")
+                        }
                     }
                 }
                 2 -> {
@@ -159,24 +162,26 @@ fun TripDetailsScreen(
 
 @Composable
 fun EventsTab(tripId: String, nodes: List<TripNodeDto>, participants: List<TripParticipantDto>, currentUserName: String, onDeleteNode: (String) -> Unit, onNodeClick: (String) -> Unit) {
-    val amIOrganizer = participants.find { it.userName == currentUserName }?.tripRole?.equals("ORGANIZER", ignoreCase = true) == true
-    if (nodes.isEmpty()) {
+  if (nodes.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Brak wydarzeń. Dodaj coś!", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(nodes) { node ->
-                val isAuthor = node.reporterName == currentUserName
-                val canEditOrDelete = isAuthor || amIOrganizer
-                NodeCard(node, canEditOrDelete, { onDeleteNode(node.id) }, { onNodeClick(node.id) })
+
+                NodeCard(
+                    node = node,
+                    onDeleteClick = { onDeleteNode(node.id) },
+                    onClick = { onNodeClick(node.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun NodeCard(node: TripNodeDto, canDelete: Boolean, onDeleteClick: () -> Unit, onClick: () -> Unit) {
+fun NodeCard(node: TripNodeDto, onDeleteClick: () -> Unit, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -205,7 +210,7 @@ fun NodeCard(node: TripNodeDto, canDelete: Boolean, onDeleteClick: () -> Unit, o
                     Text("Autor: ${node.reporterName ?: "Nieznany"}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("Typ: ${node.category ?: "Inne"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                 }
-                if (canDelete) {
+                if (node.canDelete) {
                     IconButton(onClick = onDeleteClick, modifier = Modifier.size(32.dp)) {
                         Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error)
                     }
@@ -278,14 +283,13 @@ fun ExpenseCard(expense: TripNodeDto, currency: String, onEdit: () -> Unit, onDe
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(expense.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(expense.category ?: "Inne", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(String.format(Locale.getDefault(), "%.2f %s", expense.price, currency), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
                 Row {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, contentDescription = "Edytuj", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp)) }
+                    if (expense.canEdit) { IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Edit, contentDescription = "Edytuj", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }}
+                    if (expense.canEdit) { IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp)) }}
                 }
             }
         }

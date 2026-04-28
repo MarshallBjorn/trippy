@@ -20,6 +20,7 @@ data class TripEventDto(
     val endDate: String,
     val budget: Double,
     val currencyCode: String
+
 )
 
 data class CreateTripEventRequest(
@@ -61,7 +62,9 @@ data class TripNodeDto(
     val price: Double = 0.0,
     @SerializedName("separate")
     val separate: Boolean = false,
-    val category: String? = "Inne"
+    val category: String? = "Inne",
+    val canEdit: Boolean,
+    val canDelete: Boolean
 )
 
 data class CreateTripNodeRequest(
