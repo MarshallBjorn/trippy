@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyOutlinedButton
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
@@ -48,6 +49,7 @@ fun TripDetailsScreen(
 
     val createNodeState by viewModel.createNodeState.collectAsState()
     val context = LocalContext.current
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(tripId) {
         viewModel.loadParticipants(tripId)
@@ -58,8 +60,7 @@ fun TripDetailsScreen(
         if (createNodeState is CreateTripNodeState.Success) {
             viewModel.resetCreateNodeState()
         } else if (createNodeState is CreateTripNodeState.Error) {
-            Toast.makeText(context, (createNodeState as CreateTripNodeState.Error).message, Toast.LENGTH_LONG).show()
-            viewModel.resetCreateNodeState()
+            errorDialogMessage = (createNodeState as CreateTripNodeState.Error).message
         }
     }
 
@@ -161,6 +162,16 @@ fun TripDetailsScreen(
                 1 -> ExpensesTab(expenses, trip.pickedCurrency, { onNodeClick(it.id) }, { viewModel.deleteTripNode(tripId, it.id) })
                 2 -> ParticipantsTab(participants)
             }
+        }
+
+        errorDialogMessage?.let { message ->
+            TrippyErrorDialog(
+                message = message,
+                onDismiss = {
+                    errorDialogMessage = null
+                    viewModel.resetCreateNodeState()
+                }
+            )
         }
     }
 }

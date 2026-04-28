@@ -3,10 +3,13 @@
 ## Zespół
 ```
 - Oleksii Nawrocki - PM
+- Julia Chmura
 - Tomasz Nowak
 - Jakub Czesnak
 - Dawid Bajek
 - Mateusz Tokarz
+- Michał Domański
+- Paweł Powęska
 ```
 
 ## 📖 Opis projektu

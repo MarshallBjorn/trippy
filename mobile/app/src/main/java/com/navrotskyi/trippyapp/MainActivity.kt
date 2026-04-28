@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,11 +29,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.setValue
 
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.EmailVerificationScreen
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
@@ -60,6 +63,7 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel()
                 val authState = authViewModel.authState
                 val context = LocalContext.current
+                var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
                 // Inicjalizacja ViewModeli
                 val userDao = remember { UserDb.getInstance(context).userDao() }
@@ -98,8 +102,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         is AuthState.Error -> {
-                            Toast.makeText(context, authState.message, Toast.LENGTH_LONG).show()
-                            authViewModel.resetState()
+                            errorDialogMessage = authState.message
                         }
                         else -> {}
                     }
@@ -355,6 +358,16 @@ class MainActivity : ComponentActivity() {
                                 viewModel = expensesViewModel
                             )
                         }
+                    }
+
+                    errorDialogMessage?.let { message ->
+                        TrippyErrorDialog(
+                            message = message,
+                            onDismiss = {
+                                errorDialogMessage = null
+                                authViewModel.resetState() 
+                            }
+                        )
                     }
                 }
             }
