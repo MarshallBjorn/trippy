@@ -126,7 +126,7 @@ public class User implements UserDetails {
     }
 
     public void setBlocked(boolean blocked) {
-        isVerified = blocked;
+        isBlocked = blocked;
     }
 
     @Override

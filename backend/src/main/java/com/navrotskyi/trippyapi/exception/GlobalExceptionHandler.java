@@ -21,6 +21,7 @@ import com.navrotskyi.trippyapi.dto.ErrorResponse;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -32,6 +33,7 @@ public class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND.value(),
             HttpStatus.NOT_FOUND.name(),
             ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -43,6 +45,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
             ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -54,6 +57,7 @@ public class GlobalExceptionHandler {
             HttpStatus.FORBIDDEN.value(),
             HttpStatus.FORBIDDEN.name(),
             ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
@@ -65,6 +69,7 @@ public class GlobalExceptionHandler {
             HttpStatus.FORBIDDEN.value(),
             HttpStatus.FORBIDDEN.name(),
             ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
@@ -76,6 +81,7 @@ public class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND.value(),
             HttpStatus.NOT_FOUND.name(),
             "Wrong URL. Endpoint " + ex.getHttpMethod() + " " + ex.getRequestURL() + " does not exist.",
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
@@ -87,6 +93,7 @@ public class GlobalExceptionHandler {
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             HttpStatus.INTERNAL_SERVER_ERROR.name(),
             "An unexpected error occurred: " + ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
@@ -98,6 +105,7 @@ public class GlobalExceptionHandler {
             HttpStatus.CONTENT_TOO_LARGE.value(),
             HttpStatus.CONTENT_TOO_LARGE.name(),
             "Plik jest za duży! Maksymalny dopuszczalny rozmiar to 5MB.",
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(errorResponse);
@@ -110,6 +118,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
             "Nieprawidłowy format parametru: '" + paramName + "'. Upewnij się, że podajesz poprawne dane (np. właściwy format UUID).",
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -117,14 +126,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getAllErrors().stream()
+        List<String> errors = ex.getBindingResult().getAllErrors().stream()
                 .map(ObjectError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
+                .toList();
 
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
-            "Nieprawidłowe dane wejściowe: " + errorMessage,
+            "Nieprawidłowe dane wejściowe: ",
+            errors,
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -136,6 +146,7 @@ public class GlobalExceptionHandler {
             HttpStatus.METHOD_NOT_ALLOWED.value(),
             HttpStatus.METHOD_NOT_ALLOWED.name(),
             ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorResponse);
@@ -147,6 +158,7 @@ public class GlobalExceptionHandler {
             HttpStatus.CONFLICT.value(),
             HttpStatus.CONFLICT.name(),
             "Konflikt danych. Sprawdź poprawność wprowadzonych informacji: " + ex.getMessage(),
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -157,6 +169,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
             .body(new ErrorResponse(403, "EMAIL_NOT_VERIFIED",
                 "Konto nie zostało zweryfikowane! Sprawdź swoją skrzynkę email.",
+                List.of(),
                 LocalDateTime.now()));
     }
 
@@ -165,6 +178,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(new ErrorResponse(401, "INVALID_CREDENTIALS",
                 "Nieprawidłowy adres email lub hasło.",
+                List.of(),
                 LocalDateTime.now()));
     }
 
@@ -185,6 +199,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.name(),
                 String.format("Nieprawidłowy format danych w polu '%s'. Oczekiwano wartości typu: %s, a otrzymano: '%s'.", 
                               fieldName, expectedType, providedValue),
+                List.of(),
                 LocalDateTime.now()
             );
 
@@ -195,6 +210,7 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
             "Nieprawidłowe lub puste ciało zapytania. Sprawdź, czy wysyłasz poprawny format JSON.",
+            List.of(),
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

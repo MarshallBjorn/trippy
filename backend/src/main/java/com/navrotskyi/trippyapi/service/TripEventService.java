@@ -29,16 +29,16 @@ public class TripEventService {
 
     @Transactional
     public TripEvent createTripEvent(CreateTripEventRequest request, User owner) {
-        Currency currency = currencyRepository.findById(request.getCurrencyCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Currency not found with code: " + request.getCurrencyCode()));
+        Currency currency = currencyRepository.findById(request.currencyCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Currency not found with code: " + request.currencyCode()));
 
         TripEvent tripEvent = new TripEvent();
-        tripEvent.setName(request.getName());
+        tripEvent.setName(request.name());
         tripEvent.setOwner(owner);
         tripEvent.setCurrency(currency);
-        tripEvent.setStartDate(request.getStartDate());
-        tripEvent.setEndDate(request.getEndDate());
-        tripEvent.setBudget(request.getBudget() != null ? request.getBudget() : BigDecimal.ZERO);
+        tripEvent.setStartDate(request.startDate());
+        tripEvent.setEndDate(request.endDate());
+        tripEvent.setBudget(request.budget() != null ? request.budget() : BigDecimal.ZERO);
         tripEvent.setParticipants(new ArrayList<>());
 
         TripEvent savedTripEvent = tripEventRepository.save(tripEvent);

@@ -1,23 +1,26 @@
 package com.navrotskyi.trippyapi.dto;
 
+import com.navrotskyi.trippyapi.validation.ValidDateRange;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-public class CreateTripEventRequest {
-    private String name;
-    private String currencyCode;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private BigDecimal budget;
+@ValidDateRange
+public record CreateTripEventRequest(
+    @NotBlank(message = "Nazwa nie może być pusta")
+    String name,
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getCurrencyCode() { return currencyCode; }
-    public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    public BigDecimal getBudget() { return budget; }
-    public void setBudget(BigDecimal budget) { this.budget = budget; }
-}
+    @NotBlank(message = "Kod waluty nie może być pusty")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "Kod waluty musi być w formacie ISO 4217 (3 wielkie litery)")
+    String currencyCode,
+
+    @NotNull(message = "Data rozpoczęcia jest wymagana")
+    LocalDate startDate,
+
+    @NotNull(message = "Data zakończenia jest wymagana")
+    LocalDate endDate,
+
+    @NotNull(message = "Budżet jest wymagany")
+    @PositiveOrZero(message = "Budżet nie może być ujemny")
+    BigDecimal budget
+) {}
