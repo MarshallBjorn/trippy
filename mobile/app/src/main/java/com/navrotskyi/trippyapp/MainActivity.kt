@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
+                val sessionViewModel: SessionViewModel = viewModel()
                 LaunchedEffect(authState) {
                     when (authState) {
                         is AuthState.Success -> {
@@ -305,6 +306,7 @@ class MainActivity : ComponentActivity() {
                             InviteParticipantScreen(
                                 tripId = tripId,
                                 viewModel = tripViewModel,
+                                sessionViewModel = sessionViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }

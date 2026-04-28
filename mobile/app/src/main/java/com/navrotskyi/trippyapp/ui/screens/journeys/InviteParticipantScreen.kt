@@ -16,6 +16,9 @@ import com.navrotskyi.trippyapp.ui.components.TrippyTextField
 import com.navrotskyi.trippyapp.ui.viewmodels.InviteState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.ui.viewmodels.SessionViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,8 +26,11 @@ import com.navrotskyi.trippyapp.models.TripParticipantDto
 fun InviteParticipantScreen(
     tripId: String,
     viewModel: TripViewModel,
+    sessionViewModel: SessionViewModel,
     onBackClick: () -> Unit
 ) {
+    val sessionViewModel: SessionViewModel = viewModel()
+    val role by sessionViewModel.roles.collectAsState()
     var email by remember { mutableStateOf("") }
     val inviteState by viewModel.inviteState.collectAsState()
     val participants by viewModel.participants.collectAsState()

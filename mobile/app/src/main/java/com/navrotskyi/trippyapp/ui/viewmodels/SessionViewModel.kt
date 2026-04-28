@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 class SessionViewModel : ViewModel() {
 
     private val _roles = MutableStateFlow<Roles?>(null)
-    val role: StateFlow<Roles?> = _roles
+    val roles: StateFlow<Roles?> = _roles
 
     fun setRole(roles: String) {
         _roles.value = Roles.valueOf(roles)

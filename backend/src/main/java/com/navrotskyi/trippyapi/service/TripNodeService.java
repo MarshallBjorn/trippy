@@ -23,13 +23,14 @@ public class TripNodeService {
     private final TripEventRepository tripEventRepository;
     private final TripParticipantRepository tripParticipantRepository;
 
-    public TripNodeService(TripNodeRepository tripNodeRepository, TripEventRepository tripEventRepository, TripParticipantRepository tripParticipantRepository) {
+    public TripNodeService(TripNodeRepository tripNodeRepository, TripEventRepository tripEventRepository,
+            TripParticipantRepository tripParticipantRepository) {
         this.tripNodeRepository = tripNodeRepository;
         this.tripEventRepository = tripEventRepository;
         this.tripParticipantRepository = tripParticipantRepository;
     }
 
-    @Transactional 
+    @Transactional
     public TripNode createTripNode(UUID eventId, CreateTripNodeRequest request, User reporter) {
         TripEvent event = tripEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
@@ -49,11 +50,11 @@ public class TripNodeService {
         node.setSeparate(request.isSeparate());
 
         TripNode savedNode = tripNodeRepository.save(node);
-        
+
         savedNode.getReporter().getName();
         savedNode.getEvent().getId();
 
-        return savedNode; 
+        return savedNode;
     }
 
     @Transactional(readOnly = true)
@@ -64,20 +65,32 @@ public class TripNodeService {
         List<TripNode> nodes = tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
 
         return nodes.stream()
-                .map(this::mapToNodeResponse)
+                .map(node -> mapToNodeResponse(node, user))
                 .toList();
     }
 
-    private NodeResponse mapToNodeResponse(TripNode node) {
+    private NodeResponse mapToNodeResponse(TripNode node, User currentUser) {
+
+        TripParticipant participant = tripParticipantRepository
+                .findByEventIdAndUserId(node.getEvent().getId(), currentUser.getId())
+                .orElseThrow();
+
+        boolean isAuthor = node.getReporter().getId().equals(currentUser.getId());
+        boolean isOrganizer = participant.getTripRole().getName().equalsIgnoreCase("ORGANIZER");
+
+        boolean canEdit = isAuthor || isOrganizer;
+        boolean canDelete = isAuthor || isOrganizer;
+
         return new NodeResponse(
-            node.getId(),
-            node.getName(),
-            node.getNote(),
-            node.getPrice(),
-            node.isSeparate(),
-            node.getReporter().getName(),
-            List.of()
-        );
+                node.getId(),
+                node.getName(),
+                node.getNote(),
+                node.getPrice(),
+                node.isSeparate(),
+                node.getReporter().getName(),
+                List.of(),
+                canEdit,
+                canDelete);
     }
 
     @Transactional(readOnly = true)
@@ -106,10 +119,10 @@ public class TripNodeService {
         node.setSeparate(request.isSeparate());
 
         TripNode savedNode = tripNodeRepository.save(node);
-        
-        savedNode.getReporter().getName(); 
-        
-        return savedNode; 
+
+        savedNode.getReporter().getName();
+
+        return savedNode;
     }
 
     @Transactional
