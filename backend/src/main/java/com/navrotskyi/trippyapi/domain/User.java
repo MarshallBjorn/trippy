@@ -32,6 +32,10 @@ public class User implements UserDetails {
     @Column(name = "photo_url")
     private String photoUrl;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "currency_code", referencedColumnName = "code")
+    private Currency currency;
+
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
 
@@ -47,6 +51,7 @@ public class User implements UserDetails {
         String password, 
         Role role,
         String photoUrl,
+        Currency currency,
         boolean isVerified,
         boolean isBlocked
     ) {
@@ -55,6 +60,7 @@ public class User implements UserDetails {
         this.password = password;
         this.role = role;
         this.photoUrl = photoUrl;
+        this.currency = currency;
         this.isVerified = isVerified;
         this.isBlocked = isBlocked;
     }
@@ -103,6 +109,10 @@ public class User implements UserDetails {
         this.photoUrl = photoUrl;
     }
 
+    public Currency getCurrency() {return currency; }
+
+    public void setCurrency(Currency currency) {this.currency = currency; }
+
     public boolean isVerified() {
         return isVerified;
     }
@@ -137,5 +147,5 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return true; }
+    @Override public boolean isEnabled() { return isVerified; }
 }

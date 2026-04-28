@@ -4,7 +4,8 @@ import com.navrotskyi.trippyapi.dto.admin.CurrencyRequest;
 import com.navrotskyi.trippyapi.dto.admin.CurrencyResponse;
 import com.navrotskyi.trippyapi.dto.admin.TripRoleRequest;
 import com.navrotskyi.trippyapi.dto.admin.TripRoleResponse;
-import com.navrotskyi.trippyapi.service.AdminDictionaryService;
+import com.navrotskyi.trippyapi.service.admin.AdminDictionaryService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

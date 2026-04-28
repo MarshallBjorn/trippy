@@ -10,9 +10,12 @@ import com.navrotskyi.trippyapi.domain.VerificationToken;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.repository.VerificationTokenRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
+import com.navrotskyi.trippyapi.service.email.EmailService;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +43,7 @@ public class AuthenticationService {
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 Role.USER,
+                null,
                 null,
                 false,
                 false
@@ -83,6 +87,7 @@ public class AuthenticationService {
         return AuthResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken.getToken())
+                .role(user.getAuthorities().stream().findFirst().map(Object::toString).orElse("USER"))
                 .build();
     }
 }

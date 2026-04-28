@@ -12,17 +12,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
+import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
+import kotlinx.coroutines.delay
+import com.navrotskyi.trippyapp.R
+
 
 @Composable
 fun EditProfileScreen(
     currentName: String,
     onSaveClick: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: ProfileViewModel
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isError = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Error
+    val isLoading = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Loading
+
     var name by remember { mutableStateOf(currentName) }
 
     val initials = name.split(" ")
@@ -31,6 +44,24 @@ fun EditProfileScreen(
         .joinToString("")
         .ifEmpty { "U" }
 
+    val user by viewModel.user.collectAsState()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val photoPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            viewModel.uploadProfileImage(it, context)
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Error) {
+            delay(3000)
+            viewModel.resetError()
+        }
+    }
     Scaffold(
         topBar = {
             Surface(
@@ -74,10 +105,23 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Box(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (isError) {
+                        Text(
+                            text = "Brak połączenia. Nie można zapisać zmian.",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                                .align(Alignment.CenterHorizontally)
+                        )
+                    }
+
                     TrippyButton(
                         text = "Zapisz zmiany",
-                        onClick = { onSaveClick(name) }
+                        onClick = { onSaveClick(name) },
+                        enabled = !isLoading
+
                     )
                 }
             }
@@ -99,16 +143,26 @@ fun EditProfileScreen(
                 Box(
                     modifier = Modifier
                         .size(100.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape)
-                        .align(Alignment.TopCenter),
+                        .clip(CircleShape)
+                        .background(color = MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = initials,
-                        fontSize = 38.sp,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium
-                    )
+                    if (user?.stringUrl != null) {
+                        AsyncImage(
+                            model = user!!.stringUrl,
+                            contentDescription = "Zdjęcie profilowe",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(id = R.drawable.ic_launcher_foreground)
+                        )
+                    } else {
+                        Text(
+                            text = initials,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
                 Box(
@@ -117,7 +171,9 @@ fun EditProfileScreen(
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp)
                         .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
-                        .clickable { /* Tu będzie logika wyboru zdjęcia */ },
+                        .clickable {
+                            photoPickerLauncher.launch("image/*")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

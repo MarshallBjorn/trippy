@@ -4,18 +4,42 @@ import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.repository.UserRepository;
+import com.navrotskyi.trippyapi.repository.CurrencyRepository;
+import com.navrotskyi.trippyapi.domain.Currency;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
+    private final CurrencyRepository currencyRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, CurrencyRepository currencyRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
+        this.currencyRepository = currencyRepository;
+    }
+
+    @Value("${app.file-server.url:http://localhost:8888/uploads/}")
+    private String fileServerBaseUrl;
+
+    public UserResponse uploadProfilePhoto(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String savedFilename = fileStorageService.savePhoto(file);
+
+        user.setPhotoUrl(savedFilename);
+        User savedUser = userRepository.save(user);
+
+        return mapToResponse(savedUser);
     }
 
     public UserResponse getCurrentUser(String email) {
@@ -29,22 +53,34 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (request.getName() != null && !request.getName().isBlank()) {
-            user.setName(request.getName());
+        if (request.name() != null && !request.name().isBlank()) {
+            user.setName(request.name());
         }
 
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            boolean emailTaken = userRepository.findByEmail(request.getEmail())
+        if (request.email() != null && !request.email().isBlank()) {
+            boolean emailTaken = userRepository.findByEmail(request.email())
                     .filter(existing -> !existing.getId().equals(user.getId()))
                     .isPresent();
             if (emailTaken) {
                 throw new IllegalArgumentException("Email is already in use");
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(request.email());
         }
 
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.password() != null && !request.password().isBlank()) {
+            if (request.currentPassword() == null ||
+                    !passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                throw new IllegalAccessError("Wrong password");
+            }
+
+            user.setPassword(passwordEncoder.encode(request.password()));
+        }
+
+        if (request.currency_code() != null && !request.currency_code().isBlank()) {
+            Currency currency = currencyRepository.findById(request.currency_code())
+                    .orElseThrow(() -> new RuntimeException("Currency not found"));
+
+            user.setCurrency(currency);
         }
 
         User saved = userRepository.save(user);
@@ -52,12 +88,17 @@ public class UserService {
     }
 
     private UserResponse mapToResponse(User user) {
+        String fullPhotoUrl = (user.getPhotoUrl() != null) ? fileServerBaseUrl + user.getPhotoUrl() : null;
+        String userCurrencyCode = (user.getCurrency() != null) ? user.getCurrency().getCode() : null;
+
         return new UserResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
-                user.isVerified()
+                user.isVerified(),
+                fullPhotoUrl,
+                userCurrencyCode
         );
     }
 }
