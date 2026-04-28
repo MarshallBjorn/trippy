@@ -1,5 +1,6 @@
 package com.navrotskyi.trippyapp
 
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
+import com.navrotskyi.trippyapp.ui.screens.EmailVerificationScreen
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
@@ -89,6 +91,14 @@ class MainActivity : ComponentActivity() {
 
                             navController.navigate(Screen.Trips.route) {
                                 popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        }
+                        is AuthState.AwaitingVerification -> {
+                            val email = authState.email
+                            authViewModel.resetState()
+                            navController.navigate(Screen.VerifyEmail.createRoute(email)) {
+                                // Drop Register from backstack so back-press from Verify lands on Login
+                                popUpTo(Screen.Login.route)
                             }
                         }
                         is AuthState.Error -> {
@@ -150,6 +160,21 @@ class MainActivity : ComponentActivity() {
                             RegisterScreen(
                                 onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
                                 onBackToLoginClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.VerifyEmail.route,
+                            arguments = listOf(navArgument("email") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val email = backStackEntry.arguments?.getString("email").orEmpty()
+                            EmailVerificationScreen(
+                                email = Uri.decode(email),
+                                onGoToLoginClick = {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.Login.route) { inclusive = true }
+                                    }
+                                }
                             )
                         }
 

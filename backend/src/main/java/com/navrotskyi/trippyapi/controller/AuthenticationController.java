@@ -11,6 +11,7 @@ import com.navrotskyi.trippyapi.service.AuthenticationService;
 import com.navrotskyi.trippyapi.service.RefreshTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
@@ -36,7 +37,7 @@ public class AuthenticationController {
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Registers a new user and sends a verification email.")
     public ResponseEntity<AuthResponse> register(
-            @RequestBody RegisterRequest request
+            @Valid @RequestBody RegisterRequest request
     ) {
         return ResponseEntity.ok(authenticationService.register(request));
     }
