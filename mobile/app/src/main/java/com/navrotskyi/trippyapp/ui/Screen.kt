@@ -1,8 +1,14 @@
 package com.navrotskyi.trippyapp.ui
 
+import android.net.Uri
+
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
+
+    object VerifyEmail : Screen("verify_email/{email}") {
+        fun createRoute(email: String) = "verify_email/${Uri.encode(email)}"
+    }
 
     //profil
     object Profile : Screen("profile")
