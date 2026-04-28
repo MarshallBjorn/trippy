@@ -19,7 +19,7 @@ sealed class AuthState {
     object Loading : AuthState()
     data class Success(val token: String) : AuthState()
     data class AwaitingVerification(val email: String) : AuthState()
-    data class Error(val message: String) : AuthState()
+    data class Error(val message: String, val errors: List<String>? = null) : AuthState()
 }
 
 class AuthViewModel : ViewModel() {
@@ -56,7 +56,7 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.AwaitingVerification(email)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message)
+                authState = AuthState.Error(e.message, e.errors)
             } catch (e: Exception) {
                 authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }
