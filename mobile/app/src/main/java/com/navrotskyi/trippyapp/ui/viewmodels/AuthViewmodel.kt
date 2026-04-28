@@ -38,7 +38,7 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.Success(response.body()!!.accessToken)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message)
+                authState = AuthState.Error(e.message, e.errors)
             } catch (e: Exception) {
                 authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }
