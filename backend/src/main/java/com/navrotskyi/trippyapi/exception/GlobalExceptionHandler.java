@@ -1,5 +1,6 @@
 package com.navrotskyi.trippyapi.exception;
 
+import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,19 +14,26 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.navrotskyi.trippyapi.dto.ErrorResponse;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+    private final Environment environment;
 
     @ExceptionHandler({ResourceNotFoundException.class, EntityNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex) {
@@ -89,10 +97,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("Nieobsłużony wyjątek serwera", ex);
+
+        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+        String msg = isProd
+            ? "Coś poszło nie tak po naszej stronie. Spróbuj ponownie za chwilę. Jeśli problem się powtarza, skontaktuj się z pomocą techniczną."
+            : "An unexpected error occured: " + ex.getMessage();
+
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             HttpStatus.INTERNAL_SERVER_ERROR.name(),
-            "An unexpected error occurred: " + ex.getMessage(),
+            msg,
             List.of(),
             LocalDateTime.now()
         );
@@ -154,10 +169,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Konflikt integralności danych", ex);
+        
         ErrorResponse errorResponse = new ErrorResponse(
             HttpStatus.CONFLICT.value(),
             HttpStatus.CONFLICT.name(),
-            "Konflikt danych. Sprawdź poprawność wprowadzonych informacji: " + ex.getMessage(),
+            "Konflikt danych. Wprowadzone informacje naruszają zasady spójności (np. duplikat lub brak wymaganej relacji).",
             List.of(),
             LocalDateTime.now()
         );
@@ -210,6 +227,42 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST.value(),
             HttpStatus.BAD_REQUEST.name(),
             "Nieprawidłowe lub puste ciało zapytania. Sprawdź, czy wysyłasz poprawny format JSON.",
+            List.of(),
+            LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(VerificationTokenNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVerificationTokenNotFound(VerificationTokenNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            "INVALID_VERIFICATION_TOKEN",
+            ex.getMessage(),
+            List.of(),
+            LocalDateTime.now()
+        ));
+    }
+
+    @ExceptionHandler(VerificationTokenExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleVerificationTokenExpired(VerificationTokenExpiredException ex) {
+        return ResponseEntity.status(HttpStatus.GONE).body(new ErrorResponse(  // 410 Gone — semantycznie OK dla "było, wygasło"
+            HttpStatus.GONE.value(),
+            "VERIFICATION_TOKEN_EXPIRED",
+            ex.getMessage(),
+            List.of(),
+            LocalDateTime.now()
+        ));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException ex) {
+        log.warn("Błąd przetwarzania żądania multipart", ex);
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.BAD_REQUEST.name(),
+            "Nie udało się przetworzyć przesłanych plików. Sprawdź czy plik nie jest uszkodzony i spróbuj ponownie.",
             List.of(),
             LocalDateTime.now()
         );

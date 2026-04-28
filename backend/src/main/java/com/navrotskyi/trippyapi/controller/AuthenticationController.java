@@ -16,12 +16,12 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -64,8 +64,11 @@ public class AuthenticationController {
                 .orElseThrow(() -> new TokenRefreshException(request.getRefreshToken(), "Refresh token is not in database!"));
     }
 
-    public ResponseEntity<Map<String, String>> handleDisabledUser(DisabledException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("message", "Konto nie zostało zweryfikowane. Sprawdź swój email."));
+    @GetMapping("/verify")
+    @Operation(summary = "Verify email via token", 
+            description = "Confirms a user's email address using the token sent to their inbox.")
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam("token") String token) {
+        authenticationService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "Sukces! Twoje konto zostało pomyślnie zweryfikowane."));
     }
 }

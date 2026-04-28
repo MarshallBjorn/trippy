@@ -64,7 +64,7 @@ class AuthenticationServiceLoginTest {
         savedUser.setVerified(true);
         savedUser.setRole(Role.USER);
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(savedUser));
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(savedUser));
         when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
         RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
@@ -85,7 +85,7 @@ class AuthenticationServiceLoginTest {
         nonVerifiedUser.setId(UUID.randomUUID());
         nonVerifiedUser.setVerified(false);
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(nonVerifiedUser));
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(nonVerifiedUser));
 
         RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
         Mockito.lenient().when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
@@ -114,7 +114,7 @@ class AuthenticationServiceLoginTest {
 
     @Test
     void shouldThrowExceptionWhenUserNotFoundInDatabase() {
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
 
         assertThrows(NoSuchElementException.class, () -> {
             authenticationService.authenticate(request);

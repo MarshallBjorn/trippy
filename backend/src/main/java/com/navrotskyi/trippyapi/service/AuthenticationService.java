@@ -3,6 +3,8 @@ package com.navrotskyi.trippyapi.service;
 import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.dto.AuthResponse;
 import com.navrotskyi.trippyapi.dto.RegisterRequest;
+import com.navrotskyi.trippyapi.exception.VerificationTokenExpiredException;
+import com.navrotskyi.trippyapi.exception.VerificationTokenNotFoundException;
 import com.navrotskyi.trippyapi.domain.RefreshToken;
 import com.navrotskyi.trippyapi.domain.Role;
 import com.navrotskyi.trippyapi.domain.User;
@@ -12,11 +14,14 @@ import com.navrotskyi.trippyapi.repository.VerificationTokenRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
 import com.navrotskyi.trippyapi.service.email.EmailService;
 
+import jakarta.transaction.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,7 +29,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -71,12 +75,12 @@ public class AuthenticationService {
     public AuthResponse authenticate(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
+                        request.email(),
+                        request.password()
                 )
         );
-        var user = repository.findByEmail(request.getEmail())
-                .orElseThrow();
+        var user = repository.findByEmail(request.email())
+                .orElseThrow(() -> new BadCredentialsException("Nieprawidłowy adres email lub hasło."));
 
         var jwtToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
@@ -85,5 +89,23 @@ public class AuthenticationService {
                 .refreshToken(refreshToken.getToken())
                 .role(user.getAuthorities().stream().findFirst().map(Object::toString).orElse("USER"))
                 .build();
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        VerificationToken vToken = tokenRepository.findByToken(token)
+        .orElseThrow(() -> new VerificationTokenNotFoundException(
+                        "Nieprawidłowy lub nieistniejący token weryfikacyjny."));
+
+        if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+        tokenRepository.delete(vToken);
+        throw new VerificationTokenExpiredException(
+                "Token weryfikacyjny wygasł. Zarejestruj się ponownie lub poproś o nowy link aktywacyjny.");
+        }
+
+        User user = vToken.getUser();
+        user.setVerified(true);
+        repository.save(user);
+        tokenRepository.delete(vToken);
     }
 }

@@ -6,6 +6,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,6 +30,34 @@ public class JwtService {
 
     @Autowired
     private TokenBlacklistRepository tokenBlacklistRepository;
+
+    @PostConstruct
+    void validateJwtConfig() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                "JWT secret key nie jest skonfigurowany. Ustaw zmienną środowiskową JWT_SECRET."
+            );
+        }
+
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+            if (keyBytes.length < 32) {
+                throw new IllegalStateException(
+                    "JWT secret key jest za krótki. Algorytm HS256 wymaga klucza o długości co najmniej 32 bajtów po dekodowaniu base64. " +
+                    "Aktualna długość: " + keyBytes.length + " bajtów."
+                );
+            }
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                "JWT secret key nie jest prawidłowym ciągiem base64.", ex);
+        }
+
+        if (jwtExpiration <= 0 ) {
+            throw new IllegalStateException(
+                "JWT expiration musi być dodatni. Aktualna wartość: " + jwtExpiration
+            );
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
