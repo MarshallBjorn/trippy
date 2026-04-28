@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyLabeledField
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
@@ -40,6 +41,7 @@ fun EditNodeScreen(
     var price by remember(node) { mutableStateOf(node?.price?.toString() ?: "") }
     var note by remember(node) { mutableStateOf(node?.note ?: "") }
     var separate by remember(node) { mutableStateOf(node?.separate ?: false) }
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(createNodeState) {
         if (createNodeState is CreateTripNodeState.Success) {
@@ -47,8 +49,7 @@ fun EditNodeScreen(
             viewModel.resetCreateNodeState()
             onBackClick() // Powrót po udanej edycji
         } else if (createNodeState is CreateTripNodeState.Error) {
-            Toast.makeText(context, (createNodeState as CreateTripNodeState.Error).message, Toast.LENGTH_LONG).show()
-            viewModel.resetCreateNodeState()
+            errorDialogMessage = (createNodeState as CreateTripNodeState.Error).message
         }
     }
 
@@ -122,6 +123,16 @@ fun EditNodeScreen(
                 Text("Koszty rozdzielne", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        errorDialogMessage?.let { message ->
+            TrippyErrorDialog(
+                message = message,
+                onDismiss = {
+                    errorDialogMessage = null
+                    viewModel.resetCreateTripNodeState()
+                }
+            )
         }
     }
 }
