@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
+                                onRegisterClick = { name, email, password, confirmPassword -> authViewModel.register(name, email, password, confirmPassword) },
                                 onBackToLoginClick = { navController.popBackStack() }
                             )
                         }

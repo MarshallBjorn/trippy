@@ -34,14 +34,14 @@ public class AuthenticationService {
     private final EmailService emailService;
 
     public AuthResponse register(RegisterRequest request) {
-        if (repository.findByEmail(request.getEmail()).isPresent()) {
+        if (repository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("User with this email already exists");
         }
 
         User user = new User(
-                request.getName(),
-                request.getEmail(),
-                passwordEncoder.encode(request.getPassword()),
+                request.name(),
+                request.email(),
+                passwordEncoder.encode(request.password()),
                 Role.USER,
                 null,
                 null,
@@ -77,10 +77,6 @@ public class AuthenticationService {
         );
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
-
-        if (!user.isVerified()) {
-            throw new RuntimeException("Konto nie zostało zweryfikowane! Sprawdź swoją skrzynkę email.");
-        }
 
         var jwtToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());

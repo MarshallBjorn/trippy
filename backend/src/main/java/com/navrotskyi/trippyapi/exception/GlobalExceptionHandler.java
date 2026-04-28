@@ -5,6 +5,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -114,8 +117,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+        String errorMessage = ex.getBindingResult().getAllErrors().stream()
+                .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
 
         ErrorResponse errorResponse = new ErrorResponse(
@@ -147,6 +150,22 @@ public class GlobalExceptionHandler {
             LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabled(DisabledException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(new ErrorResponse(403, "EMAIL_NOT_VERIFIED",
+                "Konto nie zostało zweryfikowane! Sprawdź swoją skrzynkę email.",
+                LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse(401, "INVALID_CREDENTIALS",
+                "Nieprawidłowy adres email lub hasło.",
+                LocalDateTime.now()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

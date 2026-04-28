@@ -44,20 +44,8 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     @Operation(summary = "Authenticate user", description = "Authenticates a user and returns an access token along with a refresh token.")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authenticationService.authenticate(request);
-            return ResponseEntity.ok(response);
-            
-        } catch (RuntimeException e) {
-            if (e.getMessage() != null && e.getMessage().contains("Konto nie zostało zweryfikowane")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", e.getMessage()));
-            }
-            
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Nieprawidłowy adres email lub hasło."));
-        }
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 
     @PostMapping("/refresh")

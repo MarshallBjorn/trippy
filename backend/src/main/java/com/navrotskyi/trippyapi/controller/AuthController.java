@@ -37,7 +37,7 @@ public class AuthController {
     @GetMapping("/register")
     @Operation(summary = "Get registration info payload template")
     public ResponseEntity<RegisterRequest> getRegisterInfo() {
-        return ResponseEntity.ok(new RegisterRequest("John Doe", "john@example.com", "password123"));
+        return ResponseEntity.ok(new RegisterRequest("John Doe", "john@example.com", "password123", "password123"));
     }
 
     @GetMapping("/login")

@@ -15,7 +15,7 @@ import com.navrotskyi.trippyapp.ui.components.TrippyTextField
 @Composable
 fun RegisterScreen(
     modifier: Modifier = Modifier,
-    onRegisterClick: (String, String, String) -> Unit,
+    onRegisterClick: (String, String, String, String) -> Unit,
     onBackToLoginClick: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
@@ -82,13 +82,7 @@ fun RegisterScreen(
             TrippyButton(
                 text = "Zarejestruj się",
                 onClick = {
-                    // Prosta blokada - sprawdzamy czy hasła są identyczne
-                    if (password == confirmPassword && password.isNotEmpty()) {
-                        onRegisterClick(name, email, password)
-                    } else {
-                        // TODO: W przyszłości dodamy tu obsługę błędów (np. Snackbar)
-                        println("Hasła nie są identyczne lub są puste!")
-                    }
+                    onRegisterClick(name, email, password, confirmPassword)
                 }
             )
 
