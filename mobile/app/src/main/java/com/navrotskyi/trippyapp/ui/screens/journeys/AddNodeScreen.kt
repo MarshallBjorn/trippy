@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyLabeledField
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
@@ -34,6 +35,8 @@ fun AddNodeScreen(
     var price by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var separate by remember { mutableStateOf(false) }
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
+
 
     val createNodeState by viewModel.createNodeState.collectAsState()
     val context = LocalContext.current
@@ -44,8 +47,7 @@ fun AddNodeScreen(
             viewModel.resetCreateNodeState()
             onBackClick()
         } else if (createNodeState is CreateTripNodeState.Error) {
-            Toast.makeText(context, (createNodeState as CreateTripNodeState.Error).message, Toast.LENGTH_LONG).show()
-            viewModel.resetCreateNodeState()
+            errorDialogMessage = (createNodeState as CreateTripNodeState.Error).message
         }
     }
 
@@ -147,6 +149,16 @@ fun AddNodeScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        errorDialogMessage?.let { message ->
+            TrippyErrorDialog(
+                message = message,
+                onDismiss = {
+                    errorDialogMessage = null
+                    viewModel.resetCreateNodeState()
+                }
+            )
         }
     }
 }
