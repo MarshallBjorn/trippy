@@ -1,7 +1,7 @@
 package com.navrotskyi.trippyapi.service;
 
 import com.navrotskyi.trippyapi.domain.*;
-import com.navrotskyi.trippyapi.dto.CreateTripEventRequest;
+import com.navrotskyi.trippyapi.dto.trip.CreateTripEventRequest;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.*;
 import org.springframework.stereotype.Service;

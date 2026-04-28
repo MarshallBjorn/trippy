@@ -1,13 +1,26 @@
 package com.navrotskyi.trippyapi.validation;
 
-import com.navrotskyi.trippyapi.dto.CreateTripEventRequest;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.Temporal;
+
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class ValidDateRangeValidator implements ConstraintValidator<ValidDateRange, CreateTripEventRequest> {
+public class ValidDateRangeValidator implements ConstraintValidator<ValidDateRange, DateRangeProvider> {
     @Override
-    public boolean isValid(CreateTripEventRequest r, ConstraintValidatorContext ctx) {
-        if (r.startDate() == null || r.endDate() == null) return true; // @NotNull handles null
-        return !r.endDate().isBefore(r.startDate());
+    public boolean isValid(DateRangeProvider r, ConstraintValidatorContext ctx) {
+        Temporal start = r.getRangeStart();
+        Temporal end = r.getRangeEnd();
+        if (start == null || end == null) return true;
+
+        if (start instanceof LocalDate s && end instanceof LocalDate e) {
+            return !e.isBefore(s);
+        }
+
+        if (start instanceof LocalDateTime s && end instanceof LocalDateTime e) {
+            return !e.isBefore(s);
+        }
+        return true;
     }
 }

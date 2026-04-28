@@ -1,4 +1,4 @@
-package com.navrotskyi.trippyapi.dto;
+package com.navrotskyi.trippyapi.dto.trip;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -8,6 +8,10 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.Temporal;
+
+import com.navrotskyi.trippyapi.validation.DateRangeProvider;
+import com.navrotskyi.trippyapi.validation.ValidDateRange;
 
 /**
  * Request DTO dla tworzenia oraz aktualizowania węzła wycieczki (TripNode).
@@ -16,6 +20,8 @@ import java.time.LocalDateTime;
  * Walidacja wzajemnej spójności pól (endTime &gt; startTime) jest wykonywana
  * w warstwie serwisu, bo wymaga porównania dwóch pól.
  */
+
+@ValidDateRange
 public record CreateTripNodeRequest (
     @NotNull(message = "Pole startTime jest wymagane.")
     LocalDateTime startTime,
@@ -36,5 +42,7 @@ public record CreateTripNodeRequest (
     BigDecimal price,
 
     boolean isSeparate
-) {
+) implements DateRangeProvider {
+    @Override public Temporal getRangeStart() { return startTime(); }
+    @Override public Temporal getRangeEnd() { return endTime(); }
 }

@@ -1,9 +1,11 @@
-package com.navrotskyi.trippyapi.dto;
+package com.navrotskyi.trippyapi.dto.trip;
 
+import com.navrotskyi.trippyapi.validation.DateRangeProvider;
 import com.navrotskyi.trippyapi.validation.ValidDateRange;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.Temporal;
 
 @ValidDateRange
 public record CreateTripEventRequest(
@@ -23,4 +25,7 @@ public record CreateTripEventRequest(
     @NotNull(message = "Budżet jest wymagany")
     @PositiveOrZero(message = "Budżet nie może być ujemny")
     BigDecimal budget
-) {}
+) implements DateRangeProvider {
+    @Override public Temporal getRangeStart() { return startDate; }
+    @Override public Temporal getRangeEnd() { return endDate; }
+}

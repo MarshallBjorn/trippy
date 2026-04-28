@@ -4,7 +4,7 @@ import com.navrotskyi.trippyapi.domain.TripEvent;
 import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.domain.User;
-import com.navrotskyi.trippyapi.dto.CreateTripNodeRequest;
+import com.navrotskyi.trippyapi.dto.trip.CreateTripNodeRequest;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
 import com.navrotskyi.trippyapi.repository.TripNodeRepository;

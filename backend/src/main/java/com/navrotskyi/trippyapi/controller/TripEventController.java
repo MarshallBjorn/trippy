@@ -2,8 +2,8 @@ package com.navrotskyi.trippyapi.controller;
 
 import com.navrotskyi.trippyapi.domain.TripEvent;
 import com.navrotskyi.trippyapi.domain.User;
-import com.navrotskyi.trippyapi.dto.CreateTripEventRequest;
 import com.navrotskyi.trippyapi.dto.TripEventDto;
+import com.navrotskyi.trippyapi.dto.trip.CreateTripEventRequest;
 import com.navrotskyi.trippyapi.mapper.TripEventMapper;
 import com.navrotskyi.trippyapi.service.TripEventService;
 import io.swagger.v3.oas.annotations.Operation;
