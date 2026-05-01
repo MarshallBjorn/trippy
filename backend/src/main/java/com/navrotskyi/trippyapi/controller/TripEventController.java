@@ -50,7 +50,7 @@ public class TripEventController {
     @GetMapping("/my")
     @Operation(summary = "Get my trip events", description = "Retrieves a list of trip events created by the currently authenticated user.")
     public ResponseEntity<List<TripEventDto>> getMyTripEvents(@AuthenticationPrincipal User currentUser) {
-        List<TripEvent> trips = tripEventService.getTripsByOwnerId(currentUser.getId());
+        List<TripEvent> trips = tripEventService.getUserTrips(currentUser);
         List<TripEventDto> tripDtos = trips.stream().map(TripEventMapper::toDto).collect(Collectors.toList());
         return ResponseEntity.ok(tripDtos);
     }

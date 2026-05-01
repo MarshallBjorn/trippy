@@ -44,10 +44,6 @@ fun GroupBalanceScreen(
 ){
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(tripId) {
-        viewModel.loadBalancesForTrip(tripId)
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(

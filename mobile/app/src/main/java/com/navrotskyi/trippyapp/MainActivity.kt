@@ -47,6 +47,7 @@ import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripNodeDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.EditNodeScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.InvitationsScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.*
@@ -249,7 +250,8 @@ class MainActivity : ComponentActivity() {
                             JourneysScreen(
                                 viewModel = tripViewModel,
                                 onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
-                                onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
+                                onAddTripClick = { navController.navigate(Screen.AddTrip.route) } ,
+                                onInvitationsClick = {navController.navigate(Screen.Invitations.route) }
                             )
                         }
 
@@ -348,6 +350,15 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
 
+                            val userState by profileViewModel.user.collectAsState()
+                            val myUserId = userState?.id?.toString() ?: ""
+
+                            LaunchedEffect(tripId, myUserId) {
+                                if (myUserId.isNotEmpty()) {
+                                    groupBalanceViewModel.loadBalancesForTrip(tripId, myUserId)
+                                }
+                            }
+
                             GroupBalanceScreen(
                                 tripId = tripId,
                                 viewModel = groupBalanceViewModel,
@@ -359,6 +370,9 @@ class MainActivity : ComponentActivity() {
                             ExpensesScreen(
                                 viewModel = expensesViewModel
                             )
+                        }
+                        composable(Screen.Invitations.route) {
+                            InvitationsScreen()
                         }
                     }
 
