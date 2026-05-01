@@ -19,6 +19,7 @@ import com.navrotskyi.trippyapp.models.TripParticipantDto
 import com.navrotskyi.trippyapp.ui.viewmodels.SessionViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +37,7 @@ fun InviteParticipantScreen(
     val participants by viewModel.participants.collectAsState()
     val context = LocalContext.current
 
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(inviteState) {
         when (inviteState) {
@@ -46,9 +48,7 @@ fun InviteParticipantScreen(
 
             }
             is InviteState.Error -> {
-                val errorMessage = (inviteState as InviteState.Error).message
-                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                viewModel.resetInviteState()
+                errorDialogMessage = (inviteState as InviteState.Error).message
             }
             else -> {}
         }
@@ -98,7 +98,7 @@ fun InviteParticipantScreen(
                         if (email.isNotBlank()) {
                             viewModel.inviteParticipant(tripId, email)
                         } else {
-                            Toast.makeText(context, "Podaj adres e-mail", Toast.LENGTH_SHORT).show()
+                            errorDialogMessage = "Podaj adres e-mail"
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -121,6 +121,16 @@ fun InviteParticipantScreen(
                     ParticipantCard(participant = participant)
                 }
             }
+        }
+
+        errorDialogMessage?.let { message ->
+            TrippyErrorDialog(
+                message = message,
+                onDismiss = {
+                    errorDialogMessage = null
+                    viewModel.resetInviteState()
+                }
+            )
         }
     }
 }

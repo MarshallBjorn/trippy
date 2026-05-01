@@ -1,5 +1,6 @@
 package com.navrotskyi.trippyapp
 
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,10 +29,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.setValue
 
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.UserDb
 import com.navrotskyi.trippyapp.ui.Screen
+import com.navrotskyi.trippyapp.ui.screens.EmailVerificationScreen
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
+import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
@@ -57,6 +63,7 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel()
                 val authState = authViewModel.authState
                 val context = LocalContext.current
+                var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
                 // Inicjalizacja ViewModeli
                 val userDao = remember { UserDb.getInstance(context).userDao() }
@@ -65,6 +72,7 @@ class MainActivity : ComponentActivity() {
                 )
                 val tripViewModel: TripViewModel = viewModel()
                 val expensesViewModel: ExpensesViewModel = viewModel()
+                val groupBalanceViewModel: GroupBalanceViewModel = viewModel()
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -86,9 +94,16 @@ class MainActivity : ComponentActivity() {
                                 popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         }
-                        is AuthState.Error -> {
-                            Toast.makeText(context, authState.message, Toast.LENGTH_LONG).show()
+                        is AuthState.AwaitingVerification -> {
+                            val email = authState.email
                             authViewModel.resetState()
+                            navController.navigate(Screen.VerifyEmail.createRoute(email)) {
+                                // Drop Register from backstack so back-press from Verify lands on Login
+                                popUpTo(Screen.Login.route)
+                            }
+                        }
+                        is AuthState.Error -> {
+                            errorDialogMessage = authState.message
                         }
                         else -> {}
                     }
@@ -146,6 +161,21 @@ class MainActivity : ComponentActivity() {
                             RegisterScreen(
                                 onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
                                 onBackToLoginClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.VerifyEmail.route,
+                            arguments = listOf(navArgument("email") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val email = backStackEntry.arguments?.getString("email").orEmpty()
+                            EmailVerificationScreen(
+                                email = Uri.decode(email),
+                                onGoToLoginClick = {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.Login.route) { inclusive = true }
+                                    }
+                                }
                             )
                         }
 
@@ -241,7 +271,8 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() },
                                 onInviteClick = { id -> navController.navigate(Screen.InviteParticipant.createRoute(id)) },
                                 onAddNodeClick = { id -> navController.navigate(Screen.AddNode.createRoute(id)) },
-                                onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) }
+                                onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) },
+                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))}
                             )
                         }
 
@@ -311,11 +342,34 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        composable(
+                            route = Screen.GroupBalance.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+
+                            GroupBalanceScreen(
+                                tripId = tripId,
+                                viewModel = groupBalanceViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
                         composable(Screen.Expenses.route) {
                             ExpensesScreen(
                                 viewModel = expensesViewModel
                             )
                         }
+                    }
+
+                    errorDialogMessage?.let { message ->
+                        TrippyErrorDialog(
+                            message = message,
+                            onDismiss = {
+                                errorDialogMessage = null
+                                authViewModel.resetState() 
+                            }
+                        )
                     }
                 }
             }

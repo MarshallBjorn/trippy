@@ -27,7 +27,7 @@ public class UserService {
         this.currencyRepository = currencyRepository;
     }
 
-    @Value("${app.file-server.base-url:http://localhost:8888/uploads/}")
+    @Value("${app.file-server.url:http://localhost:8888/uploads/}")
     private String fileServerBaseUrl;
 
     public UserResponse uploadProfilePhoto(String email, MultipartFile file) {

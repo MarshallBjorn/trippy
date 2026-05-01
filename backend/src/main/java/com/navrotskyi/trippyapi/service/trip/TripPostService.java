@@ -39,7 +39,7 @@ public class TripPostService {
     private final TripPhotoRepository tripPhotoRepository;
     private final FileStorageService fileStorageService;
 
-    @Value("${app.file-server.base-url:http://localhost:8888/uploads/}")
+    @Value("${app.file-server.url:http://localhost:8888/uploads/}")
     private String fileServerBaseUrl;
 
     @Transactional(readOnly = true)

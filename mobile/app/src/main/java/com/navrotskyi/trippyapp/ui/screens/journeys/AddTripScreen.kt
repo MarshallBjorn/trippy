@@ -19,6 +19,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
+import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 import java.time.Instant
@@ -50,6 +52,9 @@ fun AddTripScreen(
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
 
+    var errorDialogMessage by remember { mutableStateOf<String?>(null) }
+
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.clearAddTripErrors()
@@ -65,8 +70,7 @@ fun AddTripScreen(
                 onBackClick()
             }
             is CreateTripState.Error -> {
-                Toast.makeText(context, (createTripState as CreateTripState.Error).message, Toast.LENGTH_LONG).show()
-                viewModel.resetCreateTripState()
+                errorDialogMessage = (createTripState as CreateTripState.Error).message
             }
             else -> {}
         }
@@ -229,6 +233,16 @@ fun AddTripScreen(
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        errorDialogMessage?.let { message ->
+            TrippyErrorDialog(
+                message = message,
+                onDismiss = {
+                    errorDialogMessage = null
+                    viewModel.resetCreateTripState()
+                }
+            )
         }
     }
 }

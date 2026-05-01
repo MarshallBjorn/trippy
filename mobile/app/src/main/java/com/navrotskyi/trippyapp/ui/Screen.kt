@@ -1,8 +1,14 @@
 package com.navrotskyi.trippyapp.ui
 
+import android.net.Uri
+
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
+
+    object VerifyEmail : Screen("verify_email/{email}") {
+        fun createRoute(email: String) = "verify_email/${Uri.encode(email)}"
+    }
 
     //profil
     object Profile : Screen("profile")
@@ -13,6 +19,10 @@ sealed class Screen(val route: String) {
     object Trips : Screen("trips")
     object TripDetails : Screen("trip_details/{tripId}") {
         fun createRoute(tripId: String) = "trip_details/$tripId"
+    }
+
+    object GroupBalance : Screen("group_balance/{tripId}") {
+        fun createRoute(tripId: String) = "group_balance/$tripId"
     }
 
     object InviteParticipant : Screen("invite_participant/{tripId}") {

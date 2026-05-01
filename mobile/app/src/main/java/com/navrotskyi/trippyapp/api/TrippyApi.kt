@@ -2,6 +2,7 @@ package com.navrotskyi.trippyapp.api
 
 import com.navrotskyi.trippyapp.models.*
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -76,9 +77,22 @@ interface TrippyApi {
     @GET("/api/dictionaries/currencies")
     suspend fun getCurrencies(): Response<List<CurrencyDto>>
 
+    // @GET("/api/trips/{tripId}/balances")
+    // suspend fun getGroupBalances(@Path("tripId") tripId: String): Response<GroupBalancesDto>
+
     @Multipart
     @POST("api/users/me/photo")
     suspend fun uploadProfilePhoto(
         @Part file: MultipartBody.Part
     ): Response<UserResponseDto>
+
+    @GET("/api/posts/node/{nodeId}")
+    suspend fun getPostsByNode(@Path("nodeId") nodeId: String): Response<List<TripPostDto>>
+
+    @Multipart
+    @POST("/api/posts")
+    suspend fun createPost(
+        @Part("data") data: RequestBody,
+        @Part photos: List<MultipartBody.Part>
+    ): Response<TripPostDto>
 }

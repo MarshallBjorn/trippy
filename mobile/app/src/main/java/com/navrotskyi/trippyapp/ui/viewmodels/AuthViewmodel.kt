@@ -16,6 +16,7 @@ sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
     data class Success(val token: String) : AuthState()
+    data class AwaitingVerification(val email: String) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -48,11 +49,9 @@ class AuthViewModel : ViewModel() {
             try {
                 val response = api.register(RegisterRequest(name, email, password))
 
-                if (response.isSuccessful && response.body() != null) {
-                    // Update: use accessToken from the response
-                    val token = response.body()!!.accessToken
-                    TokenManager.saveToken(token)
-                    authState = AuthState.Success(token)
+                if (response.isSuccessful) {
+                    // Do NOT save token - user is unverified
+                    authState = AuthState.AwaitingVerification(email)
                 } else {
                     authState = AuthState.Error("Błąd rejestracji: ${response.code()}")
                 }

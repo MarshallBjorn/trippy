@@ -1,19 +1,27 @@
-package com.navrotskyi.trippyapi.service;
+package com.navrotskyi.trippyapi.service.email;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Profile("prod")
 @Service
-public class EmailService {
+@RequiredArgsConstructor
+public class MailtrapEmailService implements EmailService {
     private final JavaMailSender mailSender;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
+    @Override
     public void sendVerificationEmail(String toEmail, String token) {
-        String confirmationUrl = "http://localhost:5173/verify?token=" + token;
+        String confirmationUrl = frontendUrl + "/verify?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("kontakt@tomoiolo.pl");
