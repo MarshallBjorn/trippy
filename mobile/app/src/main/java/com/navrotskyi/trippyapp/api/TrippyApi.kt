@@ -81,6 +81,19 @@ interface TrippyApi {
     @GET("/api/dictionaries/currencies")
     suspend fun getCurrencies(): Response<List<CurrencyDto>>
 
+    // @GET("/api/trips/{tripId}/balances")
+    // suspend fun getGroupBalances(@Path("tripId") tripId: String): Response<GroupBalancesDto>
+
+    //obsluga zaproszen
+    @GET("/api/users/me/invitations")
+    suspend fun getInvitations(): Response<List<InvitationDto>>
+
+    @POST("/api/trips/{id}/accept")
+    suspend fun acceptInvitation(@Path("id") id: String): Response<Unit>
+
+    @POST("/api/trips/{id}/reject")
+    suspend fun rejectInvitation(@Path("id") id: String): Response<Unit>
+
     @Multipart
     @POST("api/users/me/photo")
     suspend fun uploadProfilePhoto(
