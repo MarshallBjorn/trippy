@@ -30,4 +30,6 @@ public interface TripParticipantRepository extends JpaRepository<TripParticipant
     Optional<TripParticipant> findByEventIdAndUserId(UUID eventId, UUID userId);
 
     Optional<TripParticipant> findByEventAndUser(TripEvent event, User user);
+
+    Optional<TripParticipant> findByUserEmailAndEventId(String email, UUID eventId);
 }
