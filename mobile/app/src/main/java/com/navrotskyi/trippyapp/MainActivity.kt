@@ -346,6 +346,15 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
 
+                            val userState by profileViewModel.user.collectAsState()
+                            val myUserId = userState?.id?.toString() ?: ""
+
+                            LaunchedEffect(tripId, myUserId) {
+                                if (myUserId.isNotEmpty()) {
+                                    groupBalanceViewModel.loadBalancesForTrip(tripId, myUserId)
+                                }
+                            }
+
                             GroupBalanceScreen(
                                 tripId = tripId,
                                 viewModel = groupBalanceViewModel,
