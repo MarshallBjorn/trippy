@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "app.frontend.url=https://trippy.example.com",
         "app.file-server.url=https://trippy.example.com/uploads/",
-        "application.security.jwt.secret-key=TEST_TEST_TEST_TEST_TEST_TEST_TEST_TEST_TEST_TEST_64_CHARS_LONG_XX",
+        "application.security.jwt.secret-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         "spring.mail.host=localhost",
         "spring.mail.port=1025",
         "spring.mail.username=test-user",
