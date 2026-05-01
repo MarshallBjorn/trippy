@@ -31,7 +31,8 @@ class GlobalErrorInterceptor : Interceptor {
             try {
                 if (!errorBodyString.isNullOrEmpty()) {
                     val errorDto = Gson().fromJson(errorBodyString, ErrorResponseDto::class.java)
-                    errorMessage = errorDto.message
+
+                    errorMessage = errorDto.message ?: "HTTP ${response.code} error"
                     errorCode = errorDto.status
                 }
             } catch (e: Exception) {
