@@ -31,6 +31,10 @@ interface TrippyApi {
     @POST("/api/trips")
     suspend fun createTrip(@Body request: CreateTripEventRequest): Response<TripEventDto>
 
+    // Pobieranie rozliczeń i wydatków wycieczki
+    @GET("/api/trips/{tripId}/balances")
+    suspend fun getGroupBalances(@Path("tripId") tripId: String): Response<GroupBalancesDto>
+
     //OBSŁUGA WYDARZEŃ (NODE'ÓW) 
 
     // Pobieranie wydarzeń (Node'ów)
