@@ -8,6 +8,8 @@ import com.navrotskyi.trippyapi.mapper.TripEventMapper;
 import com.navrotskyi.trippyapi.service.TripEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,15 +32,18 @@ public class TripEventController {
 
     @PostMapping
     @Operation(summary = "Create a new trip event", description = "Creates a new trip and sets the currently authenticated user as the organizer.")
-    public ResponseEntity<TripEventDto> createTripEvent(@RequestBody CreateTripEventRequest request, @AuthenticationPrincipal User currentUser) {
+    public ResponseEntity<TripEventDto> createTripEvent(@Valid @RequestBody CreateTripEventRequest request, @AuthenticationPrincipal User currentUser) {
         TripEvent newTripEvent = tripEventService.createTripEvent(request, currentUser);
         return new ResponseEntity<>(TripEventMapper.toDto(newTripEvent), HttpStatus.CREATED);
     }
 
     @GetMapping("/{eventId}")
     @Operation(summary = "Get trip event by ID", description = "Retrieves details of a specific trip event, including its participants, by its UUID.")
-    public ResponseEntity<TripEventDto> getTripEventById(@PathVariable UUID eventId) {
-        TripEvent tripEvent = tripEventService.getTripEventById(eventId);
+    public ResponseEntity<TripEventDto> getTripEventById(
+        @PathVariable UUID eventId,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        TripEvent tripEvent = tripEventService.getTripEventById(eventId, currentUser.getId());
         return ResponseEntity.ok(TripEventMapper.toDto(tripEvent));
     }
 

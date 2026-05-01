@@ -4,6 +4,8 @@ import com.navrotskyi.trippyapi.domain.*;
 import com.navrotskyi.trippyapi.dto.trip.CreateTripEventRequest;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.*;
+
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,9 +61,19 @@ public class TripEventService {
         return savedTripEvent;
     }
 
-    public TripEvent getTripEventById(UUID eventId) {
-        return tripEventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
+    public TripEvent getTripEventById(UUID eventId, UUID requestingUserId) {
+        TripEvent trip = tripEventRepository.findById(eventId)
+            .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono wycieczki o podanym id."));
+
+        boolean isParticipant = tripParticipantRepository
+            .findByEventIdAndUserId(eventId, requestingUserId)
+            .isPresent();
+
+        if (!isParticipant) {
+            throw new AccessDeniedException("Nie jesteś uczestnikiem tej wycieczki");
+        }
+
+        return trip;
     }
 
     public List<TripEvent> getTripsByOwnerId(UUID ownerId) {

@@ -58,7 +58,6 @@ public class AuthenticationService {
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setToken(UUID.randomUUID().toString());
         verificationToken.setUser(savedUser);
-        verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24)); // 24 hours expiry
         verificationToken.setExpiryDate(LocalDateTime.now().plusHours(24));
         tokenRepository.save(verificationToken);
 

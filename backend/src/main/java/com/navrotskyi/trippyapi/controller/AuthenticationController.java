@@ -50,7 +50,7 @@ public class AuthenticationController {
 
     @PostMapping("/refresh")
     @Operation(summary = "Refresh access token", description = "Uses a valid refresh token to obtain a new access token.")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return refreshTokenService.findByToken(request.getRefreshToken())
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUser)

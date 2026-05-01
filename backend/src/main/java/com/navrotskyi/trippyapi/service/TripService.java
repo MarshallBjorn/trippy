@@ -2,6 +2,7 @@ package com.navrotskyi.trippyapi.service;
 
 import java.util.UUID;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.navrotskyi.trippyapi.domain.TripEvent;
@@ -9,6 +10,7 @@ import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.domain.TripRole;
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.trip.TripInviteRequest;
+import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
 import com.navrotskyi.trippyapi.repository.TripParticipantRepository;
 import com.navrotskyi.trippyapi.repository.TripRoleRepository;
@@ -38,10 +40,10 @@ public class TripService {
                                  TripInviteRequest inviteRequest,
                                  String currentUsername) {
         TripEvent tripEvent = tripEventRepository.findById(tripId)
-                .orElseThrow(() -> new RuntimeException("[ERROR] Trip with id " + tripId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Trip with id " + tripId + " not found"));
 
         if (!tripEvent.getOwner().getEmail().equals(currentUsername)) {
-            throw new RuntimeException("[ERROR] Only the owner of the trip can invite users");
+            throw new AccessDeniedException("Only the owner of the trip can invite users");
         }
 
         User userToInvite = userRepository.findByEmail(inviteRequest.email())
@@ -52,7 +54,7 @@ public class TripService {
                 .isPresent();
 
         if (isAlreadyParticipant) {
-            throw new RuntimeException("[ERROR] User with email " + inviteRequest.email()
+            throw new ResourceNotFoundException("User with email " + inviteRequest.email()
                     + " is already a participant of the trip");
         }
 

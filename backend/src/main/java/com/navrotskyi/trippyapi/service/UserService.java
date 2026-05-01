@@ -70,7 +70,7 @@ public class UserService {
         if (request.password() != null && !request.password().isBlank()) {
             if (request.currentPassword() == null ||
                     !passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-                throw new IllegalAccessError("Wrong password");
+                throw new IllegalArgumentException("Wrong password");
             }
 
             user.setPassword(passwordEncoder.encode(request.password()));

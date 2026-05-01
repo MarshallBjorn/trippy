@@ -55,7 +55,7 @@ public class UserController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully uploaded the photo"),
         @ApiResponse(responseCode = "400", description = "Invalid file or size exceeded"),
-        @ApiResponse(responseCode = "403", description = "Missing administrator privileges"),
+        @ApiResponse(responseCode = "403", description = "Missing privileges"),
         @ApiResponse(responseCode = "404", description = "User with the specified ID not found")
     })
     public ResponseEntity<UserResponse> uploadProfilePhoto (
