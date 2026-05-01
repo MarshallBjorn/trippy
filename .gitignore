@@ -8,6 +8,7 @@
 .env
 
 .vscode/
+.env.prod
 
 .DS_Store
 
