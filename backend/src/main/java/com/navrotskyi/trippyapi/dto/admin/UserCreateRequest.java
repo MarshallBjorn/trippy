@@ -9,16 +9,16 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UserCreateRequest(
-    @NotBlank(message = "[ERROR] Name cannot be empty.")
-    @Size(min = 2, max = 50, message = "[ERROR] Name must be between 2 and 50 characters")
+    @NotBlank(message = "Imię/nickname nie może być puste")
+    @Size(min = 2, max = 50, message = "Imię powinno się składać pomiędzy 2 a 50 znakami.")
     String name,
 
-    @NotBlank(message = "[ERROR] Email cannot be empty.")
-    @Email(message = "[ERROR] Email must be correct.")
+    @NotBlank(message = "Email nie może być pusty")
+    @Email(message = "Niepoprawny format emaila")
     String email,
 
-    @NotBlank(message = "[ERROR] Password is required")
-    @Size(min = 8, max = 128, message = "[ERROR] Password must be between 8 and 128 characters")
+    @NotBlank(message = "Hasło jest wymagane")
+    @Size(min = 8, max = 128, message = "Hasło powinno zawierać od 8 do 128 znaków")
     @Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]+$",
         message = "[ERROR] Password must contain at least one uppercase, one lowercase, one digit, and one special character"

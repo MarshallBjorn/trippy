@@ -35,11 +35,11 @@ public class TripParticipantService {
             throw new SecurityException("Only the trip owner can invite participants.");
         }
 
-        User userToInvite = userRepository.findByEmail(request.getUserEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.getUserEmail()));
+        User userToInvite = userRepository.findByEmail(request.userEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + request.userEmail()));
 
-        TripRole role = tripRoleRepository.findByName(request.getRoleName())
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with name: " + request.getRoleName()));
+        TripRole role = tripRoleRepository.findByName(request.roleName())
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found with name: " + request.roleName()));
 
         tripParticipantRepository.findByEventIdAndUserId(eventId, userToInvite.getId()).ifPresent(p -> {
             throw new IllegalStateException("User is already a participant in this trip.");

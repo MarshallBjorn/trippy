@@ -10,7 +10,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import com.navrotskyi.trippyapi.domain.User;
@@ -64,7 +64,7 @@ class AuthenticationServiceLoginTest {
         savedUser.setVerified(true);
         savedUser.setRole(Role.USER);
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(savedUser));
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(savedUser));
         when(jwtService.generateToken(any(User.class))).thenReturn("mock-jwt-token");
 
         RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
@@ -81,14 +81,8 @@ class AuthenticationServiceLoginTest {
 
     @Test
     void shouldThrowExceptionWhenUserIsNotVerified() {
-        User nonVerifiedUser = new User();
-        nonVerifiedUser.setId(UUID.randomUUID());
-        nonVerifiedUser.setVerified(false);
-
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(nonVerifiedUser));
-
-        RefreshToken mockRefreshToken = Mockito.mock(RefreshToken.class);
-        Mockito.lenient().when(refreshTokenService.createRefreshToken(any())).thenReturn(mockRefreshToken);
+        when(authManager.authenticate(any()))
+            .thenThrow(new DisabledException("Konto nie zostało zweryfikowane! Sprawdź swoją skrzynkę email."));
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             authenticationService.authenticate(request);
@@ -96,7 +90,7 @@ class AuthenticationServiceLoginTest {
 
         assertEquals("Konto nie zostało zweryfikowane! Sprawdź swoją skrzynkę email.", exception.getMessage());
 
-        verify(authManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(authManager, times(1)).authenticate(any());
         verify(jwtService, never()).generateToken(any());
     }
 
@@ -114,9 +108,9 @@ class AuthenticationServiceLoginTest {
 
     @Test
     void shouldThrowExceptionWhenUserNotFoundInDatabase() {
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> {
+        assertThrows(BadCredentialsException.class, () -> {
             authenticationService.authenticate(request);
         });
 

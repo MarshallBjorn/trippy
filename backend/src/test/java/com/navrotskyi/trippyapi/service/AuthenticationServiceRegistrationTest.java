@@ -57,13 +57,13 @@ class AuthenticationServiceRegistrationTest {
 
     @BeforeEach
     void SetUp() {
-        request = new RegisterRequest("John Doe", "john.doe@email.com", "redneck123!");
+        request = new RegisterRequest("John Doe", "john.doe@email.com", "redneck123!", "redneck123!");
     }
 
     @Test
     void shouldSuccessfullyRegisterUserAndReturnJwt() {
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(request.getPassword())).thenReturn("ZaszyfrowaneHasloHash");
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(request.password())).thenReturn("ZaszyfrowaneHasloHash");
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);
@@ -91,7 +91,7 @@ class AuthenticationServiceRegistrationTest {
     void shouldThrowExceptionWhenEmailIsAlreadyTaken() {
         User existingUser = new User();
 
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(existingUser));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             authenticationService.register(request);
@@ -106,8 +106,8 @@ class AuthenticationServiceRegistrationTest {
 
     @Test
     void shouldEnforceSecurityConstraintsOnNewUser() {
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(request.getPassword())).thenReturn("Szyfr123");
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(request.password())).thenReturn("Szyfr123");
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);
@@ -134,7 +134,7 @@ class AuthenticationServiceRegistrationTest {
 
     @Test
     void shouldGenerateValidVerificationToken() {
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
 
         when(userRepository.save(any(User.class))).thenAnswer(i -> {
             User u = i.getArgument(0);

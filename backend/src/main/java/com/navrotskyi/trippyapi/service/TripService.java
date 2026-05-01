@@ -2,6 +2,7 @@ package com.navrotskyi.trippyapi.service;
 
 import java.util.UUID;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.navrotskyi.trippyapi.domain.TripEvent;
@@ -9,6 +10,7 @@ import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.domain.TripRole;
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.trip.TripInviteRequest;
+import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
 import com.navrotskyi.trippyapi.repository.TripParticipantRepository;
 import com.navrotskyi.trippyapi.repository.TripRoleRepository;

@@ -1,11 +1,15 @@
 package com.navrotskyi.trippyapi.dto;
 
-public class InviteParticipantRequest {
-    private String userEmail;
-    private String roleName;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-    public String getUserEmail() { return userEmail; }
-    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
-    public String getRoleName() { return roleName; }
-    public void setRoleName(String roleName) { this.roleName = roleName; }
+public record InviteParticipantRequest (
+    @NotBlank(message = "Email nie może być pusty")
+    @Email(message = "Niepoprawny format emaila")
+    String userEmail,
+
+    @NotBlank(message = "Rola musi być ustalona")
+    String roleName
+) {
+
 }

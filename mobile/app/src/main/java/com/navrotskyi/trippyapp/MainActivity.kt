@@ -52,6 +52,8 @@ import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.*
 
+data class ErrorPayload(val message: String, val errors: List<String>? = null)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +66,7 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel()
                 val authState = authViewModel.authState
                 val context = LocalContext.current
-                var errorDialogMessage by remember { mutableStateOf<String?>(null) }
+                var errorDialogPayload by remember { mutableStateOf<ErrorPayload?>(null) }
 
                 // Inicjalizacja ViewModeli
                 val userDao = remember { UserDb.getInstance(context).userDao() }
@@ -103,7 +105,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         is AuthState.Error -> {
-                            errorDialogMessage = authState.message
+                            errorDialogPayload = ErrorPayload(authState.message, authState.errors)
                         }
                         else -> {}
                     }
@@ -159,7 +161,7 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
+                                onRegisterClick = { name, email, password, confirmPassword -> authViewModel.register(name, email, password, confirmPassword) },
                                 onBackToLoginClick = { navController.popBackStack() }
                             )
                         }
@@ -374,11 +376,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    errorDialogMessage?.let { message ->
+                    errorDialogPayload?.let { payload ->
                         TrippyErrorDialog(
-                            message = message,
+                            message = payload.message,
+                            errors = payload.errors,
                             onDismiss = {
-                                errorDialogMessage = null
+                                errorDialogPayload = null
                                 authViewModel.resetState() 
                             }
                         )

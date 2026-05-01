@@ -91,6 +91,7 @@ public class SecurityConfig {
         if (isProdProfileActive()) {
             configuration.setAllowedOrigins(List.of(frontendUrl));
             configuration.setAllowCredentials(true);
+            configuration.setMaxAge(3600L);
         } else {
             configuration.setAllowedOriginPatterns(List.of("*"));
         }
