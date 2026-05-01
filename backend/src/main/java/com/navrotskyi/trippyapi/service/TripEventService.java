@@ -67,4 +67,7 @@ public class TripEventService {
     public List<TripEvent> getTripsByOwnerId(UUID ownerId) {
         return tripEventRepository.findAllByOwnerId(ownerId);
     }
+    public List<TripEvent> getUserTrips(User user) {
+    return tripEventRepository.findAllUserTrips(user);
+}
 }

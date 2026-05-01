@@ -30,7 +30,8 @@ public class TripEventController {
 
     @PostMapping
     @Operation(summary = "Create a new trip event", description = "Creates a new trip and sets the currently authenticated user as the organizer.")
-    public ResponseEntity<TripEventDto> createTripEvent(@RequestBody CreateTripEventRequest request, @AuthenticationPrincipal User currentUser) {
+    public ResponseEntity<TripEventDto> createTripEvent(@RequestBody CreateTripEventRequest request,
+            @AuthenticationPrincipal User currentUser) {
         TripEvent newTripEvent = tripEventService.createTripEvent(request, currentUser);
         return new ResponseEntity<>(TripEventMapper.toDto(newTripEvent), HttpStatus.CREATED);
     }
@@ -45,7 +46,7 @@ public class TripEventController {
     @GetMapping("/my")
     @Operation(summary = "Get my trip events", description = "Retrieves a list of trip events created by the currently authenticated user.")
     public ResponseEntity<List<TripEventDto>> getMyTripEvents(@AuthenticationPrincipal User currentUser) {
-        List<TripEvent> trips = tripEventService.getTripsByOwnerId(currentUser.getId());
+        List<TripEvent> trips = tripEventService.getUserTrips(currentUser);
         List<TripEventDto> tripDtos = trips.stream().map(TripEventMapper::toDto).collect(Collectors.toList());
         return ResponseEntity.ok(tripDtos);
     }
