@@ -2,8 +2,8 @@ package com.navrotskyi.trippyapi.controller;
 
 import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.User;
-import com.navrotskyi.trippyapi.dto.CreateTripNodeRequest;
 import com.navrotskyi.trippyapi.dto.TripNodeDto;
+import com.navrotskyi.trippyapi.dto.trip.CreateTripNodeRequest;
 import com.navrotskyi.trippyapi.mapper.TripNodeMapper;
 import com.navrotskyi.trippyapi.service.TripNodeService;
 

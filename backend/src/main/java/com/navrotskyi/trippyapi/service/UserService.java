@@ -5,6 +5,7 @@ import com.navrotskyi.trippyapi.dto.UpdateUserRequest;
 import com.navrotskyi.trippyapi.dto.UserResponse;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.repository.CurrencyRepository;
+import com.navrotskyi.trippyapi.repository.TripParticipantRepository;
 import com.navrotskyi.trippyapi.domain.Currency;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.navrotskyi.trippyapi.dto.user.InvitationDto;
+import java.util.List;
 @Service
 public class UserService {
 
@@ -19,12 +22,15 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
     private final CurrencyRepository currencyRepository;
+    private final TripParticipantRepository tripParticipantRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService, CurrencyRepository currencyRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+            FileStorageService fileStorageService, CurrencyRepository currencyRepository,TripParticipantRepository tripParticipantRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
         this.currencyRepository = currencyRepository;
+        this.tripParticipantRepository = tripParticipantRepository;
     }
 
     @Value("${app.file-server.url:http://localhost:8888/uploads/}")
@@ -32,7 +38,7 @@ public class UserService {
 
     public UserResponse uploadProfilePhoto(String email, MultipartFile file) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String savedFilename = fileStorageService.savePhoto(file);
 
@@ -70,7 +76,7 @@ public class UserService {
         if (request.password() != null && !request.password().isBlank()) {
             if (request.currentPassword() == null ||
                     !passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-                throw new IllegalAccessError("Wrong password");
+                throw new IllegalArgumentException("Wrong password");
             }
 
             user.setPassword(passwordEncoder.encode(request.password()));
@@ -98,7 +104,19 @@ public class UserService {
                 user.getRole(),
                 user.isVerified(),
                 fullPhotoUrl,
-                userCurrencyCode
-        );
+                userCurrencyCode);
+    }
+
+    public List<InvitationDto> getInvitations(String email) {
+        return tripParticipantRepository
+                .findByUserEmailAndIsAcceptedFalse(email)
+                .stream()
+                .map(p -> new InvitationDto(
+                        p.getEvent().getId(),
+                        p.getEvent().getName(),
+                        p.getEvent().getOwner().getName(),
+                        p.getTripRole().getName(),
+                        p.isAccepted()))
+                .toList();
     }
 }

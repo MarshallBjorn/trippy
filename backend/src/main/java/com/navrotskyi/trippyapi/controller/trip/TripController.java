@@ -30,14 +30,11 @@ public class TripController {
      * Invites a user to a specific trip by their email.
      * Only the trip organizer can perform this action.
      *
-     * @param id trip ID
-     * @param request object containing the invited user's email
+     * @param id        trip ID
+     * @param request   object containing the invited user's email
      * @param principal currently authenticated user
      */
-    @Operation(
-            summary = "Invite user to a trip",
-            description = "Sends an invitation to a registered user via their email. Creates a new record in trip participants with 'PARTICIPANT' role and accepted=false. Only the trip organizer can invoke this endpoint."
-    )
+    @Operation(summary = "Invite user to a trip", description = "Sends an invitation to a registered user via their email. Creates a new record in trip participants with 'PARTICIPANT' role and accepted=false. Only the trip organizer can invoke this endpoint.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Invitation sent successfully"),
             @ApiResponse(responseCode = "400", description = "Validation error or user is already a participant", content = @Content),
@@ -50,11 +47,35 @@ public class TripController {
             @PathVariable UUID id,
             @Valid @RequestBody TripInviteRequest request,
             Principal principal) {
-        
+
         String currentUsername = principal.getName();
-        
+
         tripService.inviteUserToTrip(id, request, currentUsername);
-        
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/accept")
+    @Operation(summary = "Accept trip invitation")
+    public ResponseEntity<Void> acceptInvitation(
+            @PathVariable UUID id,
+            Principal principal) {
+
+        String email = principal.getName();
+        tripService.acceptInvitation(id, email);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/reject")
+    @Operation(summary = "Reject trip invitation")
+    public ResponseEntity<Void> rejectInvitation(
+            @PathVariable UUID id,
+            Principal principal) {
+
+        String email = principal.getName();
+        tripService.rejectInvitation(id, email);
+
         return ResponseEntity.ok().build();
     }
 }

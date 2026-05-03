@@ -27,7 +27,8 @@ import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 fun JourneysScreen(
     viewModel: TripViewModel,
     onTripClick: (String) -> Unit,
-    onAddTripClick: () -> Unit
+    onAddTripClick: () -> Unit,
+    onInvitationsClick: () -> Unit
 ) {
     val trips by viewModel.trips.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -66,7 +67,12 @@ fun JourneysScreen(
                     )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-
+                Button(
+                    onClick = onInvitationsClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Zaproszenia")
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -77,6 +83,7 @@ fun JourneysScreen(
                     }
                 }
             }
+
         }
     }
 }
