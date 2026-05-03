@@ -46,11 +46,6 @@ const routes = [
         name: 'AdminUserEdit',
         component: UserEditView,
       },
-      {
-        path: 'users',
-        name: 'AdminUsers',
-        component: UsersView
-      },
       { 
         path: 'dictionaries', 
         name: 'AdminDictionaries',
@@ -93,18 +88,16 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   const isAuthenticated = !!localStorage.getItem('trippy_token')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return '/login'
   }  
-  else if (to.path === '/login' && isAuthenticated) {
+  
+  if (to.path === '/login' && isAuthenticated) {
     return '/admin/users'
   } 
-  else {
-    next()
-  }
 })
 
 export default router
