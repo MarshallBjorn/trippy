@@ -47,6 +47,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+        - FRONTEND_URL=${FRONTEND_URL}
+        - FILE_SERVER_URL=${FILE_SERVER_URL}
     container_name: trippy_frontend
     restart: unless-stopped
     expose:
