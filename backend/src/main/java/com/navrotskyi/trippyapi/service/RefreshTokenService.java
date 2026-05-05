@@ -54,7 +54,7 @@ public class RefreshTokenService {
     @Transactional
     public RefreshToken rotateRefreshToken(String oldToken) {
         RefreshToken existing = refreshTokenRepository.findByToken(oldToken)
-            .orElseThrow(() -> new TokenRefreshException(oldToken, "Nie można znaleźć refresh tokena"));
+            .orElseThrow(() -> new TokenRefreshException(oldToken, "Nie można znaleźć refresh tokena."));
 
         verifyExpiration(existing);
 
