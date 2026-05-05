@@ -12,6 +12,9 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 
+val hasSigningConfig = listOf("KEYSTORE_FILE", "KEYSTORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD")
+    .all { localProps.containsKey(it) }
+
 android {
     namespace = "com.navrotskyi.trippyapp"
     compileSdk = 36
@@ -28,12 +31,14 @@ android {
         buildConfigField("String", "BASE_URL", "\"${localProps["BASE_URL"] ?: ""}\"")
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = rootProject.file(localProps["KEYSTORE_FILE"] as String)
-            storePassword = localProps["KEYSTORE_PASSWORD"] as String
-            keyAlias = localProps["KEY_ALIAS"] as String
-            keyPassword = localProps["KEY_PASSWORD"] as String
+    if (hasSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(localProps["KEYSTORE_FILE"] as String)
+                storePassword = localProps["KEYSTORE_PASSWORD"] as String
+                keyAlias = localProps["KEY_ALIAS"] as String
+                keyPassword = localProps["KEY_PASSWORD"] as String
+            }
         }
     }
 
@@ -41,7 +46,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
