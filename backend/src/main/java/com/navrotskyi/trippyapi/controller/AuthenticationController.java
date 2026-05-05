@@ -4,7 +4,6 @@ import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.dto.AuthResponse;
 import com.navrotskyi.trippyapi.dto.RefreshTokenRequest;
 import com.navrotskyi.trippyapi.dto.RegisterRequest;
-import com.navrotskyi.trippyapi.exception.TokenRefreshException;
 import com.navrotskyi.trippyapi.domain.RefreshToken;
 import com.navrotskyi.trippyapi.security.JwtService;
 import com.navrotskyi.trippyapi.service.AuthenticationService;
@@ -49,19 +48,16 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Refresh access token", description = "Uses a valid refresh token to obtain a new access token.")
+    @Operation(summary = "Refresh access token",
+            description = "Rotates the refresh token: invalidates the old one and returns a new access + refresh token pair.")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        return refreshTokenService.findByToken(request.getRefreshToken())
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
-                    String accessToken = jwtService.generateToken(user);
-                    return ResponseEntity.ok(AuthResponse.builder()
-                            .accessToken(accessToken)
-                            .refreshToken(request.getRefreshToken())
-                            .build());
-                })
-                .orElseThrow(() -> new TokenRefreshException(request.getRefreshToken(), "Refresh token is not in database!"));
+        RefreshToken newRefreshToken = refreshTokenService.rotateRefreshToken(request.getRefreshToken());
+        String accessToken = jwtService.generateToken(newRefreshToken.getUser());
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(newRefreshToken.getToken())
+                .build());
     }
 
     @GetMapping("/verify")
