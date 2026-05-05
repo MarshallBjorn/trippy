@@ -28,10 +28,20 @@ android {
         buildConfigField("String", "BASE_URL", "\"${localProps["BASE_URL"] ?: ""}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file(localProps["KEYSTORE_FILE"] as String)
+            storePassword = localProps["KEYSTORE_PASSWORD"] as String
+            keyAlias = localProps["KEY_ALIAS"] as String
+            keyPassword = localProps["KEY_PASSWORD"] as String
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
