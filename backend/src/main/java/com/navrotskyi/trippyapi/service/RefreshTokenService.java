@@ -1,9 +1,12 @@
 package com.navrotskyi.trippyapi.service;
 
+import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.exception.TokenRefreshException;
 import com.navrotskyi.trippyapi.domain.RefreshToken;
+import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.repository.RefreshTokenRepository;
 import com.navrotskyi.trippyapi.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,14 +34,32 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken createRefreshToken(UUID userId) {
-        return userRepository.findById(userId).map(user -> {
-            RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
-                    .orElseGet(RefreshToken::new);
-            refreshToken.setUser(user);
-            refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-            refreshToken.setToken(UUID.randomUUID().toString());
-            return refreshTokenRepository.save(refreshToken);
-        }).orElseThrow(() -> new RuntimeException("User not found with id " + userId));
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Nie znaleziono użytkownika o id " + userId));
+
+        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.flush();
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUser(user);
+        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
+        refreshToken.setToken(UUID.randomUUID().toString());
+        return refreshTokenRepository.save(refreshToken);
+    }
+
+    /**
+     * Rotuje refresh token: weryfikuje, kasuje stary, tworzy nowy
+     * Stary token jest natychmiast unieważniany.
+     */
+    @Transactional
+    public RefreshToken rotateRefreshToken(String oldToken) {
+        RefreshToken existing = refreshTokenRepository.findByToken(oldToken)
+            .orElseThrow(() -> new TokenRefreshException(oldToken, "Nie można znaleźć refresh tokena."));
+
+        verifyExpiration(existing);
+
+        User user = existing.getUser();
+        return createRefreshToken(user.getId());
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {

@@ -5,6 +5,7 @@ import com.navrotskyi.trippyapi.repository.RefreshTokenRepository;
 import com.navrotskyi.trippyapi.repository.TokenBlacklistRepository;
 import com.navrotskyi.trippyapi.repository.UserRepository;
 import com.navrotskyi.trippyapi.security.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,22 +35,29 @@ public class LogoutService implements LogoutHandler {
     ) {
         final String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         final String jwt = authHeader.substring(7);
-        final String userEmail = jwtService.extractUsername(jwt);
 
-        // Blacklist the access token
-        Date expirationDate = jwtService.extractExpiration(jwt);
-        if (expirationDate != null) {
-            TokenBlacklist blacklistedToken = TokenBlacklist.builder()
-                    .token(jwt)
-                    .expiryDate(expirationDate.toInstant())
-                    .build();
-            tokenBlacklistRepository.save(blacklistedToken);
+        final String userEmail;
+        final Date expirationDate;
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+            expirationDate = jwtService.extractExpiration(jwt);
+        } catch (JwtException e) {
+            SecurityContextHolder.clearContext();
+            return;
         }
 
-        // Invalidate the refresh token
+        // Idempotentne dorzucenie do blacklisty.
+        if (expirationDate != null && tokenBlacklistRepository.findByToken(jwt).isEmpty()) {
+            tokenBlacklistRepository.save(TokenBlacklist.builder()
+                    .token(jwt)
+                    .expiryDate(expirationDate.toInstant())
+                    .build());
+        }
+
         if (userEmail != null) {
             userRepository.findByEmail(userEmail)
                     .ifPresent(refreshTokenRepository::deleteByUser);
