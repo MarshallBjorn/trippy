@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Landing from '../views/Landing.vue'
 import Login from '../views/Login.vue'
 import VerifyEmail from '../views/VerifyEmail.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
@@ -75,11 +76,12 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/admin/users' 
+    name: 'Landing',
+    component: Landing
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/login'
+    redirect: '/'
   }
 ]
 
