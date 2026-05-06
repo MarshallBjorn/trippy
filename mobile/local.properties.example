@@ -1,0 +1,16 @@
+## This file documents all required local.properties keys.
+## Copy to local.properties and fill in your values — DO NOT commit local.properties.
+
+# Android SDK path (set automatically by Android Studio)
+sdk.dir=/path/to/Android/Sdk
+
+# API base URL (with trailing slash)
+BASE_URL=http://<server-ip>:<port>/
+
+# Release signing — generate keystore with:
+#   keytool -genkeypair -v -keystore trippy-release.jks -alias trippy-key \
+#           -keyalg RSA -keysize 2048 -validity 10000
+KEYSTORE_FILE=trippy-release.jks
+KEYSTORE_PASSWORD=<keystore-password>
+KEY_ALIAS=trippy-key
+KEY_PASSWORD=<key-password>
