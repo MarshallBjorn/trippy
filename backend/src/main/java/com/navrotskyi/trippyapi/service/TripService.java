@@ -40,28 +40,28 @@ public class TripService {
                         TripInviteRequest inviteRequest,
                         String currentUsername) {
                 TripEvent tripEvent = tripEventRepository.findById(tripId)
-                                .orElseThrow(() -> new RuntimeException(
-                                                "[ERROR] Trip with id " + tripId + " not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Trip with id " + tripId + " not found"));
 
                 if (!tripEvent.getOwner().getEmail().equals(currentUsername)) {
-                        throw new RuntimeException("[ERROR] Only the owner of the trip can invite users");
+                        throw new AccessDeniedException("Only the owner of the trip can invite users");
                 }
 
                 User userToInvite = userRepository.findByEmail(inviteRequest.email())
-                                .orElseThrow(() -> new RuntimeException(
-                                                "[ERROR] User with email " + inviteRequest.email() + " not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "User with email " + inviteRequest.email() + " not found"));
 
                 boolean isAlreadyParticipant = tripParticipantRepository
                                 .findByEventIdAndUserId(tripId, userToInvite.getId())
                                 .isPresent();
 
                 if (isAlreadyParticipant) {
-                        throw new RuntimeException("[ERROR] User with email " + inviteRequest.email()
+                        throw new IllegalArgumentException("User with email " + inviteRequest.email()
                                         + " is already a participant of the trip");
                 }
 
                 TripRole participantRole = tripRoleRepository.findByName("PARTICIPANT")
-                                .orElseThrow(() -> new IllegalArgumentException("[ERROR] Role PARTICIPANT not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Role PARTICIPANT not found"));
 
                 TripParticipant newParticipant = new TripParticipant();
                 newParticipant.setEvent(tripEvent);
@@ -76,7 +76,7 @@ public class TripService {
         public void acceptInvitation(UUID tripId, String email) {
                 TripParticipant participant = tripParticipantRepository
                                 .findByUserEmailAndEventId(email, tripId)
-                                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
 
                 participant.setAccepted(true);
                 tripParticipantRepository.save(participant);
@@ -86,7 +86,7 @@ public class TripService {
         public void rejectInvitation(UUID tripId, String email) {
                 TripParticipant participant = tripParticipantRepository
                                 .findByUserEmailAndEventId(email, tripId)
-                                .orElseThrow(() -> new RuntimeException("Invitation not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
 
                 tripParticipantRepository.delete(participant);
         }

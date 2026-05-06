@@ -4,6 +4,10 @@ import com.navrotskyi.trippyapi.domain.*;
 import com.navrotskyi.trippyapi.dto.InviteParticipantRequest;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.*;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,19 +16,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class TripParticipantService {
-
     private final TripParticipantRepository tripParticipantRepository;
     private final TripEventRepository tripEventRepository;
     private final UserRepository userRepository;
     private final TripRoleRepository tripRoleRepository;
-
-    public TripParticipantService(TripParticipantRepository tripParticipantRepository, TripEventRepository tripEventRepository, UserRepository userRepository, TripRoleRepository tripRoleRepository) {
-        this.tripParticipantRepository = tripParticipantRepository;
-        this.tripEventRepository = tripEventRepository;
-        this.userRepository = userRepository;
-        this.tripRoleRepository = tripRoleRepository;
-    }
 
     @Transactional
     public TripParticipant inviteParticipant(UUID eventId, InviteParticipantRequest request, User inviter) {
@@ -57,7 +54,40 @@ public class TripParticipantService {
     }
 
     @Transactional(readOnly = true)
-    public List<TripParticipant> getParticipantsForEvent(UUID eventId) {
+    public List<TripParticipant> getParticipantsForEvent(UUID eventId, User currentUser) {    
+        if (!tripEventRepository.findById(eventId).isPresent()) {
+            throw new ResourceNotFoundException("TripEvent not found with id: " + eventId);
+        }
+
+        boolean isActiveParticipant = tripParticipantRepository
+                .findByEventIdAndUserId(eventId, currentUser.getId())
+                .map(TripParticipant::isAccepted)
+                .orElse(false);
+
+        if (!isActiveParticipant) {
+            throw new SecurityException("Only active trip participants can view the participants list.");
+        }
+
         return tripParticipantRepository.findAllByEventId(eventId);
+    }
+
+    @Transactional
+    public void removeTripParticipant(UUID eventId, UUID userToRemoveId, User currentUser) {
+        TripEvent event = tripEventRepository.findById(eventId)
+            .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + eventId));
+
+        if (!event.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("Only the trip owner can remove participants.");
+        }
+
+        if (event.getOwner().getId().equals(userToRemoveId)) {
+            throw new IllegalStateException("Trip owner cannot be removed from the trip.");
+        }
+
+        TripParticipant participant = tripParticipantRepository.findByEventIdAndUserId(eventId, userToRemoveId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Participant not found in trip " + eventId + " for user " + userToRemoveId));
+
+        tripParticipantRepository.delete(participant);
     }
 }
