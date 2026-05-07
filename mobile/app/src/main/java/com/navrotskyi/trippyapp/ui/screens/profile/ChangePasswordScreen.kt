@@ -25,41 +25,25 @@ fun ChangePasswordScreen(
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
+    val errors by viewModel.changePasswordErrors.collectAsState()
     val isLoading = uiState is com.navrotskyi.trippyapp.models.ProfileUiState.Loading
     val backendError = (uiState as? com.navrotskyi.trippyapp.models.ProfileUiState.Error)?.message
 
-    val passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}\$".toRegex()
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearChangePasswordErrors() }
+    }
 
-    fun validateAndSave() {
-
+    fun submit() {
         if (isSaving) return
+        if (!viewModel.validateChangePasswordForm(oldPassword, newPassword, confirmPassword)) return
 
-        errorMessage = when {
-            oldPassword.isBlank() -> "Wprowadź obecne hasło."
-            newPassword.isBlank() -> "Wprowadź nowe hasło."
-            newPassword == oldPassword -> "Nowe hasło musi być inne niż obecne."
-            !passwordPattern.matches(newPassword) -> "Hasło musi mieć min. 8 znaków, w tym wielką i małą literę, cyfrę oraz znak specjalny."
-            confirmPassword.isBlank() -> "Powtórz nowe hasło."
-            newPassword != confirmPassword -> "Nowe hasła nie są identyczne."
-            else -> null
-        }
-        if (errorMessage == null) {
-            isSaving = true
-
-            onSaveClick(oldPassword, newPassword) { backendError ->
-                isSaving = false
-
-                if (backendError != null) {
-                    errorMessage = backendError
-                } else {
-                    onBackClick()
-                }
-            }
+        isSaving = true
+        onSaveClick(oldPassword, newPassword) { backendErr ->
+            isSaving = false
+            if (backendErr == null) onBackClick()
         }
     }
 
@@ -97,12 +81,9 @@ fun ChangePasswordScreen(
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val errorText = backendError ?: errorMessage
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = errorText != null
-                    ) {
+                    androidx.compose.animation.AnimatedVisibility(visible = backendError != null) {
                         Text(
-                            text = errorText ?: "",
+                            text = backendError ?: "",
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 13.sp,
                             modifier = Modifier
@@ -111,10 +92,9 @@ fun ChangePasswordScreen(
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
-
                     TrippyButton(
                         text = "Zapisz nowe hasło",
-                        onClick = { validateAndSave() },
+                        onClick = { submit() },
                         enabled = !isLoading && !isSaving
                     )
                 }
@@ -128,43 +108,38 @@ fun ChangePasswordScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
-
+            Spacer(Modifier.height(40.dp))
             PasswordInputField(
                 value = oldPassword,
-                onValueChange = { oldPassword = it; errorMessage = null },
-                label = "Obecne hasło"
+                onValueChange = { oldPassword = it },
+                label = "Obecne hasło",
+                errorText = errors.oldPasswordError
             )
-            Spacer(modifier = Modifier.height(24.dp))
-
+            Spacer(Modifier.height(24.dp))
             PasswordInputField(
                 value = newPassword,
-                onValueChange = { newPassword = it; errorMessage = null },
-                label = "Nowe hasło"
+                onValueChange = { newPassword = it },
+                label = "Nowe hasło",
+                errorText = errors.newPasswordError
             )
-            Spacer(modifier = Modifier.height(24.dp))
-
+            Spacer(Modifier.height(24.dp))
             PasswordInputField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it; errorMessage = null },
-                label = "Powtórz nowe hasło"
+                onValueChange = { confirmPassword = it },
+                label = "Powtórz nowe hasło",
+                errorText = errors.confirmPasswordError
             )
-
-            if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
         }
     }
 }
 
 @Composable
-fun PasswordInputField(value: String, onValueChange: (String) -> Unit, label: String) {
+fun PasswordInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    errorText: String? = null
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -182,6 +157,12 @@ fun PasswordInputField(value: String, onValueChange: (String) -> Unit, label: St
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            isError = errorText != null,
+            supportingText = {
+                if (errorText != null) {
+                    Text(errorText, color = MaterialTheme.colorScheme.error)
+                }
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
