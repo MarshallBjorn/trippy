@@ -1,54 +1,31 @@
 package com.navrotskyi.trippyapi.dto;
 
+import com.navrotskyi.trippyapi.validation.PasswordsMatch;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
-public class RegisterRequest {
-    @NotBlank(message = "Name cannot be empty")
-    private String name;
+@PasswordsMatch
+public record RegisterRequest (
+    @NotBlank(message = "Imię nie może być puste")
+    String name,
 
-    @NotBlank(message = "Email cannot be empty")
-    @Email(message = "Invalid email format")
-    private String email;
+    @NotBlank(message = "Email nie może być pusty")
+    @Email(message = "Poprawny adres email musi być podany")
+    String email,
 
-    @NotBlank(message = "Password cannot be empty")
+    @NotBlank(message = "Hasło nie może być puste")
+    @Size(min = 8, max = 128, message = "Hasło powinno zawierać od 8 do 128 znaków")
     @Pattern(
                 regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-                message = "[ERROR] Password must contain at least one uppercase, one lowercase, one digit, and one special character"
+                message = "Hasło ma zawierać przynajmniej jedną wielką, jedną małą literę, jedną cyfrę, oraz jeden specjalny znak"
     )
-    private String password;
+    String password,
 
-    public RegisterRequest() {
-    }
+    @NotBlank(message = "Prosimy potwierdzić hasło")
+    String confirmPassword
+) {
 
-    public RegisterRequest(String name, String email, String password) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

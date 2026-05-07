@@ -25,19 +25,21 @@ class GlobalErrorInterceptor : Interceptor {
         if (!response.isSuccessful) {
             val errorBodyString = response.body?.string()
 
+            var errors: List<String>? = null
             var errorMessage = "Wystąpił nieznany błąd po stronie serwera."
             var errorCode = response.code
 
             try {
                 if (!errorBodyString.isNullOrEmpty()) {
                     val errorDto = Gson().fromJson(errorBodyString, ErrorResponseDto::class.java)
-                    errorMessage = errorDto.message
-                    errorCode = errorDto.status
+                    errorMessage = errorDto.message ?: errorMessage
+                    errorCode = errorDto.status ?: errorCode
+                    errors = errorDto.errors
                 }
             } catch (e: Exception) {
             }
 
-            throw ApiException(errorCode, errorMessage)
+            throw ApiException(errorCode, errorMessage, errors)
         }
 
         return response

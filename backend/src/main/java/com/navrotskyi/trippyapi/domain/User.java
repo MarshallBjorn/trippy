@@ -126,7 +126,7 @@ public class User implements UserDetails {
     }
 
     public void setBlocked(boolean blocked) {
-        isVerified = blocked;
+        isBlocked = blocked;
     }
 
     @Override
@@ -145,7 +145,7 @@ public class User implements UserDetails {
     }
 
     @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isAccountNonLocked() { return !isBlocked; }
     @Override public boolean isCredentialsNonExpired() { return true; }
     @Override public boolean isEnabled() { return isVerified; }
 }

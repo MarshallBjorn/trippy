@@ -47,9 +47,12 @@ import com.navrotskyi.trippyapp.ui.screens.journeys.JourneysScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddTripScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripNodeDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.EditNodeScreen
+import com.navrotskyi.trippyapp.ui.screens.journeys.InvitationsScreen
 import com.navrotskyi.trippyapp.ui.screens.profile.*
 import com.navrotskyi.trippyapp.ui.theme.TrippyAppTheme
 import com.navrotskyi.trippyapp.ui.viewmodels.*
+
+data class ErrorPayload(val message: String, val errors: List<String>? = null)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +66,7 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel()
                 val authState = authViewModel.authState
                 val context = LocalContext.current
-                var errorDialogMessage by remember { mutableStateOf<String?>(null) }
+                var errorDialogPayload by remember { mutableStateOf<ErrorPayload?>(null) }
 
                 // Inicjalizacja ViewModeli
                 val userDao = remember { UserDb.getInstance(context).userDao() }
@@ -103,7 +106,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         is AuthState.Error -> {
-                            errorDialogMessage = authState.message
+                            errorDialogPayload = ErrorPayload(authState.message, authState.errors)
                         }
                         else -> {}
                     }
@@ -159,7 +162,7 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password -> authViewModel.register(name, email, password) },
+                                onRegisterClick = { name, email, password, confirmPassword -> authViewModel.register(name, email, password, confirmPassword) },
                                 onBackToLoginClick = { navController.popBackStack() }
                             )
                         }
@@ -248,7 +251,8 @@ class MainActivity : ComponentActivity() {
                             JourneysScreen(
                                 viewModel = tripViewModel,
                                 onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
-                                onAddTripClick = { navController.navigate(Screen.AddTrip.route) }
+                                onAddTripClick = { navController.navigate(Screen.AddTrip.route) } ,
+                                onInvitationsClick = {navController.navigate(Screen.Invitations.route) }
                             )
                         }
 
@@ -348,6 +352,15 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
 
+                            val userState by profileViewModel.user.collectAsState()
+                            val myUserId = userState?.id?.toString() ?: ""
+
+                            LaunchedEffect(tripId, myUserId) {
+                                if (myUserId.isNotEmpty()) {
+                                    groupBalanceViewModel.loadBalancesForTrip(tripId, myUserId)
+                                }
+                            }
+
                             GroupBalanceScreen(
                                 tripId = tripId,
                                 viewModel = groupBalanceViewModel,
@@ -360,13 +373,17 @@ class MainActivity : ComponentActivity() {
                                 viewModel = expensesViewModel
                             )
                         }
+                        composable(Screen.Invitations.route) {
+                            InvitationsScreen()
+                        }
                     }
 
-                    errorDialogMessage?.let { message ->
+                    errorDialogPayload?.let { payload ->
                         TrippyErrorDialog(
-                            message = message,
+                            message = payload.message,
+                            errors = payload.errors,
                             onDismiss = {
-                                errorDialogMessage = null
+                                errorDialogPayload = null
                                 authViewModel.resetState() 
                             }
                         )

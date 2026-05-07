@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.navrotskyi.trippyapp.api.ApiException
+import com.navrotskyi.trippyapp.api.NoInternetException
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.api.TokenManager
@@ -17,7 +19,7 @@ sealed class AuthState {
     object Loading : AuthState()
     data class Success(val token: String) : AuthState()
     data class AwaitingVerification(val email: String) : AuthState()
-    data class Error(val message: String) : AuthState()
+    data class Error(val message: String, val errors: List<String>? = null) : AuthState()
 }
 
 class AuthViewModel : ViewModel() {
@@ -31,32 +33,32 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val response = api.login(LoginRequest(email, password))
-                if (response.isSuccessful && response.body() != null) {
+                if (response.isSuccessful) {
                     // Update: use accessToken from the response
                     authState = AuthState.Success(response.body()!!.accessToken)
-                } else {
-                    authState = AuthState.Error("Błędny e-mail lub hasło")
                 }
+            } catch (e: ApiException) {
+                authState = AuthState.Error(e.message, e.errors)
             } catch (e: Exception) {
-                authState = AuthState.Error("Błąd serwera: ${e.message}")
+                authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }
         }
     }
 
-    fun register(name: String, email: String, password: String) {
+    fun register(name: String, email: String, password: String, confirmPassword: String) {
         authState = AuthState.Loading
         viewModelScope.launch {
             try {
-                val response = api.register(RegisterRequest(name, email, password))
+                val response = api.register(RegisterRequest(name, email, password, confirmPassword))
 
                 if (response.isSuccessful) {
                     // Do NOT save token - user is unverified
                     authState = AuthState.AwaitingVerification(email)
-                } else {
-                    authState = AuthState.Error("Błąd rejestracji: ${response.code()}")
                 }
+            } catch (e: ApiException) {
+                authState = AuthState.Error(e.message, e.errors)
             } catch (e: Exception) {
-                authState = AuthState.Error("Brak połączenia: ${e.message}")
+                authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }
         }
     }

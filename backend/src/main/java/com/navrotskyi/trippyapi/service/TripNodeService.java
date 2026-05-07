@@ -76,11 +76,11 @@ public class TripNodeService {
         TripNode node = new TripNode();
         node.setEvent(event);
         node.setReporter(reporter);
-        node.setName(request.getName());
-        node.setStartTime(request.getStartTime());
-        node.setEndTime(request.getEndTime());
-        node.setNote(request.getNote());
-        node.setPrice(request.getPrice());
+        node.setName(request.name());
+        node.setStartTime(request.startTime());
+        node.setEndTime(request.endTime());
+        node.setNote(request.note());
+        node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
 
         TripNode savedNode = tripNodeRepository.save(node);
@@ -194,11 +194,11 @@ public class TripNodeService {
         validateBelongsToTrip(eventId, node);
         requireAuthorOrOrganizer(eventId, node, currentUser);
 
-        node.setName(request.getName());
-        node.setStartTime(request.getStartTime());
-        node.setEndTime(request.getEndTime());
-        node.setNote(request.getNote());
-        node.setPrice(request.getPrice());
+        node.setName(request.name());
+        node.setStartTime(request.startTime());
+        node.setEndTime(request.endTime());
+        node.setNote(request.note());
+        node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
                 // Hibernate flush'uje przy zakończeniu transakcji; zwracamy tę samą instancję
         // (z już załadowanymi relacjami z findWithDetailsById).
@@ -291,11 +291,11 @@ public class TripNodeService {
      * więc robimy to ręcznie tutaj.
      */
     private void validateTimeRange(CreateTripNodeRequest request) {
-        if (request.getEndTime() == null || request.getStartTime() == null) {
+        if (request.endTime() == null || request.startTime() == null) {
             // Tu już złapie @NotNull z DTO — defensive check.
             return;
         }
-        if (!request.getEndTime().isAfter(request.getStartTime())) {
+        if (!request.endTime().isAfter(request.startTime())) {
             throw new IllegalArgumentException(
                     "Pole endTime musi być późniejsze niż startTime.");
         }

@@ -18,7 +18,10 @@ data class RegisterRequest(
     val email: String,
 
     @SerializedName("password")
-    val password: String
+    val password: String,
+
+    @SerializedName("confirmPassword")
+    val confirmPassword: String
 )
 
 data class AuthResponse(

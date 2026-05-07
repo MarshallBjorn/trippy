@@ -1,30 +1,15 @@
 package com.navrotskyi.trippyapi.dto;
 
-public class LoginRequest {
-    private String email;
-    private String password;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-    public LoginRequest() {
-    }
+public record LoginRequest (
+    @NotBlank(message = "Email nie może być pusty")
+    @Email(message = "Niepoprawny format emaila")
+    String email,
 
-    public LoginRequest(String email, String password) {
-        this.email = email;
-        this.password = password;
-    }
+    @NotBlank(message = "Hasło nie może być puste")
+    String password
+) {
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

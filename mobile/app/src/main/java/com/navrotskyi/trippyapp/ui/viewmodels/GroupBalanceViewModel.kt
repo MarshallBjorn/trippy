@@ -2,14 +2,16 @@ package com.navrotskyi.trippyapp.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.ui.screens.ParticipantBalance
 import com.navrotskyi.trippyapp.ui.screens.Settlement
 import com.navrotskyi.trippyapp.ui.screens.SettlementType
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.navrotskyi.trippyapp.models.*
+import com.navrotskyi.trippyapp.api.TrippyApi
 
 
 sealed class GroupBalanceState {
@@ -24,36 +26,79 @@ sealed class GroupBalanceState {
 
 class GroupBalanceViewModel : ViewModel() {
 
+    private val api = RetrofitClient.retrofit.create(TrippyApi::class.java)
     private val _uiState = MutableStateFlow<GroupBalanceState>(GroupBalanceState.Loading)
     val uiState: StateFlow<GroupBalanceState> = _uiState.asStateFlow()
 
-    fun loadBalancesForTrip (tripId: String) {
+    fun loadBalancesForTrip(tripId: String, currentUserId: String) {
         viewModelScope.launch {
             _uiState.value = GroupBalanceState.Loading
 
-            delay(1500)
+            try {
+                val response = api.getGroupBalances(tripId)
 
-            // val response = trippyApi.getGroupBalances(tripId)
-            // if (response.isSuccessful) { ... }
+                if (response.isSuccessful) {
+                    val data = response.body()
 
-            val mockParticipants = listOf (
-                ParticipantBalance("Ty", -45.50, "Ty", avatarUrl = "https://i.pravatar.cc/150?img=68", isMe = true),
-                ParticipantBalance("Tomasz", 120.00, "T"),
-                ParticipantBalance("Ania", -75.00, "A"),
-                ParticipantBalance("Marek", 0.50, "M"),
-                ParticipantBalance("Kasia", 0.00, "K")
-            )
+                    if (data != null) {
+                        val mappedParticipants = data.balances.map { dto ->
+                            ParticipantBalance(
+                                name = dto.userName,
+                                balance = dto.netBalance,
+                                initials = getInitials(dto.userName),
+                                avatarUrl = null,
+                                isMe = dto.userId == currentUserId
+                            )
+                        }.sortedByDescending { it.balance }
 
-            val mockSettlements = listOf(
-                Settlement("Tomaszowi", 45.50, SettlementType.I_OWE_THEM),
-                Settlement("Ania", 20.00, SettlementType.THEY_OWE_ME)
-            )
+                        val mySettlements = mutableListOf<Settlement>()
 
-            _uiState.value = GroupBalanceState.Success(
-                totalBalance = -45.50,
-                participants = mockParticipants,
-                settlements = mockSettlements
-            )
+                        data.settlements.forEach { settlement ->
+                            if (settlement.fromUserId == currentUserId) {
+                                mySettlements.add(
+                                    Settlement(
+                                        otherPersonName = settlement.toUserName,
+                                        amount = settlement.amount,
+                                        type = SettlementType.I_OWE_THEM
+                                    )
+                                )
+                            } else if (settlement.toUserId == currentUserId) {
+                                mySettlements.add(
+                                    Settlement(
+                                        otherPersonName = settlement.fromUserName,
+                                        amount = settlement.amount,
+                                        type = SettlementType.THEY_OWE_ME
+                                    )
+                                )
+                            }
+                        }
+
+                        val myNetBalance = data.balances.find { it.userId == currentUserId }?.netBalance ?: 0.0
+
+                        _uiState.value = GroupBalanceState.Success(
+                            totalBalance = myNetBalance,
+                            participants = mappedParticipants,
+                            settlements = mySettlements
+                        )
+                    } else {
+                        _uiState.value = GroupBalanceState.Error("Otrzymano puste dane z serwera.")
+                    }
+                } else {
+                    _uiState.value = GroupBalanceState.Error("Nie udało się pobrać rozliczeń.")
+                }
+            } catch (e: Exception) {
+                _uiState.value = GroupBalanceState.Error("Błąd sieci: ${e.message}")
+            }
+        }
+    }
+
+    private fun getInitials(name: String): String {
+        if (name.isBlank()) return "?"
+        val parts = name.trim().split(" ")
+        return if (parts.size >= 2) {
+            "${parts[0].first()}${parts[1].first()}".uppercase()
+        } else {
+            parts[0].take(2).uppercase()
         }
     }
 }

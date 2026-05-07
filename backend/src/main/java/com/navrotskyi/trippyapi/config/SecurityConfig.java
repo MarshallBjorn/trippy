@@ -49,7 +49,6 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/verify",
                                 "/api/auth/refresh",
-                                "/api/auth/logout",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
@@ -91,6 +90,7 @@ public class SecurityConfig {
         if (isProdProfileActive()) {
             configuration.setAllowedOrigins(List.of(frontendUrl));
             configuration.setAllowCredentials(true);
+            configuration.setMaxAge(3600L);
         } else {
             configuration.setAllowedOriginPatterns(List.of("*"));
         }

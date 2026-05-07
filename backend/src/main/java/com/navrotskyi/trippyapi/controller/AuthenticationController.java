@@ -4,7 +4,6 @@ import com.navrotskyi.trippyapi.dto.LoginRequest;
 import com.navrotskyi.trippyapi.dto.AuthResponse;
 import com.navrotskyi.trippyapi.dto.RefreshTokenRequest;
 import com.navrotskyi.trippyapi.dto.RegisterRequest;
-import com.navrotskyi.trippyapi.exception.TokenRefreshException;
 import com.navrotskyi.trippyapi.domain.RefreshToken;
 import com.navrotskyi.trippyapi.security.JwtService;
 import com.navrotskyi.trippyapi.service.AuthenticationService;
@@ -16,12 +15,12 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,40 +43,28 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     @Operation(summary = "Authenticate user", description = "Authenticates a user and returns an access token along with a refresh token.")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authenticationService.authenticate(request);
-            return ResponseEntity.ok(response);
-            
-        } catch (RuntimeException e) {
-            if (e.getMessage() != null && e.getMessage().contains("Konto nie zostało zweryfikowane")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", e.getMessage()));
-            }
-            
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Nieprawidłowy adres email lub hasło."));
-        }
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authenticationService.authenticate(request));
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Refresh access token", description = "Uses a valid refresh token to obtain a new access token.")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
-        return refreshTokenService.findByToken(request.getRefreshToken())
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
-                    String accessToken = jwtService.generateToken(user);
-                    return ResponseEntity.ok(AuthResponse.builder()
-                            .accessToken(accessToken)
-                            .refreshToken(request.getRefreshToken())
-                            .build());
-                })
-                .orElseThrow(() -> new TokenRefreshException(request.getRefreshToken(), "Refresh token is not in database!"));
+    @Operation(summary = "Refresh access token",
+            description = "Rotates the refresh token: invalidates the old one and returns a new access + refresh token pair.")
+    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        RefreshToken newRefreshToken = refreshTokenService.rotateRefreshToken(request.getRefreshToken());
+        String accessToken = jwtService.generateToken(newRefreshToken.getUser());
+
+        return ResponseEntity.ok(AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(newRefreshToken.getToken())
+                .build());
     }
 
-    public ResponseEntity<Map<String, String>> handleDisabledUser(DisabledException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("message", "Konto nie zostało zweryfikowane. Sprawdź swój email."));
+    @GetMapping("/verify")
+    @Operation(summary = "Verify email via token", 
+            description = "Confirms a user's email address using the token sent to their inbox.")
+    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam("token") String token) {
+        authenticationService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "Sukces! Twoje konto zostało pomyślnie zweryfikowane."));
     }
 }

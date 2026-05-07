@@ -35,7 +35,7 @@ data class InviteParticipantRequest(
     @SerializedName("userEmail")
     val email: String,
     @SerializedName("roleName")
-    val role: String = "PARTICIPANT"
+    val role: String = "Participant"
 )
 
 data class TripParticipantDto(

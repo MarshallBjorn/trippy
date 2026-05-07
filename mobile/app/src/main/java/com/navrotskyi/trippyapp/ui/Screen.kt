@@ -27,11 +27,14 @@ sealed class Screen(val route: String) {
 
     object InviteParticipant : Screen("invite_participant/{tripId}") {
         fun createRoute(tripId: String) = "invite_participant/$tripId"
+
     }
 
     object AddTrip : Screen("add_trip")
 
     object Expenses : Screen("expenses")
+
+    object Invitations : Screen("invitations")
 
     object AddNode : Screen("add_node/{tripId}") {
         fun createRoute(tripId: String) = "add_node/$tripId"
@@ -45,4 +48,5 @@ sealed class Screen(val route: String) {
     object EditNode : Screen("edit_node/{tripId}/{nodeId}") {
         fun createRoute(tripId: String, nodeId: String) = "edit_node/$tripId/$nodeId"
     }
+
 }

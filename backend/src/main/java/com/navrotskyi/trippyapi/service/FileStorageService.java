@@ -45,7 +45,9 @@ public class FileStorageService {
 
             String newFilename = UUID.randomUUID().toString() + "." + safeExtension;
 
-            Path targetLocation = Paths.get(uploadDir).resolve(newFilename);
+            Path uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path targetLocation = uploadRoot.resolve(newFilename).normalize();
+            
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             
             return newFilename;
@@ -60,7 +62,13 @@ public class FileStorageService {
         }
 
         try {
-            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+            Path uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path filePath = uploadRoot.resolve(filename).normalize();
+            
+            if (!filePath.startsWith(uploadRoot)) {
+                throw new IllegalArgumentException("Nieprawidłowa ścieżka: Wykryto path traversal.");
+            }
+
             Files.deleteIfExists(filePath);
         } catch (IOException ex) {
             throw new RuntimeException("Could not delete physical file: " + filename, ex);
