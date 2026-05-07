@@ -13,6 +13,16 @@ import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.models.LoginRequest
 import com.navrotskyi.trippyapp.models.RegisterRequest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+data class RegisterFormErrors(
+    val nameError: String? = null,
+    val emailError: String? = null,
+    val passwordError: String? = null,
+    val confirmPasswordError: String? = null
+)
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -65,5 +75,60 @@ class AuthViewModel : ViewModel() {
 
     fun resetState() {
         authState = AuthState.Idle
+    }
+
+    private val _registerErrors = MutableStateFlow(RegisterFormErrors())
+    val registerErrors: StateFlow<RegisterFormErrors> = _registerErrors.asStateFlow()
+
+    private val emailRegex =
+        "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+
+    private val strongPasswordRegex =
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}$".toRegex()
+
+    fun validateRegisterForm(
+        name: String,
+        email: String,
+        password: String,
+        confirmPassword: String
+    ): Boolean {
+        var isValid = true
+        var nameErr: String? = null
+        var emailErr: String? = null
+        var passErr: String? = null
+        var confirmErr: String? = null
+
+        if (name.isBlank()) {
+            nameErr = "Imię/nick jest wymagane"; isValid = false
+        } else if (name.length < 2) {
+            nameErr = "Imię musi mieć co najmniej 2 znaki"; isValid = false
+        }
+
+        if (email.isBlank()) {
+            emailErr = "E-mail jest wymagany"; isValid = false
+        } else if (!emailRegex.matches(email.trim())) {
+            emailErr = "Niepoprawny format e-mail"; isValid = false
+        }
+
+        if (password.isBlank()) {
+            passErr = "Hasło jest wymagane"; isValid = false
+        } else if (!strongPasswordRegex.matches(password)) {
+            passErr = "Min. 8 znaków: wielka, mała litera, cyfra i znak specjalny"
+            isValid = false
+        }
+
+        if (confirmPassword.isBlank()) {
+            confirmErr = "Powtórz hasło"; isValid = false
+        } else if (password != confirmPassword) {
+            confirmErr = "Hasła nie są identyczne"; isValid = false
+        }
+
+        _registerErrors.value =
+            RegisterFormErrors(nameErr, emailErr, passErr, confirmErr)
+        return isValid
+    }
+
+    fun clearRegisterErrors() {
+        _registerErrors.value = RegisterFormErrors()
     }
 }
