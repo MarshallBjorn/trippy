@@ -22,6 +22,9 @@ data class User(
     @ColumnInfo(name = "name")
     val name: String? = null,
 
+    @ColumnInfo(name = "remoteUserId")
+    val remoteUserId: String? = null,
+
     @ColumnInfo(name = "email")
     val email: String? = null,
 

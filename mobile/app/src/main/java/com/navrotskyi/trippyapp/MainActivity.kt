@@ -342,9 +342,10 @@ class MainActivity : ComponentActivity() {
                             val userState by profileViewModel.user.collectAsState()
 
                             val trip = trips.find { it.id == tripId }
-                            println("OWNER: ${trip?.owner?.id}")
-                            println("USER: ${userState?.id}")
-                            val currentUserId = userState?.id?.toString()
+
+                            println("OWNER: ${trip?.ownerId}")
+                            println("USER: ${userState?.remoteUserId}")
+                            val currentUserId = userState?.remoteUserId
                             val isOwner = trip?.ownerId == currentUserId
 
 
