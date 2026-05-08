@@ -5,6 +5,7 @@ import com.navrotskyi.trippyapp.data.entity.User
 
 data class Trip(
     val id: String,
+    val ownerId: String,
     val owner: User?,
     val name: String,
     val pickedCurrency: String,
@@ -15,6 +16,7 @@ data class Trip(
 
 data class TripEventDto(
     val id: String,
+    val ownerId: String,
     val name: String,
     val startDate: String,
     val endDate: String,

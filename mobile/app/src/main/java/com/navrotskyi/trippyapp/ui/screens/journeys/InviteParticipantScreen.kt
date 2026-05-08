@@ -26,12 +26,11 @@ import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 @Composable
 fun InviteParticipantScreen(
     tripId: String,
+    isOwner: Boolean,
     viewModel: TripViewModel,
-    sessionViewModel: SessionViewModel,
     onBackClick: () -> Unit
 ) {
-    val sessionViewModel: SessionViewModel = viewModel()
-    val role by sessionViewModel.roles.collectAsState()
+
     var email by remember { mutableStateOf("") }
     val inviteState by viewModel.inviteState.collectAsState()
     val participants by viewModel.participants.collectAsState()
@@ -73,40 +72,41 @@ fun InviteParticipantScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Wpisz adres e-mail osoby, którą chcesz zaprosić do podróży.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
+            if (isOwner) {
+                Text(
+                    text = "Wpisz adres e-mail osoby, którą chcesz zaprosić do podróży.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
-            TrippyTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = "Adres e-mail",
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Obsługa ładowania na przycisku
-            if (inviteState is InviteState.Loading) {
-                CircularProgressIndicator()
-            } else {
-                TrippyButton(
-                    text = "Wyślij zaproszenie",
-                    onClick = {
-                        if (email.isNotBlank()) {
-                            viewModel.inviteParticipant(tripId, email)
-                        } else {
-                            errorDialogMessage = "Podaj adres e-mail"
-                        }
-                    },
+                TrippyTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Adres e-mail",
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Obsługa ładowania na przycisku
+                if (inviteState is InviteState.Loading) {
+                    CircularProgressIndicator()
+                } else {
+                    TrippyButton(
+                        text = "Wyślij zaproszenie",
+                        onClick = {
+                            if (email.isNotBlank()) {
+                                viewModel.inviteParticipant(tripId, email)
+                            } else {
+                                errorDialogMessage = "Podaj adres e-mail"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
             Text(
                 text = "Obecni uczestnicy:",
                 fontWeight = FontWeight.Bold,
