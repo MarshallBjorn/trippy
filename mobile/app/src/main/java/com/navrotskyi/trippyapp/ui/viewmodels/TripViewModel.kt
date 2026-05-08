@@ -116,6 +116,7 @@ class TripViewModel : ViewModel() {
                     _trips.value = response.body()!!.map { dto ->
                         Trip(
                             id = dto.id,
+                            ownerId = dto.ownerId,
                             owner = null,
                             name = dto.name,
                             pickedCurrency = dto.currencyCode,
