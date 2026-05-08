@@ -31,6 +31,7 @@ import java.util.Locale
 @Composable
 fun TripDetailsScreen(
     tripId: String,
+    isOwner: Boolean,
     viewModel: TripViewModel,
     profileViewModel: ProfileViewModel = viewModel(),
     onBackClick: () -> Unit,
@@ -118,22 +119,26 @@ fun TripDetailsScreen(
                                 it.tripRole != "VIEWER"
                     }
                     if (canCreateNode) {
-                        FloatingActionButton(
-                            onClick = { onAddNodeClick(tripId) },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Dodaj")
+                        if (isOwner) {
+                            FloatingActionButton(
+                                onClick = { onAddNodeClick(tripId) },
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Dodaj")
+                            }
                         }
                     }
                 }
                 2 -> {
-                    FloatingActionButton(
-                        onClick = { onInviteClick(tripId) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Zaproś")
+                    if (isOwner) {
+                        FloatingActionButton(
+                            onClick = { onInviteClick(tripId) },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Zaproś")
+                        }
                     }
                 }
             }
