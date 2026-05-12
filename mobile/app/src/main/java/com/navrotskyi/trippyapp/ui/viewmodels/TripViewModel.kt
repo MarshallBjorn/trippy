@@ -22,8 +22,9 @@ import java.io.FileOutputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
-// FORM ERRORS
+
 
 data class AddTripFormErrors(
     val nameError: String? = null,
@@ -42,8 +43,6 @@ data class TripNodeFormErrors(
 data class InviteFormErrors(
     val emailError: String? = null
 )
-
-// STATES
 
 sealed class CreateTripState {
     object Idle : CreateTripState()
@@ -74,10 +73,9 @@ sealed class CreatePostState {
 }
 
 class TripViewModel : ViewModel() {
-    private val api = RetrofitClient.retrofit.create(TrippyApi::class.java)
+    private val api by lazy { RetrofitClient.retrofit.create(TrippyApi::class.java) }
 
-    private val emailRegex =
-        "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+    private val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
     private val _trips = MutableStateFlow<List<Trip>>(emptyList())
     val trips: StateFlow<List<Trip>> = _trips.asStateFlow()
@@ -88,6 +86,7 @@ class TripViewModel : ViewModel() {
     private val _nodes = MutableStateFlow<List<TripNodeDto>>(emptyList())
     val nodes: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
 
+
     val expenses: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
 
     private val _selectedNode = MutableStateFlow<TripNodeDto?>(null)
@@ -96,7 +95,7 @@ class TripViewModel : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    // form errors
+    // stan akcji i formularze
 
     private val _addTripErrors = MutableStateFlow(AddTripFormErrors())
     val addTripErrors: StateFlow<AddTripFormErrors> = _addTripErrors.asStateFlow()
@@ -106,8 +105,6 @@ class TripViewModel : ViewModel() {
 
     private val _inviteFormErrors = MutableStateFlow(InviteFormErrors())
     val inviteFormErrors: StateFlow<InviteFormErrors> = _inviteFormErrors.asStateFlow()
-
-    // action states
 
     private val _createTripState = MutableStateFlow<CreateTripState>(CreateTripState.Idle)
     val createTripState: StateFlow<CreateTripState> = _createTripState.asStateFlow()
@@ -241,6 +238,11 @@ class TripViewModel : ViewModel() {
         val apiStart = formatDateTimeForApi(startTime)
         val apiEnd = formatDateTimeForApi(endTime)
 
+        if (apiEnd < apiStart) {
+            _createNodeState.value = CreateTripNodeState.Error("Data zakończenia nie może być przed rozpoczęciem!")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
@@ -272,6 +274,11 @@ class TripViewModel : ViewModel() {
 
         val apiStart = formatDateTimeForApi(startTime)
         val apiEnd = formatDateTimeForApi(endTime)
+
+        if (apiEnd < apiStart) {
+            _createNodeState.value = CreateTripNodeState.Error("Data zakończenia nie może być przed rozpoczęciem!")
+            return
+        }
 
         viewModelScope.launch {
             try {
@@ -309,7 +316,6 @@ class TripViewModel : ViewModel() {
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
-
     // POSTS
 
     fun loadPosts(nodeId: String) {
@@ -387,7 +393,6 @@ class TripViewModel : ViewModel() {
     }
 
     //WALIDACJA
-
     fun validateAddTripForm(name: String, startDate: String, endDate: String, budget: String): Boolean {
         var isValid = true
         var nameErr: String? = null
@@ -395,9 +400,7 @@ class TripViewModel : ViewModel() {
         var endErr: String? = null
         var budgetErr: String? = null
 
-        if (name.isBlank()) {
-            nameErr = "Nazwa wycieczki jest wymagana"; isValid = false
-        }
+        if (name.isBlank()) { nameErr = "Nazwa wycieczki jest wymagana"; isValid = false }
 
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
         var parsedStart: LocalDate? = null
@@ -408,7 +411,7 @@ class TripViewModel : ViewModel() {
         } else {
             try {
                 parsedStart = LocalDate.parse(startDate, dateFormatter)
-            } catch (e: Exception) { startErr = "Błędny format daty"; isValid = false }
+            } catch (e: DateTimeParseException) { startErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
         }
 
         if (endDate.isBlank()) {
@@ -416,18 +419,18 @@ class TripViewModel : ViewModel() {
         } else {
             try {
                 parsedEnd = LocalDate.parse(endDate, dateFormatter)
-            } catch (e: Exception) { endErr = "Błędny format daty"; isValid = false }
+            } catch (e: DateTimeParseException) { endErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
         }
 
-        if (parsedStart != null && parsedEnd != null && parsedEnd.isBefore(parsedStart)) {
+        if (parsedStart != null && parsedEnd != null && !parsedEnd.isAfter(parsedStart)) {
             endErr = "Data zakończenia musi być po dacie rozpoczęcia"; isValid = false
         }
 
         if (budget.isBlank()) {
             budgetErr = "Budżet jest wymagany"; isValid = false
         } else {
-            val parsed = budget.replace(",", ".").toDoubleOrNull()
-            if (parsed == null || parsed < 0) {
+            val budgetValue = budget.replace(",", ".").toDoubleOrNull()
+            if (budgetValue == null || budgetValue < 0) {
                 budgetErr = "Podaj poprawną kwotę (np. 2000.50)"; isValid = false
             }
         }
@@ -443,41 +446,36 @@ class TripViewModel : ViewModel() {
         var endErr: String? = null
         var priceErr: String? = null
 
-        if (name.isBlank()) {
-            nameErr = "Tytuł jest wymagany"; isValid = false
-        }
+        if (name.isBlank()) { nameErr = "Tytuł jest wymagany"; isValid = false }
 
-        val dtFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
         var parsedStart: LocalDateTime? = null
         var parsedEnd: LocalDateTime? = null
 
         if (startTime.isBlank()) {
-            startErr = "Data rozpoczęcia jest wymagana"; isValid = false
+            startErr = "Data i godzina rozpoczęcia są wymagane"; isValid = false
         } else {
             try {
-                parsedStart = LocalDateTime.parse(startTime.trim(), dtFormatter)
-            } catch (e: Exception) {
-                startErr = "Format: DD.MM.YYYY HH:MM"; isValid = false
-            }
+                parsedStart = LocalDateTime.parse(startTime, formatter)
+            } catch (e: DateTimeParseException) { startErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
         }
 
         if (endTime.isBlank()) {
-            endErr = "Data zakończenia jest wymagana"; isValid = false
+            endErr = "Data i godzina zakończenia są wymagane"; isValid = false
         } else {
             try {
-                parsedEnd = LocalDateTime.parse(endTime.trim(), dtFormatter)
-            } catch (e: Exception) {
-                endErr = "Format: DD.MM.YYYY HH:MM"; isValid = false
-            }
+                parsedEnd = LocalDateTime.parse(endTime, formatter)
+            } catch (e: DateTimeParseException) { endErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
         }
 
-        if (parsedStart != null && parsedEnd != null && parsedEnd.isBefore(parsedStart)) {
+        if (parsedStart != null && parsedEnd != null && !parsedEnd.isAfter(parsedStart)) {
             endErr = "Koniec musi być po rozpoczęciu"; isValid = false
         }
 
         if (price.isNotBlank()) {
-            val parsedPrice = price.replace(",", ".").toDoubleOrNull()
-            if (parsedPrice == null || parsedPrice < 0) {
+            val trimmed = price.trim()
+            val priceValue = trimmed.replace(",", ".").toDoubleOrNull()
+            if (priceValue == null || priceValue < 0 || trimmed.startsWith("-")) {
                 priceErr = "Podaj poprawną kwotę (np. 150.00)"; isValid = false
             }
         }
@@ -487,15 +485,16 @@ class TripViewModel : ViewModel() {
     }
 
     fun validateInviteForm(email: String): Boolean {
-        val err = when {
+        val emailErr = when {
             email.isBlank() -> "Adres e-mail jest wymagany"
-            !emailRegex.matches(email.trim()) -> "Niepoprawny format e-mail"
+            !emailRegex.matches(email) -> "Niepoprawny format e-mail"
             else -> null
         }
-        _inviteFormErrors.value = InviteFormErrors(err)
-        return err == null
+        _inviteFormErrors.value = InviteFormErrors(emailErr)
+        return emailErr == null
     }
 
+    // funkcje pomocnicze do formatowania dat
 
     private fun formatDateForApi(date: String): String {
         val parts = date.split(".")

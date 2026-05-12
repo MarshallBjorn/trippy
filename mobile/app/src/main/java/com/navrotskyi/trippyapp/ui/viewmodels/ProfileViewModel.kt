@@ -40,11 +40,6 @@ class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi 
     private val _changePasswordErrors = MutableStateFlow(ChangePasswordFormErrors())
     val changePasswordErrors: StateFlow<ChangePasswordFormErrors> = _changePasswordErrors.asStateFlow()
 
-    private val strongPasswordRegex =
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}$".toRegex()
-
-
-
     init {
         observeUserData()
         fetchCurrencies()
@@ -269,7 +264,7 @@ class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi 
             newPassword == oldPassword -> {
                 newErr = "Nowe hasło musi być inne niż obecne"; isValid = false
             }
-            !strongPasswordRegex.matches(newPassword) -> {
+            !FormValidators.isStrongPassword(newPassword) -> {
                 newErr = "Min. 8 znaków: wielka, mała litera, cyfra i znak specjalny"
                 isValid = false
             }

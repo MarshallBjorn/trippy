@@ -12,17 +12,10 @@ import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.models.LoginRequest
 import com.navrotskyi.trippyapp.models.RegisterRequest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-data class RegisterFormErrors(
-    val nameError: String? = null,
-    val emailError: String? = null,
-    val passwordError: String? = null,
-    val confirmPasswordError: String? = null
-)
+import kotlinx.coroutines.launch
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -32,11 +25,48 @@ sealed class AuthState {
     data class Error(val message: String, val errors: List<String>? = null) : AuthState()
 }
 
+data class RegisterFormErrors(
+    val nameError: String? = null,
+    val emailError: String? = null,
+    val passwordError: String? = null,
+    val confirmPasswordError: String? = null
+)
+
 class AuthViewModel : ViewModel() {
-    private val api = RetrofitClient.retrofit.create(TrippyApi::class.java)
+    private val api by lazy { RetrofitClient.retrofit.create(TrippyApi::class.java) }
+
+    private val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+    private val passwordRegex = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}$")
 
     var authState by mutableStateOf<AuthState>(AuthState.Idle)
         private set
+
+    private val _registerErrors = MutableStateFlow(RegisterFormErrors())
+    val registerErrors: StateFlow<RegisterFormErrors> = _registerErrors.asStateFlow()
+
+    fun clearRegisterErrors() { _registerErrors.value = RegisterFormErrors() }
+
+    fun validateRegisterForm(name: String, email: String, password: String, confirmPassword: String): Boolean {
+        var isValid = true
+        val nameErr = if (name.isBlank()) { isValid = false; "Imię lub nick jest wymagany" } else null
+        val emailErr = when {
+            email.isBlank() -> { isValid = false; "Adres e-mail jest wymagany" }
+            !emailRegex.matches(email) -> { isValid = false; "Niepoprawny format e-mail" }
+            else -> null
+        }
+        val passwordErr = when {
+            password.isBlank() -> { isValid = false; "Hasło jest wymagane" }
+            !passwordRegex.matches(password) -> { isValid = false; "Min. 8 znaków: wielka i mała litera, cyfra, znak specjalny (@#\$!%*?&)" }
+            else -> null
+        }
+        val confirmPasswordErr = when {
+            confirmPassword.isBlank() -> { isValid = false; "Powtórz hasło" }
+            confirmPassword != password -> { isValid = false; "Hasła nie są identyczne" }
+            else -> null
+        }
+        _registerErrors.value = RegisterFormErrors(nameErr, emailErr, passwordErr, confirmPasswordErr)
+        return isValid
+    }
 
     fun login(email: String, password: String) {
         authState = AuthState.Loading
@@ -44,7 +74,6 @@ class AuthViewModel : ViewModel() {
             try {
                 val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful) {
-                    // Update: use accessToken from the response
                     authState = AuthState.Success(response.body()!!.accessToken)
                 }
             } catch (e: ApiException) {
@@ -62,7 +91,6 @@ class AuthViewModel : ViewModel() {
                 val response = api.register(RegisterRequest(name, email, password, confirmPassword))
 
                 if (response.isSuccessful) {
-                    // Do NOT save token - user is unverified
                     authState = AuthState.AwaitingVerification(email)
                 }
             } catch (e: ApiException) {
@@ -75,60 +103,5 @@ class AuthViewModel : ViewModel() {
 
     fun resetState() {
         authState = AuthState.Idle
-    }
-
-    private val _registerErrors = MutableStateFlow(RegisterFormErrors())
-    val registerErrors: StateFlow<RegisterFormErrors> = _registerErrors.asStateFlow()
-
-    private val emailRegex =
-        "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
-
-    private val strongPasswordRegex =
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#\$!%*?&])[A-Za-z\\d@#\$!%*?&]{8,128}$".toRegex()
-
-    fun validateRegisterForm(
-        name: String,
-        email: String,
-        password: String,
-        confirmPassword: String
-    ): Boolean {
-        var isValid = true
-        var nameErr: String? = null
-        var emailErr: String? = null
-        var passErr: String? = null
-        var confirmErr: String? = null
-
-        if (name.isBlank()) {
-            nameErr = "Imię/nick jest wymagane"; isValid = false
-        } else if (name.length < 2) {
-            nameErr = "Imię musi mieć co najmniej 2 znaki"; isValid = false
-        }
-
-        if (email.isBlank()) {
-            emailErr = "E-mail jest wymagany"; isValid = false
-        } else if (!emailRegex.matches(email.trim())) {
-            emailErr = "Niepoprawny format e-mail"; isValid = false
-        }
-
-        if (password.isBlank()) {
-            passErr = "Hasło jest wymagane"; isValid = false
-        } else if (!strongPasswordRegex.matches(password)) {
-            passErr = "Min. 8 znaków: wielka, mała litera, cyfra i znak specjalny"
-            isValid = false
-        }
-
-        if (confirmPassword.isBlank()) {
-            confirmErr = "Powtórz hasło"; isValid = false
-        } else if (password != confirmPassword) {
-            confirmErr = "Hasła nie są identyczne"; isValid = false
-        }
-
-        _registerErrors.value =
-            RegisterFormErrors(nameErr, emailErr, passErr, confirmErr)
-        return isValid
-    }
-
-    fun clearRegisterErrors() {
-        _registerErrors.value = RegisterFormErrors()
     }
 }
