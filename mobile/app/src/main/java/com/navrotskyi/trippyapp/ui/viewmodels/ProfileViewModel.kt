@@ -58,13 +58,15 @@ class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi 
                     val formattedUrl = rawUrl?.replace("localhost", "10.0.2.2")
 
                     val userToSave = existingUser?.copy(
+                        remoteUserId = userDto.id,
                         name = userDto.name ?: existingUser.name,
                         email = userDto.email,
                         role = userDto.role,
                         stringUrl = formattedUrl,
                         currency = userDto.currencyCode ?: existingUser.currency,
                         isVerified = userDto.isVerified
-                    ) ?: User(
+                    )?: User(
+                        remoteUserId = userDto.id,
                         name = userDto.name,
                         email = userDto.email,
                         role = userDto.role,

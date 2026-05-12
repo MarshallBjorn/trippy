@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 import java.util.UUID;
 
 /**
@@ -66,29 +66,8 @@ public class TripNodeController {
         return new ResponseEntity<>(TripNodeMapper.toDto(created), HttpStatus.CREATED);
     }
 
-    // ============================================================
-    //  READ — collection
-    // ============================================================
 
-    @Operation(
-            summary = "Pobierz wszystkie węzły wycieczki",
-            description = "Zwraca wszystkie węzły wycieczki posortowane po czasie startu rosnąco. " +
-                          "Tylko zaakceptowani uczestnicy mają dostęp."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista węzłów (może być pusta)"),
-            @ApiResponse(responseCode = "401", description = "Brak ważnego tokena JWT", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Użytkownik nie jest zaakceptowanym uczestnikiem wycieczki", content = @Content)
-    })
-    @GetMapping
-    public ResponseEntity<List<TripNodeDto>> getTripNodes(
-            @Parameter(description = "ID wycieczki") @PathVariable UUID eventId,
-            @AuthenticationPrincipal User currentUser) {
-        List<TripNodeDto> nodes = tripNodeService.getNodesForEvent(eventId, currentUser).stream()
-                .map(TripNodeMapper::toDto)
-                .toList();
-        return ResponseEntity.ok(nodes);
-    }
+
 
     // ============================================================
     //  READ — single

@@ -10,5 +10,7 @@ public record NodeResponse(
     java.math.BigDecimal price, 
     boolean isSeparate,
     String reporterName,
-    List<PostResponse> posts
+    List<PostResponse> posts,
+    boolean canEdit,
+    boolean canDelete
 ) {}
