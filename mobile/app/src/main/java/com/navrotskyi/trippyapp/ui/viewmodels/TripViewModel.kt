@@ -1,17 +1,22 @@
 package com.navrotskyi.trippyapp.ui.viewmodels
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
+import com.navrotskyi.trippyapp.data.database.TrippyDb
+import com.navrotskyi.trippyapp.data.repository.TripRepository
 import com.navrotskyi.trippyapp.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -23,7 +28,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
-
 
 
 data class AddTripFormErrors(
@@ -72,31 +76,42 @@ sealed class CreatePostState {
     data class Error(val message: String) : CreatePostState()
 }
 
-class TripViewModel : ViewModel() {
+class TripViewModel(application: Application) : AndroidViewModel(application) {
+
     private val api by lazy { RetrofitClient.retrofit.create(TrippyApi::class.java) }
+    private val db = TrippyDb.getInstance(application)
+    private val repo = TripRepository(api, db.tripDao(), db.tripNodeDao())
 
     private val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
-    private val _trips = MutableStateFlow<List<Trip>>(emptyList())
-    val trips: StateFlow<List<Trip>> = _trips.asStateFlow()
+    val trips: StateFlow<List<Trip>> = repo.observeTrips()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _participants = MutableStateFlow<List<TripParticipantDto>>(emptyList())
-    val participants: StateFlow<List<TripParticipantDto>> = _participants.asStateFlow()
-
+    private val _currentTripIdForNodes = MutableStateFlow<String?>(null)
     private val _nodes = MutableStateFlow<List<TripNodeDto>>(emptyList())
     val nodes: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
-
-
     val expenses: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
 
     private val _selectedNode = MutableStateFlow<TripNodeDto?>(null)
     val selectedNode: StateFlow<TripNodeDto?> = _selectedNode.asStateFlow()
 
+    // Stany pomocnicze
+    private val _participants = MutableStateFlow<List<TripParticipantDto>>(emptyList())
+    val participants: StateFlow<List<TripParticipantDto>> = _participants.asStateFlow()
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    // stan akcji i formularze
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
 
+    private val _isLoadingTrips = MutableStateFlow(false)
+    val isLoadingTrips: StateFlow<Boolean> = _isLoadingTrips.asStateFlow()
+
+    private val _isLoadingNodes = MutableStateFlow(false)
+    val isLoadingNodes: StateFlow<Boolean> = _isLoadingNodes.asStateFlow()
+
+    // Formularze
     private val _addTripErrors = MutableStateFlow(AddTripFormErrors())
     val addTripErrors: StateFlow<AddTripFormErrors> = _addTripErrors.asStateFlow()
 
@@ -126,33 +141,22 @@ class TripViewModel : ViewModel() {
     }
 
     // WYCIECZKI
-
     fun loadTrips() {
         viewModelScope.launch {
-            try {
-                val response = api.getMyTrips()
-                if (response.isSuccessful && response.body() != null) {
-                    _trips.value = response.body()!!.map { dto ->
-                        Trip(
-                            id = dto.id,
-                            ownerId = dto.ownerId,
-                            owner = null,
-                            name = dto.name,
-                            pickedCurrency = dto.currencyCode,
-                            startDate = dto.startDate,
-                            endDate = dto.endDate,
-                            budget = dto.budget
-                        )
-                    }
-                }
-            } catch (e: Exception) { e.printStackTrace() }
+            _isLoadingTrips.value = true
+            repo.refreshTrips()
+                .onSuccess { _isOffline.value = false }
+                .onFailure { _isOffline.value = true }
+            _isLoadingTrips.value = false
         }
     }
 
     fun refreshTrips() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            loadTrips()
+            repo.refreshTrips()
+                .onSuccess { _isOffline.value = false }
+                .onFailure { _isOffline.value = true }
             _isRefreshing.value = false
         }
     }
@@ -171,7 +175,7 @@ class TripViewModel : ViewModel() {
                 val response = api.createTrip(request)
                 if (response.isSuccessful) {
                     _createTripState.value = CreateTripState.Success
-                    loadTrips()
+                    repo.refreshTrips() // odśwież cache
                 } else {
                     _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
                 }
@@ -181,7 +185,7 @@ class TripViewModel : ViewModel() {
         }
     }
 
-    // UCZESTNICY
+    //  UCZESTNICY
 
     fun loadParticipants(tripId: String) {
         viewModelScope.launch {
@@ -212,24 +216,30 @@ class TripViewModel : ViewModel() {
     }
 
     // NODES
-
     fun loadNodes(tripId: String) {
         viewModelScope.launch {
-            try {
-                val response = api.getTripNodes(tripId)
-                if (response.isSuccessful && response.body() != null) {
-                    _nodes.value = response.body()!!
-                }
-            } catch (e: Exception) { e.printStackTrace() }
+            _currentTripIdForNodes.value = tripId
+            repo.observeNodes(tripId).collect { nodesFromDb ->
+                _nodes.value = nodesFromDb
+            }
+        }
+        viewModelScope.launch {
+            _isLoadingNodes.value = true
+            repo.refreshNodes(tripId)
+                .onSuccess { _isOffline.value = false }
+                .onFailure { _isOffline.value = true }
+            _isLoadingNodes.value = false
         }
     }
 
     fun loadNode(tripId: String, nodeId: String) {
         viewModelScope.launch {
-            try {
-                val response = api.getTripNode(tripId, nodeId)
-                if (response.isSuccessful) { _selectedNode.value = response.body() }
-            } catch (e: Exception) { e.printStackTrace() }
+            repo.observeNode(nodeId).collect { _selectedNode.value = it }
+        }
+        viewModelScope.launch {
+            repo.refreshNode(tripId, nodeId)
+                .onSuccess { _isOffline.value = false }
+                .onFailure { _isOffline.value = true }
         }
     }
 
@@ -247,7 +257,6 @@ class TripViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
-
                 val request = CreateTripNodeRequest(
                     name = name,
                     startTime = apiStart,
@@ -260,7 +269,7 @@ class TripViewModel : ViewModel() {
                 val response = api.createTripNode(tripId, request)
                 if (response.isSuccessful) {
                     _createNodeState.value = CreateTripNodeState.Success
-                    loadNodes(tripId)
+                    repo.refreshNodes(tripId)
                 } else {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
@@ -284,7 +293,6 @@ class TripViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
-
                 val request = CreateTripNodeRequest(
                     name = name,
                     startTime = apiStart,
@@ -294,12 +302,11 @@ class TripViewModel : ViewModel() {
                     separate = separate,
                     category = category
                 )
-
                 val response = api.updateTripNode(tripId, nodeId, request)
                 if (response.isSuccessful) {
                     _createNodeState.value = CreateTripNodeState.Success
-                    loadNodes(tripId)
-                    loadNode(tripId, nodeId)
+                    repo.refreshNodes(tripId)
+                    repo.refreshNode(tripId, nodeId)
                 } else {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
@@ -313,7 +320,7 @@ class TripViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val response = api.deleteTripNode(tripId, nodeId)
-                if (response.isSuccessful) { loadNodes(tripId) }
+                if (response.isSuccessful) { repo.refreshNodes(tripId) }
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
@@ -387,13 +394,15 @@ class TripViewModel : ViewModel() {
     fun clearNodeFormErrors() { _nodeFormErrors.value = TripNodeFormErrors() }
     fun clearInviteFormErrors() { _inviteFormErrors.value = InviteFormErrors() }
     fun clearSelectedNode() { _selectedNode.value = null }
+
     fun clearData() {
-        _trips.value = emptyList()
         _participants.value = emptyList()
         _nodes.value = emptyList()
+        viewModelScope.launch { repo.clearCache() }
     }
 
-    //WALIDACJA
+    // WALIDACJA
+
     fun validateAddTripForm(name: String, startDate: String, endDate: String, budget: String): Boolean {
         var isValid = true
         var nameErr: String? = null
@@ -410,17 +419,15 @@ class TripViewModel : ViewModel() {
         if (startDate.isBlank()) {
             startErr = "Data rozpoczęcia jest wymagana"; isValid = false
         } else {
-            try {
-                parsedStart = LocalDate.parse(startDate, dateFormatter)
-            } catch (e: DateTimeParseException) { startErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
+            try { parsedStart = LocalDate.parse(startDate, dateFormatter) }
+            catch (e: DateTimeParseException) { startErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
         }
 
         if (endDate.isBlank()) {
             endErr = "Data zakończenia jest wymagana"; isValid = false
         } else {
-            try {
-                parsedEnd = LocalDate.parse(endDate, dateFormatter)
-            } catch (e: DateTimeParseException) { endErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
+            try { parsedEnd = LocalDate.parse(endDate, dateFormatter) }
+            catch (e: DateTimeParseException) { endErr = "Błędny format daty (DD.MM.RRRR)"; isValid = false }
         }
 
         if (parsedStart != null && parsedEnd != null && !parsedEnd.isAfter(parsedStart)) {
@@ -456,17 +463,15 @@ class TripViewModel : ViewModel() {
         if (startTime.isBlank()) {
             startErr = "Data i godzina rozpoczęcia są wymagane"; isValid = false
         } else {
-            try {
-                parsedStart = LocalDateTime.parse(startTime, formatter)
-            } catch (e: DateTimeParseException) { startErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
+            try { parsedStart = LocalDateTime.parse(startTime, formatter) }
+            catch (e: DateTimeParseException) { startErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
         }
 
         if (endTime.isBlank()) {
             endErr = "Data i godzina zakończenia są wymagane"; isValid = false
         } else {
-            try {
-                parsedEnd = LocalDateTime.parse(endTime, formatter)
-            } catch (e: DateTimeParseException) { endErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
+            try { parsedEnd = LocalDateTime.parse(endTime, formatter) }
+            catch (e: DateTimeParseException) { endErr = "Błędny format (DD.MM.RRRR HH:MM)"; isValid = false }
         }
 
         if (parsedStart != null && parsedEnd != null && !parsedEnd.isAfter(parsedStart)) {
@@ -495,8 +500,7 @@ class TripViewModel : ViewModel() {
         return emailErr == null
     }
 
-    // funkcje pomocnicze do formatowania dat
-
+    // funkcje pomocnicze
     private fun formatDateForApi(date: String): String {
         val parts = date.split(".")
         return if (parts.size == 3) "${parts[2]}-${parts[1]}-${parts[0]}" else date
