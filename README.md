@@ -1,16 +1,18 @@
 # ✈️ Trippy – Group Travel & Expense Manager
 
 ## Zespół
-```
-- Oleksii Nawrocki - PM
-- Julia Chmura
-- Tomasz Nowak
-- Jakub Czesnak
-- Dawid Bajek
-- Mateusz Tokarz
-- Michał Domański
-- Paweł Powęska
-```
+
+Aktywni kontybutorzy:
+- [Oleksii Nawrocki](https://github.com/MarshallBjorn) - PM, Lead Fullstack Dev
+- [Tomasz Nowak](https://github.com/Tnovyloo) - Backend Dev
+- [Julia Chmura](https://github.com/julchm) - Frontend Dev
+- [Michał Domański](https://github.com/Abziii) - Frontend Dev
+- [Paweł Powęska](https://github.com/SpeedYoo) - Frontend Dev
+
+Byli kontrybutorzy:
+- [Jakub Czesnak](https://github.com/jczesnak) - Frontend Dev
+- [Dawid Bajek](https://github.com/Baju16) - Fullstack Dev
+- [Mateusz Tokarz](https://github.com/Mefju2137) - Frontend Dev
 
 ## 📖 Opis projektu
 **Trippy** to kompleksowa aplikacja mobilna (Android) oparta o architekturę klient-serwer, stworzona z myślą o osobach podróżujących w grupach. Rozwiązuje problem transparentnego zarządzania budżetem i sprawiedliwego rozliczania kosztów podczas wspólnych wyjazdów. 

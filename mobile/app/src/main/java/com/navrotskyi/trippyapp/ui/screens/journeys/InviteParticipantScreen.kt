@@ -21,6 +21,7 @@ import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 @Composable
 fun InviteParticipantScreen(
     tripId: String,
+    isOwner: Boolean,
     viewModel: TripViewModel,
     onBackClick: () -> Unit
 ) {
@@ -69,37 +70,39 @@ fun InviteParticipantScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Wpisz adres e-mail osoby, którą chcesz zaprosić do podróży.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
-            TrippyTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = "Adres e-mail",
-                modifier = Modifier.fillMaxWidth(),
-                errorText = emailErrors.emailError
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (inviteState is InviteState.Loading) {
-                CircularProgressIndicator()
-            } else {
-                TrippyButton(
-                    text = "Wyślij zaproszenie",
-                    onClick = {
-                        if (viewModel.validateInviteForm(email)) {
-                            viewModel.inviteParticipant(tripId, email.trim())
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+            if (isOwner) {
+                Text(
+                    text = "Wpisz adres e-mail osoby, którą chcesz zaprosić do podróży.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 24.dp)
                 )
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                TrippyTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Adres e-mail",
+                    modifier = Modifier.fillMaxWidth(),
+                    errorText = emailErrors.emailError
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (inviteState is InviteState.Loading) {
+                    CircularProgressIndicator()
+                } else {
+                    TrippyButton(
+                        text = "Wyślij zaproszenie",
+                        onClick = {
+                            if (viewModel.validateInviteForm(email)) {
+                                viewModel.inviteParticipant(tripId, email.trim())
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
 
             Text(
                 text = "Obecni uczestnicy:",

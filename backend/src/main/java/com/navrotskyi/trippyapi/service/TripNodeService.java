@@ -5,6 +5,7 @@ import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.trip.CreateTripNodeRequest;
+import com.navrotskyi.trippyapi.dto.admin.NodeResponse;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
 import com.navrotskyi.trippyapi.repository.TripNodeRepository;
@@ -42,17 +43,14 @@ public class TripNodeService {
     private final TripEventRepository tripEventRepository;
     private final TripParticipantRepository tripParticipantRepository;
 
-    public TripNodeService(TripNodeRepository tripNodeRepository,
-                           TripEventRepository tripEventRepository,
-                           TripParticipantRepository tripParticipantRepository) {
+    public TripNodeService(TripNodeRepository tripNodeRepository, TripEventRepository tripEventRepository,
+            TripParticipantRepository tripParticipantRepository) {
         this.tripNodeRepository = tripNodeRepository;
         this.tripEventRepository = tripEventRepository;
         this.tripParticipantRepository = tripParticipantRepository;
     }
 
-    // ============================================================
-    //  CREATE
-    // ============================================================
+
 
     /**
      * Tworzy nowy węzeł w obrębie podanej wycieczki.
@@ -85,13 +83,13 @@ public class TripNodeService {
         node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
 
-        TripNode saved = tripNodeRepository.save(node);
-
-        // Pobieramy zapisaną encję z załadowanymi relacjami przez @EntityGraph,
+        TripNode savedNode = tripNodeRepository.save(node);
+      // Pobieramy zapisaną encję z załadowanymi relacjami przez @EntityGraph,
         // dzięki czemu mapper nie napotka LazyInitializationException.
-        return tripNodeRepository.findWithDetailsById(saved.getId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Właśnie utworzony node zniknął z bazy — to nie powinno się zdarzyć."));
+        savedNode.getReporter().getName();
+        savedNode.getEvent().getId();
+
+        return savedNode;
     }
 
     // ============================================================
@@ -107,9 +105,39 @@ public class TripNodeService {
      * @throws SecurityException gdy użytkownik nie jest zaakceptowanym uczestnikiem
      */
     @Transactional(readOnly = true)
-    public List<TripNode> getNodesForEvent(UUID eventId, User user) {
-        requireAcceptedParticipant(eventId, user.getId());
-        return tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+    public List<NodeResponse> getNodesForEvent(UUID eventId, User user) {
+        tripParticipantRepository.findByEventIdAndUserId(eventId, user.getId())
+                .orElseThrow(() -> new SecurityException("You are not a participant of this trip."));
+
+        List<TripNode> nodes = tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+
+        return nodes.stream()
+                .map(node -> mapToNodeResponse(node, user))
+                .toList();
+    }
+
+    private NodeResponse mapToNodeResponse(TripNode node, User currentUser) {
+
+        TripParticipant participant = tripParticipantRepository
+                .findByEventIdAndUserId(node.getEvent().getId(), currentUser.getId())
+                .orElseThrow();
+
+        boolean isAuthor = node.getReporter().getId().equals(currentUser.getId());
+        boolean isOrganizer = participant.getTripRole().getName().equalsIgnoreCase("ORGANIZER");
+
+        boolean canEdit = isAuthor || isOrganizer;
+        boolean canDelete = isAuthor || isOrganizer;
+
+        return new NodeResponse(
+                node.getId(),
+                node.getName(),
+                node.getNote(),
+                node.getPrice(),
+                node.isSeparate(),
+                node.getReporter().getName(),
+                List.of(),
+                canEdit,
+                canDelete);
     }
 
     /**
@@ -172,10 +200,13 @@ public class TripNodeService {
         node.setNote(request.note());
         node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
-
-        // Hibernate flush'uje przy zakończeniu transakcji; zwracamy tę samą instancję
+                // Hibernate flush'uje przy zakończeniu transakcji; zwracamy tę samą instancję
         // (z już załadowanymi relacjami z findWithDetailsById).
-        return tripNodeRepository.save(node);
+        TripNode savedNode = tripNodeRepository.save(node);
+
+        savedNode.getReporter().getName();
+
+        return savedNode;
     }
 
     // ============================================================

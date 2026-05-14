@@ -86,7 +86,9 @@ public class AdminTripService {
             node.getPrice(),
             node.isSeparate(),
             node.getReporter().getName(),
-            posts
+            posts,
+            true,
+            true
         );
     }
 

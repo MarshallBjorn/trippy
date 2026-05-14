@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
+                val sessionViewModel: SessionViewModel = viewModel()
                 LaunchedEffect(authState) {
                     when (authState) {
                         is AuthState.Success -> {
@@ -270,8 +271,16 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            val trips by tripViewModel.trips.collectAsState()
+                            val userState by profileViewModel.user.collectAsState()
+
+                            val trip = trips.find { it.id == tripId }
+                            val currentUserId = userState?.remoteUserId
+
+                            val isOwner = trip?.ownerId == currentUserId
                             TripDetailsScreen(
                                 tripId = tripId,
+                                isOwner = isOwner,
                                 viewModel = tripViewModel,
                                 profileViewModel = profileViewModel,
                                 onBackClick = { navController.popBackStack() },
@@ -340,9 +349,22 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            val trips by tripViewModel.trips.collectAsState()
+                            val userState by profileViewModel.user.collectAsState()
+
+                            val trip = trips.find { it.id == tripId }
+
+                            println("OWNER: ${trip?.ownerId}")
+                            println("USER: ${userState?.remoteUserId}")
+                            val currentUserId = userState?.remoteUserId
+                            val isOwner = trip?.ownerId == currentUserId
+
+
                             InviteParticipantScreen(
                                 tripId = tripId,
+                                isOwner = isOwner,
                                 viewModel = tripViewModel,
+
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
