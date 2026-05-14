@@ -1,13 +1,29 @@
 package com.navrotskyi.trippyapp
 
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 
 class TripViewModelTest {
 
+    private lateinit var viewModel: TripViewModel
 
-    private val viewModel = TripViewModel()
+    @Before
+    fun setup() {
+        Dispatchers.setMain(StandardTestDispatcher())
+        viewModel = TripViewModel()
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `gdy formularz jest calkowicie pusty, walidacja zwraca false i ustawia bledy`() {
@@ -31,7 +47,6 @@ class TripViewModelTest {
 
     @Test
     fun `gdy data zakonczenia jest przed data rozpoczecia, ustawia blad daty zakonczenia`() {
-        // Wykonanie - Celowo dajemy datę powrotu wcześniej niż wyjazdu
         val isValid = viewModel.validateAddTripForm(
             name = "Testowa Wycieczka",
             startDate = "15.05.2026",
@@ -39,7 +54,6 @@ class TripViewModelTest {
             budget = "2000"
         )
 
-        // Sprawdzenie
         assertFalse(isValid)
         assertEquals("Data zakończenia musi być po dacie rozpoczęcia", viewModel.addTripErrors.value.endDateError)
     }
@@ -67,7 +81,7 @@ class TripViewModelTest {
             budget = "5000.50"
         )
 
-        
+
         assertTrue(isValid)
 
         val errors = viewModel.addTripErrors.value

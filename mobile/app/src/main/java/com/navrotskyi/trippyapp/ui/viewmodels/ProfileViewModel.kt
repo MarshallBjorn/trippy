@@ -24,6 +24,11 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
 
+data class ChangePasswordFormErrors(
+    val oldPasswordError: String? = null,
+    val newPasswordError: String? = null,
+    val confirmPasswordError: String? = null
+)
 
 class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi = RetrofitClient.retrofit.create(TrippyApi::class.java) ) : ViewModel() {
     private val _user = MutableStateFlow<User?>(null)
@@ -32,6 +37,8 @@ class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi 
     val currencies: StateFlow<List<CurrencyDto>> = _currencies.asStateFlow()
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+    private val _changePasswordErrors = MutableStateFlow(ChangePasswordFormErrors())
+    val changePasswordErrors: StateFlow<ChangePasswordFormErrors> = _changePasswordErrors.asStateFlow()
 
     init {
         observeUserData()
@@ -236,6 +243,50 @@ class ProfileViewModel(private val userDao: UserDao, private val api: TrippyApi 
             }
         }
         return tempFile
+    }
+
+    fun validateChangePasswordForm(
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ): Boolean {
+        var isValid = true
+        var oldErr: String? = null
+        var newErr: String? = null
+        var confirmErr: String? = null
+
+        if (oldPassword.isBlank()) {
+            oldErr = "Wprowadź obecne hasło"; isValid = false
+        }
+
+        when {
+            newPassword.isBlank() -> {
+                newErr = "Wprowadź nowe hasło"; isValid = false
+            }
+            newPassword == oldPassword -> {
+                newErr = "Nowe hasło musi być inne niż obecne"; isValid = false
+            }
+            !FormValidators.isStrongPassword(newPassword) -> {
+                newErr = "Min. 8 znaków: wielka, mała litera, cyfra i znak specjalny"
+                isValid = false
+            }
+        }
+
+        when {
+            confirmPassword.isBlank() -> {
+                confirmErr = "Powtórz nowe hasło"; isValid = false
+            }
+            newPassword != confirmPassword -> {
+                confirmErr = "Hasła nie są identyczne"; isValid = false
+            }
+        }
+
+        _changePasswordErrors.value = ChangePasswordFormErrors(oldErr, newErr, confirmErr)
+        return isValid
+    }
+
+    fun clearChangePasswordErrors() {
+        _changePasswordErrors.value = ChangePasswordFormErrors()
     }
 }
 class ProfileViewModelFactory(private val userDao: UserDao) : ViewModelProvider.Factory {

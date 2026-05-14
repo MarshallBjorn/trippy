@@ -11,10 +11,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
 import com.navrotskyi.trippyapp.ui.components.TrippyTextField
+import com.navrotskyi.trippyapp.ui.viewmodels.AuthViewModel
 
 @Composable
 fun RegisterScreen(
     modifier: Modifier = Modifier,
+    viewModel: AuthViewModel,
     onRegisterClick: (String, String, String, String) -> Unit,
     onBackToLoginClick: () -> Unit
 ) {
@@ -22,6 +24,12 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    val errors by viewModel.registerErrors.collectAsState()
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearRegisterErrors() }
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -37,7 +45,7 @@ fun RegisterScreen(
             Text(
                 text = "Dołącz do Trippy",
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary, // Dynamiczny akcent
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
@@ -45,48 +53,49 @@ fun RegisterScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = "Imię lub Nick",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                errorText = errors.nameError
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             TrippyTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = "E-mail",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                errorText = errors.emailError
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             TrippyTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = "Hasło",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                errorText = errors.passwordError
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             TrippyTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
                 label = "Powtórz hasło",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                errorText = errors.confirmPasswordError
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(32.dp))
 
             TrippyButton(
                 text = "Zarejestruj się",
                 onClick = {
-                    onRegisterClick(name, email, password, confirmPassword)
+                    if (viewModel.validateRegisterForm(name, email, password, confirmPassword)) {
+                        onRegisterClick(name, email, password, confirmPassword)
+                    }
                 }
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
             TextButton(onClick = onBackToLoginClick) {
                 Text(

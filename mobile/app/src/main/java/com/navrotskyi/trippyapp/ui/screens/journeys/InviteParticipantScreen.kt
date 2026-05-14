@@ -12,15 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
+import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyTextField
 import com.navrotskyi.trippyapp.ui.viewmodels.InviteState
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
-import com.navrotskyi.trippyapp.models.TripParticipantDto
-import com.navrotskyi.trippyapp.ui.viewmodels.SessionViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-
-import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,13 +25,17 @@ fun InviteParticipantScreen(
     viewModel: TripViewModel,
     onBackClick: () -> Unit
 ) {
-
     var email by remember { mutableStateOf("") }
     val inviteState by viewModel.inviteState.collectAsState()
     val participants by viewModel.participants.collectAsState()
+    val emailErrors by viewModel.inviteFormErrors.collectAsState()
     val context = LocalContext.current
 
     var errorDialogMessage by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearInviteFormErrors() }
+    }
 
     LaunchedEffect(inviteState) {
         when (inviteState) {
@@ -44,7 +43,6 @@ fun InviteParticipantScreen(
                 Toast.makeText(context, "Wysłano zaproszenie!", Toast.LENGTH_SHORT).show()
                 email = ""
                 viewModel.resetInviteState()
-
             }
             is InviteState.Error -> {
                 errorDialogMessage = (inviteState as InviteState.Error).message
@@ -83,22 +81,20 @@ fun InviteParticipantScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = "Adres e-mail",
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    errorText = emailErrors.emailError
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Obsługa ładowania na przycisku
                 if (inviteState is InviteState.Loading) {
                     CircularProgressIndicator()
                 } else {
                     TrippyButton(
                         text = "Wyślij zaproszenie",
                         onClick = {
-                            if (email.isNotBlank()) {
-                                viewModel.inviteParticipant(tripId, email)
-                            } else {
-                                errorDialogMessage = "Podaj adres e-mail"
+                            if (viewModel.validateInviteForm(email)) {
+                                viewModel.inviteParticipant(tripId, email.trim())
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -107,6 +103,7 @@ fun InviteParticipantScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
+
             Text(
                 text = "Obecni uczestnicy:",
                 fontWeight = FontWeight.Bold,
@@ -114,7 +111,6 @@ fun InviteParticipantScreen(
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(16.dp))
-
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 participants.forEach { participant ->
