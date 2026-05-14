@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.navrotskyi.trippyapp.data.dao.PendingOperationDao
 import com.navrotskyi.trippyapp.data.dao.TripDao
 import com.navrotskyi.trippyapp.data.dao.TripNodeDao
 import com.navrotskyi.trippyapp.data.dao.UserDao
+import com.navrotskyi.trippyapp.data.entity.PendingOperationEntity
 import com.navrotskyi.trippyapp.data.entity.TripEntity
 import com.navrotskyi.trippyapp.data.entity.TripNodeEntity
 import com.navrotskyi.trippyapp.data.entity.User
@@ -15,15 +17,17 @@ import com.navrotskyi.trippyapp.data.entity.User
     entities = [
         User::class,
         TripEntity::class,
-        TripNodeEntity::class
+        TripNodeEntity::class,
+        PendingOperationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class TrippyDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun tripDao(): TripDao
     abstract fun tripNodeDao(): TripNodeDao
+    abstract fun pendingOperationDao(): PendingOperationDao
 }
 
 object TrippyDb {

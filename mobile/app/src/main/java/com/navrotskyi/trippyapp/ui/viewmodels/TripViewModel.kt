@@ -9,13 +9,16 @@ import com.google.gson.Gson
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.data.database.TrippyDb
+import com.navrotskyi.trippyapp.data.network.NetworkMonitor
 import com.navrotskyi.trippyapp.data.repository.TripRepository
+import com.navrotskyi.trippyapp.data.sync.SyncManager
 import com.navrotskyi.trippyapp.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -84,10 +87,27 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
     private val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
+    //  SSOT: trips obserwowane z Room
     val trips: StateFlow<List<Trip>> = repo.observeTrips()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val _currentTripIdForNodes = MutableStateFlow<String?>(null)
+    // Stany sieci / synchronizacji
+    val isOnline: StateFlow<Boolean> = NetworkMonitor.isOnline
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val pendingSyncCount: StateFlow<Int> = SyncManager.pendingCount
+    val isSyncing: StateFlow<Boolean> = SyncManager.isSyncing
+
+    private val _isLoadingTrips = MutableStateFlow(false)
+    val isLoadingTrips: StateFlow<Boolean> = _isLoadingTrips.asStateFlow()
+
+    private val _isLoadingNodes = MutableStateFlow(false)
+    val isLoadingNodes: StateFlow<Boolean> = _isLoadingNodes.asStateFlow()
+
+    private val _isOffline = MutableStateFlow(false)
+    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+
+    // Nodes
     private val _nodes = MutableStateFlow<List<TripNodeDto>>(emptyList())
     val nodes: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
     val expenses: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
@@ -95,21 +115,12 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedNode = MutableStateFlow<TripNodeDto?>(null)
     val selectedNode: StateFlow<TripNodeDto?> = _selectedNode.asStateFlow()
 
-    // Stany pomocnicze
+    // Pozostałe stany
     private val _participants = MutableStateFlow<List<TripParticipantDto>>(emptyList())
     val participants: StateFlow<List<TripParticipantDto>> = _participants.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    private val _isOffline = MutableStateFlow(false)
-    val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
-
-    private val _isLoadingTrips = MutableStateFlow(false)
-    val isLoadingTrips: StateFlow<Boolean> = _isLoadingTrips.asStateFlow()
-
-    private val _isLoadingNodes = MutableStateFlow(false)
-    val isLoadingNodes: StateFlow<Boolean> = _isLoadingNodes.asStateFlow()
 
     // Formularze
     private val _addTripErrors = MutableStateFlow(AddTripFormErrors())
@@ -163,29 +174,39 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
     fun createTrip(name: String, startDate: String, endDate: String, budget: String, currency: String) {
         _createTripState.value = CreateTripState.Loading
+
+        val request = CreateTripEventRequest(
+            name = name,
+            currencyCode = currency,
+            startDate = formatDateForApi(startDate),
+            endDate = formatDateForApi(endDate),
+            budget = budget.toDoubleOrNull() ?: 0.0
+        )
+
         viewModelScope.launch {
+            val online = NetworkMonitor.isOnline.first()
+            if (!online) {
+                SyncManager.enqueueCreateTrip(request)
+                _createTripState.value = CreateTripState.Success
+                return@launch
+            }
+
             try {
-                val request = CreateTripEventRequest(
-                    name = name,
-                    currencyCode = currency,
-                    startDate = formatDateForApi(startDate),
-                    endDate = formatDateForApi(endDate),
-                    budget = budget.toDoubleOrNull() ?: 0.0
-                )
                 val response = api.createTrip(request)
                 if (response.isSuccessful) {
                     _createTripState.value = CreateTripState.Success
-                    repo.refreshTrips() // odśwież cache
+                    repo.refreshTrips()
                 } else {
                     _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _createTripState.value = CreateTripState.Error("Brak połączenia: ${e.localizedMessage}")
+                SyncManager.enqueueCreateTrip(request)
+                _createTripState.value = CreateTripState.Success
             }
         }
     }
 
-    //  UCZESTNICY
+    // UCZESTNICY
 
     fun loadParticipants(tripId: String) {
         viewModelScope.launch {
@@ -218,10 +239,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     // NODES
     fun loadNodes(tripId: String) {
         viewModelScope.launch {
-            _currentTripIdForNodes.value = tripId
-            repo.observeNodes(tripId).collect { nodesFromDb ->
-                _nodes.value = nodesFromDb
-            }
+            repo.observeNodes(tripId).collect { _nodes.value = it }
         }
         viewModelScope.launch {
             _isLoadingNodes.value = true
@@ -243,7 +261,10 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createTripNode(tripId: String, name: String, startTime: String, endTime: String, price: String, note: String, separate: Boolean, category: String = "Inne") {
+    fun createTripNode(
+        tripId: String, name: String, startTime: String, endTime: String,
+        price: String, note: String, separate: Boolean, category: String = "Inne"
+    ) {
         _createNodeState.value = CreateTripNodeState.Loading
 
         val apiStart = formatDateTimeForApi(startTime)
@@ -254,18 +275,26 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
+        val request = CreateTripNodeRequest(
+            name = name,
+            startTime = apiStart,
+            endTime = apiEnd,
+            note = note.ifBlank { null },
+            price = formattedPrice,
+            separate = separate,
+            category = category
+        )
+
         viewModelScope.launch {
+            val online = NetworkMonitor.isOnline.first()
+            if (!online) {
+                SyncManager.enqueueCreateNode(tripId, request)
+                _createNodeState.value = CreateTripNodeState.Success
+                return@launch
+            }
+
             try {
-                val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
-                val request = CreateTripNodeRequest(
-                    name = name,
-                    startTime = apiStart,
-                    endTime = apiEnd,
-                    note = note.ifBlank { null },
-                    price = formattedPrice,
-                    separate = separate,
-                    category = category
-                )
                 val response = api.createTripNode(tripId, request)
                 if (response.isSuccessful) {
                     _createNodeState.value = CreateTripNodeState.Success
@@ -274,12 +303,16 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _createNodeState.value = CreateTripNodeState.Error("Brak połączenia: ${e.localizedMessage}")
+                SyncManager.enqueueCreateNode(tripId, request)
+                _createNodeState.value = CreateTripNodeState.Success
             }
         }
     }
 
-    fun updateTripNode(tripId: String, nodeId: String, name: String, startTime: String, endTime: String, price: String, note: String, separate: Boolean, category: String) {
+    fun updateTripNode(
+        tripId: String, nodeId: String, name: String, startTime: String, endTime: String,
+        price: String, note: String, separate: Boolean, category: String
+    ) {
         _createNodeState.value = CreateTripNodeState.Loading
 
         val apiStart = formatDateTimeForApi(startTime)
@@ -290,18 +323,26 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
+        val request = CreateTripNodeRequest(
+            name = name,
+            startTime = apiStart,
+            endTime = apiEnd,
+            note = note.ifBlank { null },
+            price = formattedPrice,
+            separate = separate,
+            category = category
+        )
+
         viewModelScope.launch {
+            val online = NetworkMonitor.isOnline.first()
+            if (!online) {
+                SyncManager.enqueueUpdateNode(tripId, nodeId, request)
+                _createNodeState.value = CreateTripNodeState.Success
+                return@launch
+            }
+
             try {
-                val formattedPrice = price.replace(",", ".").toDoubleOrNull() ?: 0.0
-                val request = CreateTripNodeRequest(
-                    name = name,
-                    startTime = apiStart,
-                    endTime = apiEnd,
-                    note = note.ifBlank { null },
-                    price = formattedPrice,
-                    separate = separate,
-                    category = category
-                )
                 val response = api.updateTripNode(tripId, nodeId, request)
                 if (response.isSuccessful) {
                     _createNodeState.value = CreateTripNodeState.Success
@@ -311,19 +352,31 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _createNodeState.value = CreateTripNodeState.Error("Błąd połączenia: ${e.localizedMessage}")
+                SyncManager.enqueueUpdateNode(tripId, nodeId, request)
+                _createNodeState.value = CreateTripNodeState.Success
             }
         }
     }
 
     fun deleteTripNode(tripId: String, nodeId: String) {
         viewModelScope.launch {
+            val online = NetworkMonitor.isOnline.first()
+            if (!online) {
+                SyncManager.enqueueDeleteNode(tripId, nodeId)
+                return@launch
+            }
+
             try {
                 val response = api.deleteTripNode(tripId, nodeId)
-                if (response.isSuccessful) { repo.refreshNodes(tripId) }
-            } catch (e: Exception) { e.printStackTrace() }
+                if (response.isSuccessful) {
+                    repo.refreshNodes(tripId)
+                }
+            } catch (e: Exception) {
+                SyncManager.enqueueDeleteNode(tripId, nodeId)
+            }
         }
     }
+
     // POSTS
 
     fun loadPosts(nodeId: String) {
@@ -500,7 +553,8 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
         return emailErr == null
     }
 
-    // funkcje pomocnicze
+    // FUNKCJE POMOCNICZE
+
     private fun formatDateForApi(date: String): String {
         val parts = date.split(".")
         return if (parts.size == 3) "${parts[2]}-${parts[1]}-${parts[0]}" else date
