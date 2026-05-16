@@ -20,10 +20,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.ui.components.OfflineBanner
+import com.navrotskyi.trippyapp.ui.components.TripNodeSkeleton
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyOutlinedButton
-import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.CreateTripNodeState
+import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 import java.util.Locale
 
@@ -47,6 +49,11 @@ fun TripDetailsScreen(
     val nodes by viewModel.nodes.collectAsState()
     val expenses by viewModel.expenses.collectAsState()
     val currentUser by profileViewModel.user.collectAsState()
+
+    val isOnline by viewModel.isOnline.collectAsState()
+    val isLoadingNodes by viewModel.isLoadingNodes.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val pendingCount by viewModel.pendingSyncCount.collectAsState()
 
     val createNodeState by viewModel.createNodeState.collectAsState()
     val context = LocalContext.current
@@ -84,7 +91,6 @@ fun TripDetailsScreen(
                     Column {
                         Text(text = trip.name, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         if (scrollBehavior.state.collapsedFraction < 0.5f) {
-                            // POPRAWKA: Formatowanie głównych dat wycieczki
                             val formattedStart = formatTripDate(trip.startDate)
                             val formattedEnd = formatTripDate(trip.endDate)
                             val dateDisplay = if (formattedStart.isNotEmpty()) "$formattedStart - $formattedEnd" else "Brak dat"
@@ -113,20 +119,19 @@ fun TripDetailsScreen(
         floatingActionButton = {
             when (selectedTabIndex) {
                 0, 1 -> {
-                    val canCreateNode = participants.any {
+                    // ZMIANA: właściciel zawsze może, uczestnik tylko gdy nie-VIEWER
+                    val canCreateNode = isOwner || participants.any {
                         it.userName == currentUser?.name &&
                                 it.isAccepted &&
                                 it.tripRole != "VIEWER"
                     }
                     if (canCreateNode) {
-                        if (isOwner) {
-                            FloatingActionButton(
-                                onClick = { onAddNodeClick(tripId) },
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Dodaj")
-                            }
+                        FloatingActionButton(
+                            onClick = { onAddNodeClick(tripId) },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Dodaj")
                         }
                     }
                 }
@@ -150,6 +155,12 @@ fun TripDetailsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            OfflineBanner(
+                isOffline = !isOnline,
+                isSyncing = isSyncing,
+                pendingCount = pendingCount
+            )
+
             TrippyOutlinedButton(
                 text = "Zobacz bilans grupy",
                 onClick = { onGroupBalanceClick(tripId)},
@@ -171,8 +182,22 @@ fun TripDetailsScreen(
             }
 
             when (selectedTabIndex) {
-                0 -> EventsTab(tripId, nodes, participants, currentUser?.name ?: "", { viewModel.deleteTripNode(tripId, it) }, onNodeClick)
-                1 -> ExpensesTab(expenses, trip.pickedCurrency, { onNodeClick(it.id) }, { viewModel.deleteTripNode(tripId, it.id) })
+                0 -> EventsTab(
+                    tripId = tripId,
+                    nodes = nodes,
+                    participants = participants,
+                    currentUserName = currentUser?.name ?: "",
+                    isLoading = isLoadingNodes,
+                    onDeleteNode = { viewModel.deleteTripNode(tripId, it) },
+                    onNodeClick = onNodeClick
+                )
+                1 -> ExpensesTab(
+                    expenses = expenses,
+                    currency = trip.pickedCurrency,
+                    isLoading = isLoadingNodes,
+                    onEdit = { onNodeClick(it.id) },
+                    onDelete = { viewModel.deleteTripNode(tripId, it.id) }
+                )
                 2 -> ParticipantsTab(participants)
             }
         }
@@ -190,15 +215,37 @@ fun TripDetailsScreen(
 }
 
 @Composable
-fun EventsTab(tripId: String, nodes: List<TripNodeDto>, participants: List<TripParticipantDto>, currentUserName: String, onDeleteNode: (String) -> Unit, onNodeClick: (String) -> Unit) {
+fun EventsTab(
+    tripId: String,
+    nodes: List<TripNodeDto>,
+    participants: List<TripParticipantDto>,
+    currentUserName: String,
+    isLoading: Boolean,
+    onDeleteNode: (String) -> Unit,
+    onNodeClick: (String) -> Unit
+) {
+    if (isLoading && nodes.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(4) { TripNodeSkeleton() }
+        }
+        return
+    }
+
     if (nodes.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Brak wydarzeń. Dodaj coś!", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             items(nodes) { node ->
-
                 NodeCard(
                     node = node,
                     onDeleteClick = { onDeleteNode(node.id) },
@@ -243,8 +290,7 @@ fun NodeCard(node: TripNodeDto, onDeleteClick: () -> Unit, onClick: () -> Unit) 
                     IconButton(onClick = onDeleteClick, modifier = Modifier.size(32.dp)) {
                         Icon(Icons.Default.Delete, contentDescription = "Usuń", tint = MaterialTheme.colorScheme.error)
                     }
-                }
-                else {
+                } else {
                     Icon(
                         Icons.Default.Lock,
                         contentDescription = "Brak uprawnień",
@@ -256,7 +302,6 @@ fun NodeCard(node: TripNodeDto, onDeleteClick: () -> Unit, onClick: () -> Unit) 
     }
 }
 
-// FORMATER CZASU TRWANIA DLA WYDARZEŃ (NodeCard)
 fun formatTimeRange(start: String?, end: String?): String {
     if (start.isNullOrBlank() || end.isNullOrBlank()) return "Brak przypisanego czasu"
     return try {
@@ -274,11 +319,9 @@ fun formatTimeRange(start: String?, end: String?): String {
     }
 }
 
-// FORMATER DATY DLA GŁÓWNEJ WYCIECZKI (W PASKU TOP APP BAR)
 fun formatTripDate(isoDate: String?): String {
     if (isoDate.isNullOrBlank()) return ""
     return try {
-        // Wyciąga samo YYYY-MM-DD z daty od serwera
         val parts = isoDate.take(10).split("-")
         if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]}" else isoDate
     } catch (e: Exception) {
@@ -287,7 +330,24 @@ fun formatTripDate(isoDate: String?): String {
 }
 
 @Composable
-fun ExpensesTab(expenses: List<TripNodeDto>, currency: String, onEdit: (TripNodeDto) -> Unit, onDelete: (TripNodeDto) -> Unit) {
+fun ExpensesTab(
+    expenses: List<TripNodeDto>,
+    currency: String,
+    isLoading: Boolean,
+    onEdit: (TripNodeDto) -> Unit,
+    onDelete: (TripNodeDto) -> Unit
+) {
+    if (isLoading && expenses.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(4) { TripNodeSkeleton() }
+        }
+        return
+    }
+
     if (expenses.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Brak wydatków. Dodaj pierwszy wydatek!", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -328,8 +388,7 @@ fun ExpenseCard(expense: TripNodeDto, currency: String, onEdit: () -> Unit, onDe
                         IconButton(onClick = onEdit) {
                             Icon(Icons.Default.Edit, contentDescription = "Edytuj")
                         }
-                    }
-                    else {
+                    } else {
                         Icon(
                             Icons.Default.Lock,
                             contentDescription = "Brak uprawnień",

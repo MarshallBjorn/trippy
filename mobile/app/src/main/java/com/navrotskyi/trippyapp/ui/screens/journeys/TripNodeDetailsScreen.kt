@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.navrotskyi.trippyapp.models.TripPostDto
+import com.navrotskyi.trippyapp.ui.components.OfflineBanner
+import com.navrotskyi.trippyapp.ui.components.ShimmerBox
+import com.navrotskyi.trippyapp.ui.components.TripNodeSkeleton
 import com.navrotskyi.trippyapp.ui.viewmodels.CreatePostState
 import com.navrotskyi.trippyapp.ui.viewmodels.ProfileViewModel
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
@@ -51,6 +54,10 @@ fun TripNodeDetailsScreen(
     var showAddPostDialog by remember { mutableStateOf(false) }
     var postNote by remember { mutableStateOf("") }
     var selectedPhotoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    val isOnline by viewModel.isOnline.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val pendingCount by viewModel.pendingSyncCount.collectAsState()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -114,143 +121,168 @@ fun TripNodeDetailsScreen(
             }
         }
     ) { padding ->
-        val safeNode = node
-        if (safeNode == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 20.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            OfflineBanner(
+                isOffline = !isOnline,
+                isSyncing = isSyncing,
+                pendingCount = pendingCount
+            )
+
+            val safeNode = node
+            if (safeNode == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Spacer(Modifier.height(16.dp))
+                    ShimmerBox(modifier = Modifier.fillMaxWidth().height(72.dp), cornerRadius = 16)
+                    Spacer(Modifier.height(24.dp))
+                    ShimmerBox(modifier = Modifier.fillMaxWidth(0.6f).height(32.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ShimmerBox(modifier = Modifier.weight(1f).height(80.dp), cornerRadius = 12)
+                        ShimmerBox(modifier = Modifier.weight(1f).height(80.dp), cornerRadius = 12)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    ShimmerBox(modifier = Modifier.fillMaxWidth().height(80.dp), cornerRadius = 12)
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column {
-                            Text("Reporter", style = MaterialTheme.typography.labelSmall)
-                            Text(reporterName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        }
-                        Surface(
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(8.dp)
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val role = participants.find { it.userName == reporterName }?.tripRole ?: "Uczestnik"
+                            Column {
+                                Text("Reporter", style = MaterialTheme.typography.labelSmall)
+                                Text(reporterName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            }
+                            Surface(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                val role = participants.find { it.userName == reporterName }?.tripRole ?: "Uczestnik"
+                                Text(
+                                    text = role.uppercase(),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = safeNode.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        NodeInfoTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Schedule,
+                            label = "Czas",
+                            value = formatTimeRangeDetails(safeNode.startTime, safeNode.endTime)
+                        )
+                        NodeInfoTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.AttachMoney,
+                            label = "Koszt",
+                            value = "${safeNode.price} PLN"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val categoryText = if (safeNode.category.isNullOrBlank()) "Brak podanego typu" else safeNode.category!!
+                    NodeInfoTile(
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.Label,
+                        label = "Typ / Lokalizacja",
+                        value = categoryText
+                    )
+
+                    if (safeNode.separate) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Koszty Rozdzielne - każdy płaci za siebie", color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
+                        }
+                    }
+
+                    if (!safeNode.note.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text("Notatka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(
-                                text = role.uppercase(),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
+                                text = safeNode.note!!,
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = safeNode.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    NodeInfoTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Schedule,
-                        label = "Czas",
-                        value = formatTimeRangeDetails(safeNode.startTime, safeNode.endTime)
-                    )
-                    NodeInfoTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.AttachMoney,
-                        label = "Koszt",
-                        value = "${safeNode.price} PLN"
-                    )
-                }
+                    Text("Posty", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                val categoryText = if (safeNode.category.isNullOrBlank()) "Brak podanego typu" else safeNode.category!!
-                NodeInfoTile(
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Default.Label,
-                    label = "Typ / Lokalizacja",
-                    value = categoryText
-                )
-
-                if (safeNode.separate) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Koszty Rozdzielne - każdy płaci za siebie", color = MaterialTheme.colorScheme.onErrorContainer)
+                    if (posts.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    RoundedCornerShape(16.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Brak postów. Bądź pierwszym, który skomentuje!",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            posts.forEach { post -> PostCard(post = post) }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(80.dp))
                 }
-
-                if (!safeNode.note.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text("Notatka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = safeNode.note!!,
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Text("Posty", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (posts.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(16.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Brak postów. Bądź pierwszym, który skomentuje!",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        posts.forEach { post -> PostCard(post = post) }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }

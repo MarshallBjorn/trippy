@@ -17,8 +17,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.navrotskyi.trippyapp.data.network.NetworkMonitor
+import com.navrotskyi.trippyapp.data.sync.SyncManager
 import com.navrotskyi.trippyapp.models.ExpensesSummaryDto
 import com.navrotskyi.trippyapp.models.SettlementDto
+import com.navrotskyi.trippyapp.ui.components.OfflineBanner
+import com.navrotskyi.trippyapp.ui.components.ShimmerBox
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesState
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesViewModel
 
@@ -28,6 +32,10 @@ fun ExpensesScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val isOnline by NetworkMonitor.isOnline.collectAsState(initial = true)
+    val isSyncing by SyncManager.isSyncing.collectAsState()
+    val pendingCount by SyncManager.pendingCount.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadExpenses()
@@ -41,38 +49,61 @@ fun ExpensesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Twoje Finanse",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+            OfflineBanner(
+                isOffline = !isOnline,
+                isSyncing = isSyncing,
+                pendingCount = pendingCount
             )
-            Spacer(modifier = Modifier.height(24.dp))
 
-            when (val state = uiState) {
-                is ExpensesState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Twoje Finanse",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                when (val state = uiState) {
+                    is ExpensesState.Loading -> {
+                        ExpensesShimmer()
                     }
-                }
-                is ExpensesState.Success -> {
-                    ExpensesContent(state.summary, viewModel)
-                }
-                is ExpensesState.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = state.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                    is ExpensesState.Success -> {
+                        ExpensesContent(state.summary, viewModel)
+                    }
+                    is ExpensesState.Error -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = state.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ExpensesShimmer() {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ShimmerBox(modifier = Modifier.weight(1f).height(110.dp), cornerRadius = 16)
+            ShimmerBox(modifier = Modifier.weight(1f).height(110.dp), cornerRadius = 16)
+        }
+        ShimmerBox(modifier = Modifier.fillMaxWidth(0.5f).height(28.dp))
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(200.dp), cornerRadius = 16)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(80.dp), cornerRadius = 16)
+        ShimmerBox(modifier = Modifier.fillMaxWidth().height(80.dp), cornerRadius = 16)
     }
 }
 
@@ -91,13 +122,13 @@ fun ExpensesContent(summary: ExpensesSummaryDto, viewModel: ExpensesViewModel) {
                 BalanceCard(
                     title = "Muszą Ci oddać",
                     amount = "+${"%.2f".format(summary.userBalance)} ${summary.currency}",
-                    containerColor = Color(0xFFE8F5E9), // Light green for positive
+                    containerColor = Color(0xFFE8F5E9),
                     contentColor = Color(0xFF2E7D32),
                     modifier = Modifier.weight(1f)
                 )
                 BalanceCard(
                     title = "Musisz oddać",
-                    amount = "-0.00 ${summary.currency}", // Should be dynamic if available
+                    amount = "-0.00 ${summary.currency}",
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.weight(1f)
@@ -213,7 +244,7 @@ fun TotalExpensesCard(summary: ExpensesSummaryDto) {
 @Composable
 fun CategoryProgressRow(category: String, amount: Double, total: Double, currency: String) {
     val progressValue = if (total > 0) (amount / total).toFloat() else 0f
-    
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -269,7 +300,7 @@ fun SettlementItem(settlement: SettlementDto, onSettleClick: () -> Unit) {
                     )
                 }
             }
-            
+
             Column(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)

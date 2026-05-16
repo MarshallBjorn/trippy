@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.models.Trip
+import com.navrotskyi.trippyapp.ui.components.OfflineBanner
+import com.navrotskyi.trippyapp.ui.components.TripCardSkeleton
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +34,12 @@ fun JourneysScreen(
 ) {
     val trips by viewModel.trips.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    // NOWE — stany do banera i shimmera
+    val isOnline by viewModel.isOnline.collectAsState()
+    val isLoadingTrips by viewModel.isLoadingTrips.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val pendingCount by viewModel.pendingSyncCount.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -46,48 +54,63 @@ fun JourneysScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshTrips() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // ===== BANER OFFLINE / SYNC =====
+            OfflineBanner(
+                isOffline = !isOnline,
+                isSyncing = isSyncing,
+                pendingCount = pendingCount
+            )
+
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshTrips() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Twoje Podróże",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Twoje Podróże",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onInvitationsClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Zaproszenia")
-                }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(trips) { trip ->
-                        TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onInvitationsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Zaproszenia")
+                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        // ===== SHIMMER: gdy ładujemy z sieci i cache jest pusty =====
+                        if (isLoadingTrips && trips.isEmpty()) {
+                            items(5) {
+                                TripCardSkeleton()
+                            }
+                        } else {
+                            items(trips) { trip ->
+                                TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                            }
+                        }
                     }
                 }
             }
-
         }
     }
 }
 
+// TripCard i RoleBadge — bez zmian, zostaw te same co masz
 @Composable
 fun TripCard(trip: Trip, onClick: () -> Unit) {
     Card(
