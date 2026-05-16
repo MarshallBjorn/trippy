@@ -51,33 +51,45 @@ object SyncManager {
         NetworkMonitor.isOnline
             .distinctUntilChanged()
             .onEach { online ->
+                android.util.Log.d("SyncManager", "isOnline changed → $online")
                 if (online) syncNow()
             }
             .launchIn(scope)
     }
 
     suspend fun syncNow() {
-        if (_isSyncing.value) return
+        if (_isSyncing.value) {
+            android.util.Log.d("SyncManager", "syncNow() skipped - already syncing")
+            return
+        }
+        android.util.Log.d("SyncManager", "syncNow() START")
         _isSyncing.value = true
         try {
             drainPendingQueue()
             repo.refreshTrips()
         } finally {
             _isSyncing.value = false
+            android.util.Log.d("SyncManager", "syncNow() END")
         }
     }
 
     private suspend fun drainPendingQueue() {
         val pending = pendingDao.getAll()
+        android.util.Log.d("SyncManager", "drainPendingQueue() — ${pending.size} ops")
+        val affectedTrips = mutableSetOf<String>()
         for (op in pending) {
             val ok = executeOperation(op)
+            android.util.Log.d("SyncManager", "  op ${op.type} (id=${op.id}) → success=$ok")
             if (ok) {
                 pendingDao.delete(op)
+                op.tripId?.let { affectedTrips.add(it) }
             } else {
                 pendingDao.update(op.copy(retryCount = op.retryCount + 1))
-                // jeśli zbyt wiele prób — usuń (zapobiega zapętleniu)
                 if (op.retryCount + 1 >= 5) pendingDao.delete(op)
             }
+        }
+        for (tripId in affectedTrips) {
+            repo.refreshNodes(tripId)
         }
     }
 

@@ -31,6 +31,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
 
 
 data class AddTripFormErrors(
@@ -85,6 +90,9 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val db = TrippyDb.getInstance(application)
     private val repo = TripRepository(api, db.tripDao(), db.tripNodeDao())
 
+    private var nodesObserveJob: Job? = null
+    private var nodeObserveJob: Job? = null
+
     private val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
     //  SSOT: trips obserwowane z Room
@@ -107,13 +115,31 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val _isOffline = MutableStateFlow(false)
     val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
 
-    // Nodes
-    private val _nodes = MutableStateFlow<List<TripNodeDto>>(emptyList())
-    val nodes: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
-    val expenses: StateFlow<List<TripNodeDto>> = _nodes.asStateFlow()
+    // node
+    private val _currentTripIdForNodes = MutableStateFlow<String?>(null)
 
-    private val _selectedNode = MutableStateFlow<TripNodeDto?>(null)
-    val selectedNode: StateFlow<TripNodeDto?> = _selectedNode.asStateFlow()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val nodes: StateFlow<List<TripNodeDto>> = _currentTripIdForNodes
+        .onEach { android.util.Log.d("TripVM", "[1] _currentTripIdForNodes = $it") }
+        .filterNotNull()
+        .onEach { android.util.Log.d("TripVM", "[2] filterNotNull passed tripId=$it") }
+        .flatMapLatest { tripId ->
+            android.util.Log.d("TripVM", "[3] flatMapLatest start observeNodes($tripId)")
+            repo.observeNodes(tripId)
+        }
+        .onEach { android.util.Log.d("TripVM", "[4] nodes EMIT ${it.size} items") }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+
+    val expenses: StateFlow<List<TripNodeDto>> = nodes
+
+    private val _selectedNodeId = MutableStateFlow<String?>(null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val selectedNode: StateFlow<TripNodeDto?> = _selectedNodeId
+        .filterNotNull()
+        .flatMapLatest { nodeId -> repo.observeNode(nodeId) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // Pozostałe stany
     private val _participants = MutableStateFlow<List<TripParticipantDto>>(emptyList())
@@ -238,12 +264,13 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
     // NODES
     fun loadNodes(tripId: String) {
-        viewModelScope.launch {
-            repo.observeNodes(tripId).collect { _nodes.value = it }
-        }
+        android.util.Log.d("TripVM", "[0] loadNodes($tripId) wywolane")
+        _currentTripIdForNodes.value = tripId
         viewModelScope.launch {
             _isLoadingNodes.value = true
-            repo.refreshNodes(tripId)
+            val result = repo.refreshNodes(tripId)
+            android.util.Log.d("TripVM", "[R] refreshNodes wynik: $result")
+            result
                 .onSuccess { _isOffline.value = false }
                 .onFailure { _isOffline.value = true }
             _isLoadingNodes.value = false
@@ -251,9 +278,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadNode(tripId: String, nodeId: String) {
-        viewModelScope.launch {
-            repo.observeNode(nodeId).collect { _selectedNode.value = it }
-        }
+        _selectedNodeId.value = nodeId
         viewModelScope.launch {
             repo.refreshNode(tripId, nodeId)
                 .onSuccess { _isOffline.value = false }
@@ -446,11 +471,12 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     fun clearAddTripErrors() { _addTripErrors.value = AddTripFormErrors() }
     fun clearNodeFormErrors() { _nodeFormErrors.value = TripNodeFormErrors() }
     fun clearInviteFormErrors() { _inviteFormErrors.value = InviteFormErrors() }
-    fun clearSelectedNode() { _selectedNode.value = null }
+    fun clearSelectedNode() { _selectedNodeId.value = null }
 
     fun clearData() {
         _participants.value = emptyList()
-        _nodes.value = emptyList()
+        _currentTripIdForNodes.value = null
+        _selectedNodeId.value = null
         viewModelScope.launch { repo.clearCache() }
     }
 

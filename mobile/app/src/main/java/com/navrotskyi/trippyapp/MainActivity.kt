@@ -32,7 +32,7 @@ import androidx.navigation.navArgument
 import androidx.compose.runtime.setValue
 
 import com.navrotskyi.trippyapp.api.TokenManager
-import com.navrotskyi.trippyapp.data.database.UserDb
+import com.navrotskyi.trippyapp.data.database.TrippyDb
 import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.EmailVerificationScreen
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 var errorDialogPayload by remember { mutableStateOf<ErrorPayload?>(null) }
 
                 // Inicjalizacja ViewModeli
-                val userDao = remember { UserDb.getInstance(context).userDao() }
+                val userDao = remember { TrippyDb.getInstance(context).userDao() }
                 val profileViewModel: ProfileViewModel = viewModel(
                     factory = ProfileViewModelFactory(userDao)
                 )
