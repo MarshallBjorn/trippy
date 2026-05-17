@@ -1,0 +1,35 @@
+%% =====================================================================
+%% Diagram aktywnosci: Akceptacja / odrzucenie zaproszenia
+%% =====================================================================
+flowchart TD
+    Start((Start))
+
+    subgraph Mobile ["Aplikacja Mobilna"]
+        A1[Otworz ekran Zaproszenia]
+        A2[GET /api/users/me/invitations]
+        A3[Wybierz zaproszenie]
+        D1{Akceptujesz?}
+        AAcc[POST /api/trips/&#123;id&#125;/accept]
+        ARej[POST /api/trips/&#123;id&#125;/reject]
+        AOk1[Dodaj wycieczke<br/>do listy Moje wyjazdy]
+        AOk2[Usun pozycje<br/>z listy zaproszen]
+        EndAcc(((Stop)))
+        EndRej(((Stop)))
+    end
+
+    subgraph Backend ["Backend Spring Boot"]
+        B1[Zwroc liste<br/>pending invitations]
+        B2[Ustaw isAccepted=true<br/>na trip_participant]
+        B3[Zwroc 200 OK]
+        B4[Usun rekord<br/>trip_participant]
+        B5[Zwroc 200 OK]
+    end
+
+    Start --> A1 --> A2 --> B1 --> A3 --> D1
+    D1 -- Tak --> AAcc --> B2 --> B3 --> AOk1 --> EndAcc
+    D1 -- Nie --> ARej --> B4 --> B5 --> AOk2 --> EndRej
+
+    classDef action fill:#ffffff,stroke:#000,stroke-width:1px,color:#000
+    classDef decision fill:#fef9c3,stroke:#000,stroke-width:1px,color:#000
+    class A1,A2,A3,AAcc,ARej,AOk1,AOk2,B1,B2,B3,B4,B5 action
+    class D1 decision

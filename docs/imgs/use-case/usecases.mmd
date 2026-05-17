@@ -1,0 +1,77 @@
+%% =====================================================================
+%% Diagram przypadków użycia - Trippy v1.0
+%% Mermaid nie ma natywnego UC diagram, wiec uzywamy flowchart LR.
+%% Aktorzy = stadiony, UC = stadiony, system = subgraph TRIPPY.
+%% Relacje miedzy UC: -.->|<<include>>|, -.->|<<extend>>|.
+%% Dziedziczenie aktorow: ==> (gruba strzalka).
+%% =====================================================================
+flowchart LR
+    %% --- Aktorzy ---
+    Gosc(["Gosc"])
+    User(["Uzytkownik<br/>zalogowany"])
+    Admin(["Admin"])
+
+    %% Dziedziczenie aktorow (Gosc -> User -> Admin)
+    Gosc ==> User
+    User ==> Admin
+
+    subgraph TRIPPY ["TRIPPY"]
+        direction TB
+
+        %% --- Use Cases: Gosc ---
+        UC_Reg([Rejestracja])
+        UC_Log([Logowanie])
+        UC_Ver([Weryfikacja<br/>adresu e-mail])
+
+        %% --- Use Cases: Uzytkownik zalogowany ---
+        UC_Trip([Tworzenie<br/>wycieczki])
+        UC_TripMng([Zarzadzanie wycieczka<br/>tylko Owner])
+        UC_Inv([Zapraszanie<br/>uczestnikow])
+        UC_Acc([Akceptacja zaproszenia])
+        UC_Odrz([Odrzucenie zaproszenia])
+        UC_Exp([Dodanie wydatku])
+        UC_Post([Dodanie postu<br/>/ zdjecia])
+        UC_Bal([Podglad bilansu])
+        UC_Set([Rozliczenie dlugu<br/>Settlement])
+        UC_Prof([Edycja profilu])
+
+        %% --- Use Cases: Admin ---
+        UC_AU([Zarzadzanie<br/>uzytkownikami])
+        UC_AB([Blokowanie  konta])
+        UC_AO([Odblokowanie konta])
+        UC_AT([CRUD wycieczek])
+        UC_AM([Moderacja<br/>postow i zdjec])
+        UC_AD([Zarzadzanie slownikami<br/>waluty, role wyjazdowe])
+
+        %% --- Relacje miedzy UC ---
+        UC_Reg -.->|include| UC_Ver
+        UC_TripMng -.->|include| UC_Inv
+        UC_Set -.->|extend| UC_Bal
+        UC_AB -.->|extend| UC_AU
+        UC_AO -.->|extend| UC_AU
+    end
+
+    %% --- Aktor -> UC ---
+    Gosc --- UC_Reg
+    Gosc --- UC_Log
+
+    User --- UC_Trip
+    User --- UC_TripMng
+    User --- UC_Acc
+    User --- UC_Odrz
+    User --- UC_Exp
+    User --- UC_Post
+    User --- UC_Bal
+    User --- UC_Prof
+    
+
+    Admin --- UC_AU
+    Admin --- UC_AT
+    Admin --- UC_AM
+    Admin --- UC_AD
+
+    %% --- Style ---
+    classDef actor fill:#fef3c7,stroke:#a16207,stroke-width:2px,color:#000
+    classDef uc fill:#e0f2fe,stroke:#0369a1,stroke-width:1px,color:#000
+    class Gosc,User,Admin actor
+    class UC_Reg,UC_Log,UC_Ver,UC_Trip,UC_TripMng,UC_Inv,UC_Acc,UC_Odrz,UC_Exp,UC_Post,UC_Bal,UC_Set,UC_Prof,UC_AU,UC_AB,UC_AO,UC_AT,UC_AM,UC_AD uc

@@ -1,0 +1,41 @@
+%% =====================================================================
+%% Diagram aktywnosci: Zapraszanie uczestnika (Owner)
+%% =====================================================================
+flowchart TD
+    Start((Start))
+
+    subgraph Mobile ["Aplikacja Mobilna"]
+        A1[Wejdz w szczegoly wycieczki]
+        A2[Wybierz Dodaj uczestnika]
+        A3[Wpisz e-mail / wybierz<br/>z listy uzytkownikow]
+        A4[Kliknij Zapros]
+        AErr1[Wyswietl Brak uprawnien]
+        AErr2[Wyswietl Niepoprawny<br/>uczestnik]
+        AOk[Wyswietl Zaproszenie<br/>wyslane]
+        EndErr1(((Stop)))
+        EndErr2(((Stop)))
+        EndOk(((Stop)))
+    end
+
+    subgraph Backend ["Backend Spring Boot"]
+        B1[POST /api/trips/&#123;id&#125;/invite<br/>+ token JWT]
+        B2[Weryfikacja JWT<br/>i roli Owner]
+        D1{Owner?}
+        B3[Zwroc 403<br/>Forbidden]
+        B4[Wyszukaj usera po e-mailu]
+        D2{User istnieje<br/>i nie jest jeszcze<br/>uczestnikiem?}
+        B5[Zwroc 404 / 409]
+        B6[Zapisz rekord<br/>trip_participant<br/>isAccepted=false]
+        B7[Zwroc 201 Created]
+    end
+
+    Start --> A1 --> A2 --> A3 --> A4 --> B1 --> B2 --> D1
+    D1 -- Nie --> B3 --> AErr1 --> EndErr1
+    D1 -- Tak --> B4 --> D2
+    D2 -- Nie --> B5 --> AErr2 --> EndErr2
+    D2 -- Tak --> B6 --> B7 --> AOk --> EndOk
+
+    classDef action fill:#ffffff,stroke:#000,stroke-width:1px,color:#000
+    classDef decision fill:#fef9c3,stroke:#000,stroke-width:1px,color:#000
+    class A1,A2,A3,A4,AErr1,AErr2,AOk,B1,B2,B3,B4,B5,B6,B7 action
+    class D1,D2 decision

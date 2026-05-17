@@ -1,0 +1,39 @@
+%% =====================================================================
+%% Diagram aktywnosci: Weryfikacja konta (e-mail)
+%% Swimlanes zrealizowane przez dwa subgraphy: Aplikacja Mobilna / Backend.
+%% =====================================================================
+flowchart TD
+    Start((Start))
+
+    subgraph Mobile ["Aplikacja Mobilna"]
+        A1[Otworz wiadomosc<br/>z linkiem aktywacyjnym]
+        A2[Kliknij link<br/>weryfikacyjny]
+        AErr1[Wyswietl<br/>Nieprawidlowy token]
+        AErr2[Wyswietl Token wygasl -<br/>zarejestruj sie ponownie]
+        AOk[Wyswietl Konto aktywne<br/>i przejdz do logowania]
+        EndErr1(((Stop)))
+        EndErr2(((Stop)))
+        EndOk(((Stop)))
+    end
+
+    subgraph Backend ["Backend Spring Boot"]
+        B1[GET /api/auth/verify<br/>?token=...]
+        B2[Wyszukaj token<br/>w verification_tokens]
+        D1{Token istnieje?}
+        B3[Zwroc 400<br/>Bad Request]
+        D2{Token wygasl?}
+        B4[Usun token<br/>i zwroc 400]
+        B5[Ustaw user.isVerified=true,<br/>usun token]
+        B6[Zwroc 200 OK]
+    end
+
+    Start --> A1 --> A2 --> B1 --> B2 --> D1
+    D1 -- Nie --> B3 --> AErr1 --> EndErr1
+    D1 -- Tak --> D2
+    D2 -- Tak --> B4 --> AErr2 --> EndErr2
+    D2 -- Nie --> B5 --> B6 --> AOk --> EndOk
+
+    classDef action fill:#ffffff,stroke:#000,stroke-width:1px,color:#000
+    classDef decision fill:#fef9c3,stroke:#000,stroke-width:1px,color:#000
+    class A1,A2,AErr1,AErr2,AOk,B1,B2,B3,B4,B5,B6 action
+    class D1,D2 decision

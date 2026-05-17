@@ -1,20 +1,41 @@
-Dziedziczenie aktorów (od najniższego do najwyższego uprawnienia): 
+Dziedziczenie aktorów (od najniższego do najwyższego uprawnienia):
 
-Gość → Użytkownik zalogowany → Admin    
+Gość → Użytkownik zalogowany → Admin
 
-Co może każdy aktor: 
+Co może każdy aktor:
 
-Gość (niezalogowany) 
+Gość (niezalogowany)
 - Rejestracja
 - Logowanie
+- Weryfikacja adresu e-mail (klikniecie linku aktywacyjnego z maila)
 
-Użytkownik zalogowany (wszystko co Gość +) 
-- Dodawanie uczestników wycieczki + Zapraszanie  
-- Dodawanie wydatku  
-- Zarządzanie wycieczką 
-- Rozliczanie długów 
-- Podgląd bilansu 
+Użytkownik zalogowany (wszystko co Gość +)
+- Tworzenie wycieczki
+- Zarządzanie wycieczką (tylko Owner) – edycja, usuwanie uczestników, zamknięcie wyjazdu
+- Zapraszanie uczestników (tylko Owner) – wysłanie zaproszenia do zarejestrowanego użytkownika
+- Akceptacja / odrzucenie zaproszenia – zaproszony decyduje, czy dołącza
+- Dodanie wydatku (Trip Node) – kwota, tytuł, reporter, flaga isSeparate
+- Dodanie postu / zdjęcia – wpis powiązany z węzłem osi czasu (multipart upload)
+- Edycja profilu – imię, domyślna waluta, zdjęcie profilowe
+- Podgląd bilansu wycieczki – kto ile zapłacił, kto jest „na plus / na minus"
+- Rozliczanie długów (Settlement) – wygenerowanie zminimalizowanej listy przelewów,
+  która wyrównuje wszystkich uczestników do zera (rozszerza „Podgląd bilansu")
 
-Admin (wszystko co Użytkownik zalogowany +)  
-- Zarządzanie użytkownikami
-- CRUD wycieczek
+Admin (wszystko co Użytkownik zalogowany +)
+- Zarządzanie użytkownikami (lista, podgląd, edycja, usunięcie, podmiana zdjęcia)
+- Blokowanie / odblokowanie konta użytkownika (isBlocked)
+- CRUD wycieczek (pełen dostęp do wszystkich wycieczek w systemie)
+- Moderacja postów i zdjęć (przegląd i usuwanie treści)
+- Zarządzanie słownikami: waluty (CURRENCY) i role wyjazdowe (TRIP_ROLE)
+
+Relacje między przypadkami użycia:
+- Rejestracja <<include>> Weryfikacja adresu e-mail
+  (konto bez kliniętego linku weryfikacyjnego nie może się zalogować)
+- Zarządzanie wycieczką <<include>> Zapraszanie uczestników
+  (Owner zaprasza w ramach zarządzania wyjazdem)
+- Podgląd bilansu <<extend>> Rozliczenie długu (Settlement)
+  (Settlement to opcjonalne rozszerzenie podglądu o algorytm minimalnej liczby przelewów)
+- Zarządzanie użytkownikami <<extend>> Blokowanie / odblokowanie konta
+  (blokada to specjalny przypadek zarządzania userem)
+- Zarządzanie słownikami <<include>> Waluty / role wyjazdowe
+  (zarządzanie słownikami obejmuje obie tabele słownikowe)

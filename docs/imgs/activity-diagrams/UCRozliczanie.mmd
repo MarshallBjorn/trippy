@@ -1,0 +1,45 @@
+%% =====================================================================
+%% Diagram aktywnosci: Rozliczanie dlugow (Settlement Engine)
+%% =====================================================================
+flowchart TD
+    Start((Start))
+
+    subgraph Mobile ["Aplikacja Mobilna"]
+        A1[Otworz ekran wycieczki]
+        A2[Wybierz Pokaz bilans grupy]
+        A3[GET /api/trips/&#123;tripId&#125;/balances<br/>+ token JWT]
+        AErr1[Wyloguj i przejdz<br/>do logowania]
+        AErr2[Wyswietl Brak dostepu]
+        AOk[Wyswietl bilans<br/>i liste przelewow]
+        EndErr1(((Stop)))
+        EndErr2(((Stop)))
+        EndOk(((Stop)))
+    end
+
+    subgraph Backend ["Backend Spring Boot"]
+        B1[Weryfikacja JWT]
+        D1{Token wazny?}
+        BErr1[Zwroc 401]
+        D2{Caller jest<br/>zaakceptowanym<br/>uczestnikiem?}
+        BErr2[Zwroc 403 Forbidden]
+        B2[Pobierz wydatki<br/>wspoldzielone<br/>isSeparate=false]
+        B3[Wylicz netto-bilanse<br/>uczestnikow]
+        D3{N mniejsze rowne 15?}
+        B4a[Greedy + DP<br/>Optimal]
+        B4b[Tylko Greedy<br/>Simplified Debt Graph]
+        B5[Zwroc 200 OK<br/>+ lista przelewow]
+    end
+
+    Start --> A1 --> A2 --> A3 --> B1 --> D1
+    D1 -- Nie --> BErr1 --> AErr1 --> EndErr1
+    D1 -- Tak --> D2
+    D2 -- Nie --> BErr2 --> AErr2 --> EndErr2
+    D2 -- Tak --> B2 --> B3 --> D3
+    D3 -- Tak --> B4a --> B5
+    D3 -- Nie --> B4b --> B5
+    B5 --> AOk --> EndOk
+
+    classDef action fill:#ffffff,stroke:#000,stroke-width:1px,color:#000
+    classDef decision fill:#fef9c3,stroke:#000,stroke-width:1px,color:#000
+    class A1,A2,A3,AErr1,AErr2,AOk,B1,BErr1,BErr2,B2,B3,B4a,B4b,B5 action
+    class D1,D2,D3 decision
