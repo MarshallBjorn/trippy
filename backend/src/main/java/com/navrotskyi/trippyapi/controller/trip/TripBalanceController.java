@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import com.navrotskyi.trippyapi.domain.User;
 import com.navrotskyi.trippyapi.dto.trip.TripBalanceResponse;
@@ -88,5 +91,33 @@ public class TripBalanceController {
     ) {
         TripBalanceResponse response = tripBalanceService.getBalances(tripId, currentUser);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{tripId}/balances/export")
+    @Operation(
+    summary = "Eksportuj rozliczenia wycieczki do PDF",
+    description = """
+            Zwraca estetyczny raport PDF z bilansami uczestnikow i zminimalizowana
+            lista przelewow. Dostep: tylko zaakceptowani uczestnicy wycieczki."""
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Plik PDF",
+                    content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Nie jestes uczestnikiem", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Wycieczka nie istnieje", content = @Content)
+    })
+    public ResponseEntity<ByteArrayResource> exportTripBalances(
+            @PathVariable UUID tripId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        byte[] pdf = tripBalanceService.exportBalancesPdf(tripId, currentUser);
+        String filename = "rozliczenia-" + tripId + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(pdf.length)
+                .body(new ByteArrayResource(pdf));
     }
 }
