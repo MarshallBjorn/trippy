@@ -19,6 +19,7 @@ public interface TripNodeRepository extends JpaRepository<TripNode, UUID> {
     @EntityGraph(attributePaths = {"reporter", "event"})
     Optional<TripNode> findWithDetailsById(UUID id);
 
+    @EntityGraph(attributePaths = {"reporter"})
     List<TripNode> findByEventId(UUID eventId);
 
     List<TripNode> findByEvent(TripEvent trip);

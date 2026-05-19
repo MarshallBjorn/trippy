@@ -1,5 +1,7 @@
 package com.navrotskyi.trippyapi.domain;
 
+import org.hibernate.annotations.BatchSize;
+
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,6 +44,7 @@ public class TripNode {
     private boolean isSeparate = false;
 
     @OneToMany(mappedBy = "node", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<TripPost> posts = new ArrayList<>();
 
     public TripNode() {}
