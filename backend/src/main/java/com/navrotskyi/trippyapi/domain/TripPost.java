@@ -1,5 +1,7 @@
 package com.navrotskyi.trippyapi.domain;
 
+import org.hibernate.annotations.BatchSize;
+
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,7 @@ public class TripPost {
     private String note;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private List<TripPhoto> photos = new ArrayList<>();
 
     public TripPost() {}
