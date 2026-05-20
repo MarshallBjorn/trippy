@@ -399,10 +399,16 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                             val expenseHistoryViewModel: ExpenseHistoryViewModel = viewModel()
+                            val userState by profileViewModel.user.collectAsState()
+                            val myUserId = userState?.remoteUserId ?: ""
                             ExpenseHistoryScreen(
                                 tripId = tripId,
+                                currentUserId = myUserId,
                                 viewModel = expenseHistoryViewModel,
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = { navController.popBackStack() },
+                                onBalanceDetailsClick = { id ->
+                                    navController.navigate(Screen.GroupBalance.createRoute(id))
+                                }
                             )
                         }
 

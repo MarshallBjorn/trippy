@@ -32,19 +32,27 @@ import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.data.download.BalancePdfDownloader
 import com.navrotskyi.trippyapp.data.download.DownloadResult
 import com.navrotskyi.trippyapp.models.TripNodeDto
+import com.navrotskyi.trippyapp.ui.viewmodels.BalanceSummary
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpenseHistoryState
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpenseHistoryViewModel
+import com.navrotskyi.trippyapp.ui.viewmodels.MySettlementInfo
 import com.navrotskyi.trippyapp.ui.viewmodels.ReporterFilter
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseHistoryScreen(
     tripId: String,
+    currentUserId: String,
     viewModel: ExpenseHistoryViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onBalanceDetailsClick: (String) -> Unit
 ) {
-    LaunchedEffect(tripId) { viewModel.load(tripId) }
+    LaunchedEffect(tripId, currentUserId) {
+        if (currentUserId.isNotEmpty()) viewModel.load(tripId, currentUserId)
+    }
 
     val uiState by viewModel.uiState.collectAsState()
     var showReporterSheet by remember { mutableStateOf(false) }
@@ -125,6 +133,12 @@ fun ExpenseHistoryScreen(
                     }
                 }
                 is ExpenseHistoryState.Success -> {
+                    state.balanceSummary?.let { summary ->
+                        BalanceSummaryCard(
+                            summary = summary,
+                            onClick = { onBalanceDetailsClick(tripId) }
+                        )
+                    }
                     FiltersBar(
                         availableCategories = state.availableCategories,
                         selectedCategories = state.selectedCategories,
@@ -309,6 +323,92 @@ private fun CategoryBadge(category: String) {
             text = category,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+    }
+}
+
+@Composable
+private fun BalanceSummaryCard(
+    summary: BalanceSummary,
+    onClick: () -> Unit
+) {
+    val isPositive = summary.myNetBalance >= 0
+    val accent = if (isPositive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+    val sign = if (isPositive) "+" else ""
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Twój bilans",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "$sign${"%.2f".format(summary.myNetBalance)} ${summary.currency}",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = accent
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "${summary.totalSettlements} przelewów",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Zobacz szczegóły",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (summary.mySettlements.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                summary.mySettlements.take(3).forEach { s ->
+                    MySettlementRow(s, summary.currency)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MySettlementRow(s: MySettlementInfo, currency: String) {
+    val accent = if (s.isIncoming) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+    val prefix = if (s.isIncoming) "+" else "-"
+    val label = if (s.isIncoming) "Otrzymujesz od ${s.otherName}" else "Oddajesz ${s.otherName}"
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "$prefix${"%.2f".format(s.amount)} $currency",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = accent
         )
     }
 }
