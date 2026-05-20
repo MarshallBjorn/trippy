@@ -1,5 +1,10 @@
 package com.navrotskyi.trippyapp.ui.screens.expenses
 
+import android.Manifest
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,8 +26,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.navrotskyi.trippyapp.data.download.BalancePdfDownloader
+import com.navrotskyi.trippyapp.data.download.DownloadResult
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpenseHistoryState
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpenseHistoryViewModel
@@ -39,6 +48,32 @@ fun ExpenseHistoryScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     var showReporterSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val startDownload: () -> Unit = {
+        when (val result = BalancePdfDownloader.download(context, tripId)) {
+            is DownloadResult.Started ->
+                Toast.makeText(context, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
+            is DownloadResult.NoAuth ->
+                Toast.makeText(context, "Brak autoryzacji — zaloguj się ponownie", Toast.LENGTH_LONG).show()
+            is DownloadResult.NoBaseUrl ->
+                Toast.makeText(context, "Brak konfiguracji adresu API", Toast.LENGTH_LONG).show()
+            is DownloadResult.Error ->
+                Toast.makeText(context, "Błąd pobierania: ${result.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> startDownload() }
+
+    val onDownloadClick: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startDownload()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -55,6 +90,14 @@ fun ExpenseHistoryScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Wróć"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onDownloadClick) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = "Pobierz raport PDF"
                         )
                     }
                 },
