@@ -40,7 +40,8 @@ fun TripDetailsScreen(
     onInviteClick: (String) -> Unit,
     onAddNodeClick: (String) -> Unit,
     onNodeClick: (String) -> Unit,
-    onGroupBalanceClick: (String) -> Unit
+    onGroupBalanceClick: (String) -> Unit,
+    onExpenseHistoryClick: (String) -> Unit
 ) {
     val trips by viewModel.trips.collectAsState()
     val trip = trips.find { it.id == tripId }
@@ -165,6 +166,12 @@ fun TripDetailsScreen(
                 text = "Zobacz bilans grupy",
                 onClick = { onGroupBalanceClick(tripId)},
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            TrippyOutlinedButton(
+                text = "Historia wydatków",
+                onClick = { onExpenseHistoryClick(tripId) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
             TabRow(

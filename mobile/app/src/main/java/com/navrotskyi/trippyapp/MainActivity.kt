@@ -40,6 +40,7 @@ import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
+import com.navrotskyi.trippyapp.ui.screens.expenses.ExpenseHistoryScreen
 import com.navrotskyi.trippyapp.ui.screens.expenses.ExpensesScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
@@ -287,7 +288,8 @@ class MainActivity : ComponentActivity() {
                                 onInviteClick = { id -> navController.navigate(Screen.InviteParticipant.createRoute(id)) },
                                 onAddNodeClick = { id -> navController.navigate(Screen.AddNode.createRoute(id)) },
                                 onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) },
-                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))}
+                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))},
+                                onExpenseHistoryClick = { id -> navController.navigate(Screen.ExpenseHistory.createRoute(id)) }
                             )
                         }
 
@@ -387,6 +389,19 @@ class MainActivity : ComponentActivity() {
                             GroupBalanceScreen(
                                 tripId = tripId,
                                 viewModel = groupBalanceViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.ExpenseHistory.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val expenseHistoryViewModel: ExpenseHistoryViewModel = viewModel()
+                            ExpenseHistoryScreen(
+                                tripId = tripId,
+                                viewModel = expenseHistoryViewModel,
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
