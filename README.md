@@ -330,9 +330,55 @@ docker compose up -d --build
 | Zmieniłem `SPRING_PROFILES_ACTIVE` w `.env`, ale appka dalej działa po staremu | `env_file` jest ładowany przy starcie kontenera — potrzebny `docker compose restart backend` (sam `stop` + `start` nie przeładowuje env w niektórych wersjach Compose). |
 | Emaile weryfikacyjne nie docierają na profilu `dev` | Są zapisywane do `backend/logs/emails/*.eml` jako pliki. Otwórz plik, skopiuj link weryfikacyjny, wklej w przeglądarce. |
 | Kontener `trippy_backend` w pętli restartu | Zobacz `docker compose logs backend` — najczęściej brak migracji Flyway, nieaktualny `.env` lub brakujący `JWT_SECRET_KEY`. |
+
+## Dokumentacja API (Swagger / OpenAPI)
+
+Pełna, interaktywna dokumentacja REST API generowana jest automatycznie przez
+springdoc-openapi i dostępna po uruchomieniu backendu:
+
+| Zasób | URL |
+| :--- | :--- |
+| Swagger UI (interaktywny) | `http://localhost:8080/swagger-ui.html` |
+| Specyfikacja OpenAPI (JSON) | `http://localhost:8080/v3/api-docs` |
+
+Oba adresy są publiczne (nie wymagają logowania) — skonfigurowane jako `permitAll()`
+w `SecurityConfig`.
+
+### Autoryzacja w Swagger UI (Bearer token)
+
+Większość endpointów wymaga tokena JWT. Aby testować je z poziomu Swagger UI:
+
+1. Wykonaj `POST /api/auth/login` z danymi konta testowego (patrz *Dane Dostępowe*).
+   W odpowiedzi otrzymasz `accessToken`.
+2. Kliknij przycisk **Authorize** (kłódka w prawym górnym rogu Swagger UI).
+3. Wklej **sam token** (springdoc sam dokleja prefiks `Bearer ` — nie wpisuj go ręcznie).
+4. Zatwierdź. Od tej pory wszystkie żądania z UI niosą nagłówek `Authorization: Bearer <token>`.
+
+Schemat bezpieczeństwa zdefiniowany jest globalnie w `OpenApiConfig`
+(`bearerAuth`, typ HTTP, schemat `bearer`, format `JWT`) i nałożony globalnie przez
+`addSecurityItem(...)`, dzięki czemu kłódka pojawia się przy każdym endpoincie.
+Endpointy publiczne (`/api/auth/**`, zasoby Swaggera) są dodatkowo oznaczone tak,
+by nie wymagały tokena.
+
+### Co zmieniło się w API — wycofanie `/api/expenses`
+
+Wydatek (dawny *Expense*) nie jest już osobnym zasobem — to zwykły węzeł
+(`TripNode`) z dodatnią ceną i flagą `isSeparate`. Endpointy `/api/expenses`
+zostały **usunięte**. Operacje na wydatkach realizuje się przez:
+
+| Operacja | Endpoint |
+| :--- | :--- |
+| Utworzenie wydatku/węzła | `POST /api/trips/{eventId}/nodes` |
+| Lista węzłów/wydatków wycieczki | `GET /api/trips/{eventId}/nodes` |
+| Pojedynczy węzeł | `GET /api/trips/{eventId}/nodes/{nodeId}` |
+| Edycja (pełna podmiana) | `PUT /api/trips/{eventId}/nodes/{nodeId}` |
+| Usunięcie | `DELETE /api/trips/{eventId}/nodes/{nodeId}` |
+
+Pola: dawne `title` → `name`; dochodzą wymagane `startTime` i `endTime`.
+
 ## Dokumentacja Mechanizmu Seedowania Bazy Danych
 
-#### 1. Architektura i Sposób Działania
+### 1. Architektura i Sposób Działania
 Proces automatycznego wypełniania bazy danych opiera się na klasie centralnej oraz dedykowanych skryptach.
 
 | Komponent / Krok | Akcja (Zasada działania) | Znaczenie / Cel |
