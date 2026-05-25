@@ -86,6 +86,13 @@ flowchart LR
     class DB,FS,SMTP ext;
 ```
 
+### Zasady architektoniczne
+* **Resource-oriented routing** — każdy zasób ma osobny kontroler, ścieżki są zagnieżdżone zgodnie z relacjami domenowymi (`/api/trips/{eventId}/nodes`, `/api/trips/{eventId}/participants`).
+* **Stateless JWT** — `JwtAuthenticationFilter` waliduje token przy każdym żądaniu; `TOKEN_BLACKLIST` + `REFRESH_TOKENS` obsługują rotację i logout.
+* **Separation of concerns** — kontrolery są cienkie (walidacja DTO + mapowanie), logika żyje w `service/`, dostęp do bazy w `repository/`.
+* **Strefa publiczna vs prywatna** — `/api/auth/**`, `/swagger-ui/**`, `/v3/api-docs/**` są `permitAll()`; reszta wymaga `Bearer <JWT>`. Endpointy `/api/admin/**` dodatkowo wymagają roli `ADMIN`.
+* **Pliki poza aplikacją** — uploady idą do dedykowanego serwera `nginx` (port `8888`), backend trzyma tylko URL-e w `TRIP_PHOTO` / `USERS.photo_url`.
+
 ---
 
 ## 🚀 MVP (Minimum Viable Product)
