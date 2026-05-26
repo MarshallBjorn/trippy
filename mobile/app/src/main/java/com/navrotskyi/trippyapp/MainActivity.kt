@@ -30,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.TrippyDb
@@ -57,6 +58,7 @@ data class ErrorPayload(val message: String, val errors: List<String>? = null)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         TokenManager.init(this)
         enableEdgeToEdge()
