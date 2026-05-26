@@ -80,14 +80,11 @@ data class CreateTripNodeRequest(
     val separate: Boolean
 )
 data class SettlementDto(
-    val id: String,
+    val fromUserId: String,
     val fromUserName: String,
+    val toUserId: String,
     val toUserName: String,
-    val amount: Double,
-    val currency: String,
-    val tripName: String,
-    val date: String,
-    val isIncoming: Boolean
+    val amount: Double
 )
 
 data class PostPhotoDto(
@@ -103,9 +100,22 @@ data class TripPostDto(
 )
 
 data class ExpensesSummaryDto(
-    val totalSpent: Double,
+    val tripId: String,
+
+    @SerializedName("currencyCode")
     val currency: String,
-    val categoryBreakdown: Map<String, Double>,
-    val userBalance: Double,
+
+    @SerializedName("totalSharedExpenses")
+    val totalSpent: Double,
+
+    val balances: List<BalanceDto>,
+
+    @SerializedName("settlements")
     val pendingSettlements: List<SettlementDto>
+)
+
+data class BalanceDto(
+    val userId: String,
+    val userName: String,
+    val netBalance: Double
 )

@@ -325,8 +325,13 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 println("ERROR BODY = ${response.errorBody()?.string()}")
 
                 if (response.isSuccessful) {
-                    _createNodeState.value = CreateTripNodeState.Success
+                    _createNodeState.value =
+                        CreateTripNodeState.Success
+
                     repo.refreshNodes(tripId)
+
+
+                    repo.refreshTrips()
                 } else {
                     _createNodeState.value =
                         CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
@@ -376,6 +381,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createNodeState.value = CreateTripNodeState.Success
                     repo.refreshNodes(tripId)
                     repo.refreshNode(tripId, nodeId)
+                    repo.refreshTrips()
                 } else {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
@@ -398,6 +404,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 val response = api.deleteTripNode(tripId, nodeId)
                 if (response.isSuccessful) {
                     repo.refreshNodes(tripId)
+                    repo.refreshTrips()
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueDeleteNode(tripId, nodeId)
