@@ -307,8 +307,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {
@@ -321,11 +320,16 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val response = api.createTripNode(tripId, request)
+
+                println("RESPONSE CODE = ${response.code()}")
+                println("ERROR BODY = ${response.errorBody()?.string()}")
+
                 if (response.isSuccessful) {
                     _createNodeState.value = CreateTripNodeState.Success
                     repo.refreshNodes(tripId)
                 } else {
-                    _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                    _createNodeState.value =
+                        CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueCreateNode(tripId, request)
@@ -355,8 +359,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {

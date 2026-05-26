@@ -75,9 +75,9 @@ data class CreateTripNodeRequest(
     val endTime: String,
     val note: String?,
     val price: Double,
-    @SerializedName("separate")
-    val separate: Boolean,
-    val category: String? = null
+
+    @SerializedName("isSeparate")
+    val separate: Boolean
 )
 data class SettlementDto(
     val id: String,
