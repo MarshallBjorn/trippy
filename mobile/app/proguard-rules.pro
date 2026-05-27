@@ -28,6 +28,13 @@
 -if interface * { @retrofit2.http.* <methods>; }
 -keep,allowobfuscation interface <1>
 
+# === FIX: pełne sygnatury interfejsów API (R8 full mode) ===
+# Naprawia "Response must include generic type" w release
+-keep interface com.navrotskyi.trippyapp.api.** { *; }
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
 # === OkHttp ===
 -dontwarn okhttp3.**
 -dontwarn okio.**
