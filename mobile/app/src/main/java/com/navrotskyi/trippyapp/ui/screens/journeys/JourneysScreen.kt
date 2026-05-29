@@ -112,8 +112,7 @@ fun JourneysScreen(
                                         title = "Brak podróży",
                                         description = "Nie masz jeszcze żadnych wycieczek. Zaplanuj swoją pierwszą przygodę!",
                                         actionLabel = "Dodaj wycieczkę",
-                                        onActionClick = onAddTripClick,
-                                        modifier = Modifier.fillParentMaxHeight()
+                                        onActionClick = onAddTripClick
                                     )
                                 }
                             }
