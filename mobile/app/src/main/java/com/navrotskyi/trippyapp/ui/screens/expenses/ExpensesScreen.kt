@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,8 +23,11 @@ import com.navrotskyi.trippyapp.data.network.NetworkMonitor
 import com.navrotskyi.trippyapp.data.sync.SyncManager
 import com.navrotskyi.trippyapp.models.ExpensesSummaryDto
 import com.navrotskyi.trippyapp.models.SettlementDto
+import com.navrotskyi.trippyapp.ui.components.EmptyState
 import com.navrotskyi.trippyapp.ui.components.OfflineBanner
 import com.navrotskyi.trippyapp.ui.components.ShimmerBox
+import com.navrotskyi.trippyapp.ui.theme.PositiveGreen
+import com.navrotskyi.trippyapp.ui.theme.PositiveGreenContainer
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesState
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesViewModel
 
@@ -76,7 +81,21 @@ fun ExpensesScreen(
                         ExpensesShimmer()
                     }
                     is ExpensesState.Success -> {
-                        ExpensesContent(state.summary, viewModel)
+                        val summary = state.summary
+                        val isEmpty = summary.totalSpent == 0.0 &&
+                                summary.userBalance == 0.0 &&
+                                summary.categoryBreakdown.isEmpty() &&
+                                summary.pendingSettlements.isEmpty()
+                        if (isEmpty) {
+                            EmptyState(
+                                icon = Icons.Default.AccountBalanceWallet,
+                                title = "Brak wydatków",
+                                description = "Nie masz jeszcze żadnych wydatków ani rozliczeń. Dodaj wydatki w swoich podróżach, a podsumowanie pojawi się tutaj.",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            ExpensesContent(summary, viewModel)
+                        }
                     }
                     is ExpensesState.Error -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -122,8 +141,8 @@ fun ExpensesContent(summary: ExpensesSummaryDto, viewModel: ExpensesViewModel) {
                 BalanceCard(
                     title = "Muszą Ci oddać",
                     amount = "+${"%.2f".format(summary.userBalance)} ${summary.currency}",
-                    containerColor = Color(0xFFE8F5E9),
-                    contentColor = Color(0xFF2E7D32),
+                    containerColor = PositiveGreenContainer,
+                    contentColor = PositiveGreen,
                     modifier = Modifier.weight(1f)
                 )
                 BalanceCard(
@@ -321,7 +340,7 @@ fun SettlementItem(settlement: SettlementDto, onSettleClick: () -> Unit) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${if (settlement.isIncoming) "+" else "-"}${"%.2f".format(settlement.amount)} ${settlement.currency}",
-                    color = if (settlement.isIncoming) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                    color = if (settlement.isIncoming) PositiveGreen else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 if (!settlement.isIncoming) {

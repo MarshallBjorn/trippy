@@ -112,9 +112,18 @@ fun InviteParticipantScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                participants.forEach { participant ->
-                    ParticipantCard(participant = participant)
+            if (participants.isEmpty()) {
+                Text(
+                    text = "Brak uczestników. Zaproś kogoś, podając jego adres e-mail powyżej.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    participants.forEach { participant ->
+                        ParticipantCard(participant = participant)
+                    }
                 }
             }
         }
