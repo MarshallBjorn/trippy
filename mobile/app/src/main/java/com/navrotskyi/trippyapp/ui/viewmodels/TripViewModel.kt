@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.data.database.TrippyDb
@@ -257,7 +258,9 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _inviteState.value = InviteState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _inviteState.value = InviteState.Error("Brak połączenia: ${e.localizedMessage}")
+                // Błąd biznesowy z API (np. "User not found", "already invited") tłumaczymy na polski.
+                // NoInternetException zostaje rozpoznany osobno, więc komunikat sieciowy nie miesza się z błędem serwera.
+                _inviteState.value = InviteState.Error(ErrorMessages.fromThrowable(e))
             }
         }
     }
