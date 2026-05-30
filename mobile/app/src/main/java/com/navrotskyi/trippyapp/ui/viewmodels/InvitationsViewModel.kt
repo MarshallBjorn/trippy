@@ -6,6 +6,7 @@ import com.navrotskyi.trippyapp.models.InvitationDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.RetrofitClient
 
 
@@ -32,24 +33,26 @@ class InvitationsViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = ErrorMessages.fromThrowable(e)
             }
         }
     }
 
-    fun accept(id: String) {
+    fun accept(id: String, onAccepted: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val response = api.acceptInvitation(id)
 
                 if (response.isSuccessful) {
                     loadInvitations()
+                    // Po akceptacji wycieczka powinna od razu pojawić się na liście podróży.
+                    onAccepted()
                 } else {
-                    _error.value = "Nie udało się zaakceptować"
+                    _error.value = "Nie udało się zaakceptować zaproszenia"
                 }
 
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = ErrorMessages.fromThrowable(e)
             }
         }
     }
@@ -62,11 +65,11 @@ class InvitationsViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     loadInvitations()
                 } else {
-                    _error.value = "Nie udało się odrzucić"
+                    _error.value = "Nie udało się odrzucić zaproszenia"
                 }
 
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = ErrorMessages.fromThrowable(e)
             }
         }
     }

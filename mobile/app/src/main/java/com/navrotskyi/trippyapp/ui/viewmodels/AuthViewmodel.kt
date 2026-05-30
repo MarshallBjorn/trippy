@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.ApiException
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.NoInternetException
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
@@ -77,7 +78,9 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.Success(response.body()!!.accessToken)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message, e.errors)
+                authState = AuthState.Error(ErrorMessages.translate(e.message), e.errors)
+            } catch (e: NoInternetException) {
+                authState = AuthState.Error(e.message)
             } catch (e: Exception) {
                 authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }
@@ -94,7 +97,9 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.AwaitingVerification(email)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message, e.errors)
+                authState = AuthState.Error(ErrorMessages.translate(e.message), e.errors)
+            } catch (e: NoInternetException) {
+                authState = AuthState.Error(e.message)
             } catch (e: Exception) {
                 authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
             }

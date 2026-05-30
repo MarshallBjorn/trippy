@@ -254,8 +254,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.Trips.route) {
+                            val userState by profileViewModel.user.collectAsState()
                             JourneysScreen(
                                 viewModel = tripViewModel,
+                                currentUserId = userState?.remoteUserId,
                                 onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) } ,
                                 onInvitationsClick = {navController.navigate(Screen.Invitations.route) }
@@ -420,7 +422,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Screen.Invitations.route) {
-                            InvitationsScreen()
+                            InvitationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onInvitationAccepted = { tripViewModel.loadTrips() }
+                            )
                         }
                     }
 
