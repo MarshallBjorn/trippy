@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.2"
+agp = "8.13.0"
 kotlin = "2.2.10"
 ksp = "2.3.2"
 coreKtx = "1.17.0"
@@ -12,6 +12,7 @@ composeBom = "2024.09.00"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
 kotlinxCoroutines = "1.10.1"
+coreSplashscreen = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 androidx-test-core-ktx = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

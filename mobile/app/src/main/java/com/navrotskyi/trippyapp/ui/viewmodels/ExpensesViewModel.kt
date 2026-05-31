@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import android.util.Log
 
 sealed class ExpensesState {
     object Loading : ExpensesState()
@@ -18,7 +20,47 @@ sealed class ExpensesState {
 
 class ExpensesViewModel : ViewModel() {
     private val api = RetrofitClient.retrofit.create(TrippyApi::class.java)
+    private var cachedUserId: String? = null
 
+    val currentUserId: String
+        get() {
+
+            if (cachedUserId != null) {
+                return cachedUserId!!
+            }
+
+            return try {
+
+                runBlocking {
+
+                    val response =
+                        api.getCurrentUser()
+
+                    if (
+                        response.isSuccessful &&
+                        response.body() != null
+                    ) {
+
+                        cachedUserId =
+                            response.body()!!.id
+
+                        cachedUserId!!
+                    } else {
+                        ""
+                    }
+                }
+
+            } catch (e: Exception) {
+
+                Log.e(
+                    "ExpensesViewModel",
+                    "Failed to get current user",
+                    e
+                )
+
+                ""
+            }
+        }
     private val _uiState = MutableStateFlow<ExpensesState>(ExpensesState.Loading)
     val uiState: StateFlow<ExpensesState> = _uiState.asStateFlow()
 
@@ -42,28 +84,40 @@ class ExpensesViewModel : ViewModel() {
                     return@launch
                 }
 
-                val response = api.getTripNodes(targetTripId)
-
-                if (response.isSuccessful && response.body() != null) {
-                    val nodes = response.body()!!
-                    val totalSpent = nodes.sumOf { it.price }
-                    val categoryBreakdown = nodes.groupBy { it.category ?: "Inne" }
-                        .mapValues { entry -> entry.value.sumOf { it.price } }
-
-                    val summary = ExpensesSummaryDto(
-                        totalSpent = totalSpent,
-                        currency = "PLN",
-                        categoryBreakdown = categoryBreakdown,
-                        userBalance = 0.0,
-                        pendingSettlements = emptyList()
+                val response =
+                    api.getTripBalances(
+                        targetTripId
                     )
 
-                    _uiState.value = ExpensesState.Success(summary)
+                if (
+                    response.isSuccessful &&
+                    response.body() != null
+                ) {
+
+                    _uiState.value =
+                        ExpensesState.Success(
+                            response.body()!!
+                        )
+
                 } else {
-                    _uiState.value = ExpensesState.Error("Błąd pobierania danych: ${response.code()}")
+
+                    _uiState.value =
+                        ExpensesState.Error(
+                            "Błąd pobierania danych: ${response.code()}"
+                        )
                 }
             } catch (e: Exception) {
-                _uiState.value = ExpensesState.Error("Błąd połączenia: ${e.localizedMessage}")
+
+                Log.e(
+                    "ExpensesViewModel",
+                    "Failed to load expenses",
+                    e
+                )
+
+                _uiState.value =
+                    ExpensesState.Error(
+                        "Błąd połączenia: ${e.localizedMessage}"
+                    )
             }
         }
     }

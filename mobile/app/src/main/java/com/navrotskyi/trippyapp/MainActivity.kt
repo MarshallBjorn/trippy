@@ -30,9 +30,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 import com.navrotskyi.trippyapp.api.TokenManager
-import com.navrotskyi.trippyapp.data.database.UserDb
+import com.navrotskyi.trippyapp.data.database.TrippyDb
 import com.navrotskyi.trippyapp.ui.Screen
 import com.navrotskyi.trippyapp.ui.screens.EmailVerificationScreen
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
@@ -40,6 +41,7 @@ import com.navrotskyi.trippyapp.ui.screens.GroupBalanceScreen
 import com.navrotskyi.trippyapp.ui.screens.LoginScreen
 import com.navrotskyi.trippyapp.ui.screens.RegisterScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.AddNodeScreen
+import com.navrotskyi.trippyapp.ui.screens.expenses.ExpenseHistoryScreen
 import com.navrotskyi.trippyapp.ui.screens.expenses.ExpensesScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.TripDetailsScreen
 import com.navrotskyi.trippyapp.ui.screens.journeys.InviteParticipantScreen
@@ -56,6 +58,7 @@ data class ErrorPayload(val message: String, val errors: List<String>? = null)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         TokenManager.init(this)
         enableEdgeToEdge()
@@ -69,7 +72,7 @@ class MainActivity : ComponentActivity() {
                 var errorDialogPayload by remember { mutableStateOf<ErrorPayload?>(null) }
 
                 // Inicjalizacja ViewModeli
-                val userDao = remember { UserDb.getInstance(context).userDao() }
+                val userDao = remember { TrippyDb.getInstance(context).userDao() }
                 val profileViewModel: ProfileViewModel = viewModel(
                     factory = ProfileViewModelFactory(userDao)
                 )
@@ -80,6 +83,7 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
+                val sessionViewModel: SessionViewModel = viewModel()
                 LaunchedEffect(authState) {
                     when (authState) {
                         is AuthState.Success -> {
@@ -161,7 +165,10 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Register.route) {
                             RegisterScreen(
-                                onRegisterClick = { name, email, password, confirmPassword -> authViewModel.register(name, email, password, confirmPassword) },
+                                viewModel = authViewModel,
+                                onRegisterClick = { name, email, password, confirmPassword ->
+                                    authViewModel.register(name, email, password, confirmPassword)
+                                },
                                 onBackToLoginClick = { navController.popBackStack() }
                             )
                         }
@@ -247,8 +254,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.Trips.route) {
+                            val userState by profileViewModel.user.collectAsState()
                             JourneysScreen(
                                 viewModel = tripViewModel,
+                                currentUserId = userState?.remoteUserId,
                                 onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) } ,
                                 onInvitationsClick = {navController.navigate(Screen.Invitations.route) }
@@ -267,15 +276,24 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            val trips by tripViewModel.trips.collectAsState()
+                            val userState by profileViewModel.user.collectAsState()
+
+                            val trip = trips.find { it.id == tripId }
+                            val currentUserId = userState?.remoteUserId
+
+                            val isOwner = trip?.ownerId == currentUserId
                             TripDetailsScreen(
                                 tripId = tripId,
+                                isOwner = isOwner,
                                 viewModel = tripViewModel,
                                 profileViewModel = profileViewModel,
                                 onBackClick = { navController.popBackStack() },
                                 onInviteClick = { id -> navController.navigate(Screen.InviteParticipant.createRoute(id)) },
                                 onAddNodeClick = { id -> navController.navigate(Screen.AddNode.createRoute(id)) },
                                 onNodeClick = { nodeId -> navController.navigate(Screen.NodeDetails.createRoute(tripId, nodeId)) },
-                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))}
+                                onGroupBalanceClick = {id -> navController.navigate(Screen.GroupBalance.createRoute(id))},
+                                onExpenseHistoryClick = { id -> navController.navigate(Screen.ExpenseHistory.createRoute(id)) }
                             )
                         }
 
@@ -337,9 +355,22 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId") ?: return@composable
+                            val trips by tripViewModel.trips.collectAsState()
+                            val userState by profileViewModel.user.collectAsState()
+
+                            val trip = trips.find { it.id == tripId }
+
+                            println("OWNER: ${trip?.ownerId}")
+                            println("USER: ${userState?.remoteUserId}")
+                            val currentUserId = userState?.remoteUserId
+                            val isOwner = trip?.ownerId == currentUserId
+
+
                             InviteParticipantScreen(
                                 tripId = tripId,
+                                isOwner = isOwner,
                                 viewModel = tripViewModel,
+
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -366,13 +397,35 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        composable(
+                            route = Screen.ExpenseHistory.route,
+                            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                            val expenseHistoryViewModel: ExpenseHistoryViewModel = viewModel()
+                            val userState by profileViewModel.user.collectAsState()
+                            val myUserId = userState?.remoteUserId ?: ""
+                            ExpenseHistoryScreen(
+                                tripId = tripId,
+                                currentUserId = myUserId,
+                                viewModel = expenseHistoryViewModel,
+                                onBackClick = { navController.popBackStack() },
+                                onBalanceDetailsClick = { id ->
+                                    navController.navigate(Screen.GroupBalance.createRoute(id))
+                                }
+                            )
+                        }
+
                         composable(Screen.Expenses.route) {
                             ExpensesScreen(
                                 viewModel = expensesViewModel
                             )
                         }
                         composable(Screen.Invitations.route) {
-                            InvitationsScreen()
+                            InvitationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onInvitationAccepted = { tripViewModel.loadTrips() }
+                            )
                         }
                     }
 

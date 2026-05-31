@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.navrotskyi.trippyapp.ui.components.DateTimePickerField
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyLabeledField
@@ -31,9 +32,9 @@ fun EditNodeScreen(
 ) {
     val node by viewModel.selectedNode.collectAsState()
     val createNodeState by viewModel.createNodeState.collectAsState()
+    val errors by viewModel.nodeFormErrors.collectAsState()
     val context = LocalContext.current
 
-    // Inicjalizacja stanów - używamy 'separate' zgodnie z modelem TripNodeDto
     var name by remember(node) { mutableStateOf(node?.name ?: "") }
     var category by remember(node) { mutableStateOf(node?.category ?: "Inne") }
     var startTime by remember(node) { mutableStateOf(node?.startTime?.let { convertIsoToDisplay(it) } ?: "") }
@@ -43,11 +44,15 @@ fun EditNodeScreen(
     var separate by remember(node) { mutableStateOf(node?.separate ?: false) }
     var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearNodeFormErrors() }
+    }
+
     LaunchedEffect(createNodeState) {
         if (createNodeState is CreateTripNodeState.Success) {
             Toast.makeText(context, "Zmiany zostały zapisane!", Toast.LENGTH_SHORT).show()
             viewModel.resetCreateNodeState()
-            onBackClick() // Powrót po udanej edycji
+            onBackClick()
         } else if (createNodeState is CreateTripNodeState.Error) {
             errorDialogMessage = (createNodeState as CreateTripNodeState.Error).message
         }
@@ -64,14 +69,11 @@ fun EditNodeScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
-                Box(Modifier.padding(16.dp)) {
+                Box(Modifier.imePadding().padding(16.dp)) {
                     TrippyButton(
                         text = if (createNodeState is CreateTripNodeState.Loading) "Zapisywanie..." else "Zapisz zmiany",
                         onClick = {
-                            if (name.isBlank() || startTime.isBlank() || endTime.isBlank()) {
-                                Toast.makeText(context, "Wypełnij wymagane pola!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                // Wywołujemy funkcję z poprawnymi nazwami zmiennych
+                            if (viewModel.validateTripNodeForm(name, startTime, endTime, price)) {
                                 viewModel.updateTripNode(
                                     tripId = tripId,
                                     nodeId = nodeId,
@@ -96,24 +98,54 @@ fun EditNodeScreen(
                 .padding(padding)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp) // Bardziej upakowane pola
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            TrippyLabeledField("Tytuł", name, "np. Lot, Hotel", { name = it })
-
-            TrippyLabeledField("Typ / Lokalizacja", category, "np. Transport, Restauracja", { category = it })
-
-            TrippyLabeledField("Start", startTime, "DD.MM.YYYY HH:MM", { startTime = it })
-
-            TrippyLabeledField("Koniec", endTime, "DD.MM.YYYY HH:MM", { endTime = it })
-
             TrippyLabeledField(
-                "Koszt", price, "np. 150.00", { price = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                label = "Tytuł",
+                value = name,
+                placeholder = "np. Lot, Hotel",
+                onValueChange = { name = it },
+                errorText = errors.nameError
             )
 
-            TrippyLabeledField("Notatka", note, "Opcjonalnie...", { note = it })
+            TrippyLabeledField(
+                label = "Typ / Lokalizacja",
+                value = category,
+                placeholder = "np. Transport, Restauracja",
+                onValueChange = { category = it }
+            )
+
+            DateTimePickerField(
+                label = "Start",
+                value = startTime,
+                onValueChange = { startTime = it },
+                errorText = errors.startTimeError
+            )
+
+            DateTimePickerField(
+                label = "Koniec",
+                value = endTime,
+                onValueChange = { endTime = it },
+                errorText = errors.endTimeError
+            )
+
+            TrippyLabeledField(
+                label = "Koszt",
+                value = price,
+                placeholder = "np. 150.00",
+                onValueChange = { if (!it.startsWith("-")) price = it },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                errorText = errors.priceError
+            )
+
+            TrippyLabeledField(
+                label = "Notatka",
+                value = note,
+                placeholder = "Opcjonalnie...",
+                onValueChange = { note = it }
+            )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -139,7 +171,6 @@ fun EditNodeScreen(
 
 fun convertIsoToDisplay(isoDate: String): String {
     return try {
-        // Backend: 2026-05-14T10:30:00 -> UI: 14.05.2026 10:30
         val dateTime = isoDate.substring(0, 16)
         val datePart = dateTime.substring(0, 10)
         val timePart = dateTime.substring(11, 16)

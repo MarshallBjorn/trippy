@@ -4,6 +4,7 @@ import com.navrotskyi.trippyapi.domain.TripEvent;
 import com.navrotskyi.trippyapi.domain.TripNode;
 import com.navrotskyi.trippyapi.domain.TripParticipant;
 import com.navrotskyi.trippyapi.domain.User;
+import com.navrotskyi.trippyapi.dto.admin.NodeResponse;
 import com.navrotskyi.trippyapi.dto.trip.CreateTripNodeRequest;
 import com.navrotskyi.trippyapi.exception.ResourceNotFoundException;
 import com.navrotskyi.trippyapi.repository.TripEventRepository;
@@ -17,6 +18,13 @@ import java.util.UUID;
 
 /**
  * Service zarządzający węzłami wycieczki ({@link TripNode}).
+ * <p>
+ * <b>Uwaga architektoniczna:</b> w modelu Trippy <i>wydatek</i> (dawny "Expense")
+ * nie jest osobnym bytem — to zwykły {@link TripNode} z dodatnią ceną oraz flagą
+ * {@code isSeparate}. Dawny {@code ExpenseService} / {@code ExpenseController}
+ * został w całości wchłonięty tutaj: tworzenie wydatku = utworzenie węzła z ceną,
+ * a listowanie wydatków = listowanie węzłów. Dzięki temu istnieje jedna ścieżka
+ * tworzenia/odczytu/edycji i jeden komplet reguł autoryzacji.
  * <p>
  * Reguły dostępu są spójne dla wszystkich operacji:
  * <ul>
@@ -56,6 +64,9 @@ public class TripNodeService {
 
     /**
      * Tworzy nowy węzeł w obrębie podanej wycieczki.
+     * <p>
+     * Obsługuje zarówno "klasyczne" elementy planu (lot, hotel, atrakcja), jak i
+     * wydatki — różnica jest wyłącznie w danych ({@code price > 0}, {@code isSeparate}).
      *
      * @param eventId  identyfikator wycieczki
      * @param request  dane węzła (już zwalidowane przez Bean Validation w kontrolerze)
@@ -85,32 +96,61 @@ public class TripNodeService {
         node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
 
-        TripNode saved = tripNodeRepository.save(node);
+        TripNode savedNode = tripNodeRepository.save(node);
+        // Dotykamy relacji, by były zainicjalizowane przed mapowaniem na DTO
+        // (ochrona przed LazyInitializationException poza transakcją).
+        savedNode.getReporter().getName();
+        savedNode.getEvent().getId();
 
-        // Pobieramy zapisaną encję z załadowanymi relacjami przez @EntityGraph,
-        // dzięki czemu mapper nie napotka LazyInitializationException.
-        return tripNodeRepository.findWithDetailsById(saved.getId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Właśnie utworzony node zniknął z bazy — to nie powinno się zdarzyć."));
+        return savedNode;
     }
 
     // ============================================================
-    //  READ
+    //  READ — lista
     // ============================================================
 
     /**
-     * Zwraca wszystkie węzły wycieczki posortowane po {@code startTime} rosnąco.
+     * Zwraca wszystkie węzły wycieczki posortowane po {@code startTime} rosnąco,
+     * zmapowane na {@link NodeResponse} z flagami {@code canEdit}/{@code canDelete}
+     * wyliczonymi względem aktualnego użytkownika.
      *
      * @param eventId identyfikator wycieczki
      * @param user    aktualnie zalogowany użytkownik
-     * @return lista węzłów z załadowanymi relacjami
+     * @return lista węzłów
      * @throws SecurityException gdy użytkownik nie jest zaakceptowanym uczestnikiem
      */
     @Transactional(readOnly = true)
-    public List<TripNode> getNodesForEvent(UUID eventId, User user) {
-        requireAcceptedParticipant(eventId, user.getId());
-        return tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+    public List<NodeResponse> getNodesForEvent(UUID eventId, User user) {
+        TripParticipant participant = requireAcceptedParticipant(eventId, user.getId());
+        boolean isOrganizer = ROLE_ORGANIZER.equalsIgnoreCase(participant.getTripRole().getName());
+
+        List<TripNode> nodes = tripNodeRepository.findAllByEventIdOrderByStartTimeAsc(eventId);
+
+        return nodes.stream()
+                .map(node -> mapToNodeResponse(node, user, isOrganizer))
+                .toList();
     }
+
+    private NodeResponse mapToNodeResponse(TripNode node, User currentUser, boolean isOrganizer) {
+        boolean isAuthor = node.getReporter().getId().equals(currentUser.getId());
+        boolean canEdit = isAuthor || isOrganizer;
+        boolean canDelete = isAuthor || isOrganizer;
+
+        return new NodeResponse(
+                node.getId(),
+                node.getName(),
+                node.getNote(),
+                node.getPrice(),
+                node.isSeparate(),
+                node.getReporter().getName(),
+                List.of(),
+                canEdit,
+                canDelete);
+    }
+
+    // ============================================================
+    //  READ — pojedynczy
+    // ============================================================
 
     /**
      * Zwraca pojedynczy węzeł po jego ID, weryfikując że należy do podanej wycieczki.
@@ -129,11 +169,7 @@ public class TripNodeService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Nie znaleziono węzła o id: " + nodeId));
 
-        if (!node.getEvent().getId().equals(eventId)) {
-            throw new IllegalArgumentException(
-                    "Węzeł " + nodeId + " nie należy do wycieczki " + eventId + ".");
-        }
-
+        validateBelongsToTrip(eventId, node);
         requireAcceptedParticipant(eventId, user.getId());
         return node;
     }
@@ -173,9 +209,9 @@ public class TripNodeService {
         node.setPrice(request.price());
         node.setSeparate(request.isSeparate());
 
-        // Hibernate flush'uje przy zakończeniu transakcji; zwracamy tę samą instancję
-        // (z już załadowanymi relacjami z findWithDetailsById).
-        return tripNodeRepository.save(node);
+        TripNode savedNode = tripNodeRepository.save(node);
+        savedNode.getReporter().getName();
+        return savedNode;
     }
 
     // ============================================================
@@ -183,7 +219,7 @@ public class TripNodeService {
     // ============================================================
 
     /**
-     * Usuwa węzeł.
+     * Usuwa węzeł (kaskadowo: powiązane posty i zdjęcia).
      *
      * @param eventId     identyfikator wycieczki
      * @param nodeId      identyfikator węzła
@@ -261,8 +297,7 @@ public class TripNodeService {
      */
     private void validateTimeRange(CreateTripNodeRequest request) {
         if (request.endTime() == null || request.startTime() == null) {
-            // Tu już złapie @NotNull z DTO — defensive check.
-            return;
+            return; // złapie @NotNull z DTO — defensive check
         }
         if (!request.endTime().isAfter(request.startTime())) {
             throw new IllegalArgumentException(

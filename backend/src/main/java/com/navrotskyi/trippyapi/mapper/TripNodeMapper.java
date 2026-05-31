@@ -31,17 +31,19 @@ public final class TripNodeMapper {
         if (node == null) {
             throw new NullPointerException("Cannot map null TripNode to DTO.");
         }
-        TripNodeDto dto = new TripNodeDto();
-        dto.setId(node.getId());
-        dto.setEventId(node.getEvent().getId());
-        dto.setReporterId(node.getReporter().getId());
-        dto.setReporterName(node.getReporter().getName());
-        dto.setStartTime(node.getStartTime());
-        dto.setEndTime(node.getEndTime());
-        dto.setName(node.getName());
-        dto.setNote(node.getNote());
-        dto.setPrice(node.getPrice());
-        dto.setSeparate(node.isSeparate());
-        return dto;
+
+        return new TripNodeDto(
+                node.getId(),
+                node.getEvent().getId(),
+                node.getReporter().getId(),
+                node.getReporter().getName(),
+                node.getStartTime(),
+                node.getEndTime(),
+                node.getName(),
+                node.getNote(),
+                node.getPrice(),
+                node.isSeparate(),
+                false,
+                false);
     }
 }

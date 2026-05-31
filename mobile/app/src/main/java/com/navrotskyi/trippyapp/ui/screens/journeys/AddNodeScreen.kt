@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.navrotskyi.trippyapp.ui.components.DateTimePickerField
 import com.navrotskyi.trippyapp.ui.components.TrippyButton
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
 import com.navrotskyi.trippyapp.ui.components.TrippyLabeledField
@@ -37,9 +38,13 @@ fun AddNodeScreen(
     var separate by remember { mutableStateOf(false) }
     var errorDialogMessage by remember { mutableStateOf<String?>(null) }
 
-
     val createNodeState by viewModel.createNodeState.collectAsState()
+    val errors by viewModel.nodeFormErrors.collectAsState()
     val context = LocalContext.current
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearNodeFormErrors() }
+    }
 
     LaunchedEffect(createNodeState) {
         if (createNodeState is CreateTripNodeState.Success) {
@@ -62,14 +67,11 @@ fun AddNodeScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
-                Box(modifier = Modifier.padding(16.dp)) {
+                Box(modifier = Modifier.imePadding().padding(16.dp)) {
                     TrippyButton(
                         text = if (createNodeState is CreateTripNodeState.Loading) "Zapisywanie..." else "Zapisz",
                         onClick = {
-                            if (name.isBlank() || startTime.isBlank() || endTime.isBlank()) {
-                                Toast.makeText(context, "Wypełnij wymagane pola!", Toast.LENGTH_SHORT).show()
-                            } else {
-
+                            if (viewModel.validateTripNodeForm(name, startTime, endTime, price)) {
                                 viewModel.createTripNode(
                                     tripId = tripId,
                                     name = name,
@@ -101,7 +103,8 @@ fun AddNodeScreen(
                 label = "Tytuł",
                 value = name,
                 placeholder = "np. Lot, Hotel, Obiad",
-                onValueChange = { name = it }
+                onValueChange = { name = it },
+                errorText = errors.nameError
             )
 
             TrippyLabeledField(
@@ -111,26 +114,27 @@ fun AddNodeScreen(
                 onValueChange = { category = it }
             )
 
-            TrippyLabeledField(
+            DateTimePickerField(
                 label = "Start",
                 value = startTime,
-                placeholder = "DD.MM.YYYY HH:MM",
-                onValueChange = { startTime = it }
+                onValueChange = { startTime = it },
+                errorText = errors.startTimeError
             )
 
-            TrippyLabeledField(
+            DateTimePickerField(
                 label = "Koniec",
                 value = endTime,
-                placeholder = "DD.MM.YYYY HH:MM",
-                onValueChange = { endTime = it }
+                onValueChange = { endTime = it },
+                errorText = errors.endTimeError
             )
 
             TrippyLabeledField(
                 label = "Koszt",
                 value = price,
                 placeholder = "np. 150.00",
-                onValueChange = { price = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                onValueChange = { if (!it.startsWith("-")) price = it },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                errorText = errors.priceError
             )
 
             TrippyLabeledField(

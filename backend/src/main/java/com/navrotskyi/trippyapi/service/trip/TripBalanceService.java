@@ -49,17 +49,20 @@ public class TripBalanceService {
     private final TripParticipantRepository tripParticipantRepository;
     private final TripNodeRepository tripNodeRepository;
     private final DebtSettlementService debtSettlementService;
+    private final TripBalancePdfReportService pdfReportService;
 
     public TripBalanceService(
             TripEventRepository tripEventRepository,
             TripParticipantRepository tripParticipantRepository,
             TripNodeRepository tripNodeRepository,
-            DebtSettlementService debtSettlementService
+            DebtSettlementService debtSettlementService,
+            TripBalancePdfReportService pdfReportService
     ) {
         this.tripEventRepository = tripEventRepository;
         this.tripParticipantRepository = tripParticipantRepository;
         this.tripNodeRepository = tripNodeRepository;
         this.debtSettlementService = debtSettlementService;
+        this.pdfReportService = pdfReportService;
     }
 
     @Transactional(readOnly = true)
@@ -95,6 +98,18 @@ public class TripBalanceService {
 
         // 7. Zbuduj response
         return buildResponse(trip, accepted, computation, settlements);
+    }
+
+    /**
+ * Generuje raport PDF rozliczeń. Reużywa {@link #getBalances} (ta sama
+    * autoryzacja: tylko zaakceptowany uczestnik), a następnie renderuje dokument.
+    */
+    @Transactional(readOnly = true)
+    public byte[] exportBalancesPdf(UUID tripId, User currentUser) {
+        TripBalanceResponse data = getBalances(tripId, currentUser);
+        TripEvent trip = tripEventRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("TripEvent not found with id: " + tripId));
+        return pdfReportService.generate(trip, data);
     }
 
     // ---------------------- balance computation ----------------------

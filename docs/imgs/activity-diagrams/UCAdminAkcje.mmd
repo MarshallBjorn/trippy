@@ -1,0 +1,51 @@
+%% =====================================================================
+%% Diagram aktywnosci: Akcje administratora
+%% Lewa swimlane = Panel Admina (Vue 3), prawa = Backend Spring Boot.
+%% =====================================================================
+flowchart TD
+    Start((Start))
+
+    subgraph Panel ["Panel Admina (Vue 3)"]
+        A1[Zaloguj sie jako Admin]
+        A2[Wybierz sekcje panelu]
+        D0{Typ akcji}
+        AB[Wybierz usera<br/>i Zablokuj]
+        AM[Wybierz post lub zdjecie<br/>i Usun]
+        AT[Podglad / edycja wycieczki]
+        AD[Dodaj nowa walute /<br/>role wyjazdowa]
+        AErr[Wyswietl Brak uprawnien]
+        AOk[Odswiez liste<br/>i pokaz sukces]
+        EndErr(((Stop)))
+        EndOk(((Stop)))
+    end
+
+    subgraph Backend ["Backend Spring Boot"]
+        BB[PUT /api/admin/users/&#123;id&#125;<br/>isBlocked=true]
+        BM[DELETE /api/admin/moderation/<br/>posts lub photos/&#123;id&#125;]
+        BT[GET / PUT / DELETE<br/>/api/admin/trips/&#123;id&#125;]
+        BD[POST /api/admin/dictionaries/<br/>currencies lub roles]
+        BAuth[Weryfikacja JWT<br/>i roli ADMIN]
+        DAuth{Rola ADMIN?}
+        BErr[Zwroc 403 Forbidden]
+        BOk[Wykonaj operacje w DB<br/>i zwroc 200 / 201]
+    end
+
+    Start --> A1 --> A2 --> D0
+    D0 -- Blokuj_usera --> AB --> BB
+    D0 -- Moderacja --> AM --> BM
+    D0 -- CRUD_wycieczek --> AT --> BT
+    D0 -- Slowniki --> AD --> BD
+
+    BB --> BAuth
+    BM --> BAuth
+    BT --> BAuth
+    BD --> BAuth
+
+    BAuth --> DAuth
+    DAuth -- Nie --> BErr --> AErr --> EndErr
+    DAuth -- Tak --> BOk --> AOk --> EndOk
+
+    classDef action fill:#ffffff,stroke:#000,stroke-width:1px,color:#000
+    classDef decision fill:#fef9c3,stroke:#000,stroke-width:1px,color:#000
+    class A1,A2,AB,AM,AT,AD,AErr,AOk,BB,BM,BT,BD,BAuth,BErr,BOk action
+    class D0,DAuth decision

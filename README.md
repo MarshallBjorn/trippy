@@ -1,16 +1,18 @@
 # ✈️ Trippy – Group Travel & Expense Manager
 
 ## Zespół
-```
-- Oleksii Nawrocki - PM
-- Julia Chmura
-- Tomasz Nowak
-- Jakub Czesnak
-- Dawid Bajek
-- Mateusz Tokarz
-- Michał Domański
-- Paweł Powęska
-```
+
+Aktywni kontybutorzy:
+- [Oleksii Nawrocki](https://github.com/MarshallBjorn) - PM, Lead Fullstack Dev
+- [Tomasz Nowak](https://github.com/Tnovyloo) - Backend Dev
+- [Julia Chmura](https://github.com/julchm) - Frontend Dev
+- [Michał Domański](https://github.com/Abziii) - Frontend Dev
+- [Paweł Powęska](https://github.com/SpeedYoo) - Frontend Dev
+
+Byli kontrybutorzy:
+- [Jakub Czesnak](https://github.com/jczesnak) - Frontend Dev
+- [Dawid Bajek](https://github.com/Baju16) - Fullstack Dev
+- [Mateusz Tokarz](https://github.com/Mefju2137) - Frontend Dev
 
 ## 📖 Opis projektu
 **Trippy** to kompleksowa aplikacja mobilna (Android) oparta o architekturę klient-serwer, stworzona z myślą o osobach podróżujących w grupach. Rozwiązuje problem transparentnego zarządzania budżetem i sprawiedliwego rozliczania kosztów podczas wspólnych wyjazdów. 
@@ -23,7 +25,7 @@ Projekt realizowany jest w architekturze mikrousługowej/monolitycznej z wykorzy
 
 ## 🗄️ Model Danych (ERD)
 
-![Diagram ERD bazy danych Trippy](docs/imgs/erd/ERD.png)
+![Diagram ERD bazy danych Trippy](docs/imgs/erd/ERD-new.png)
 
 Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i została zaprojektowana w taki sposób, aby sprawnie zarządzać użytkownikami, wyjazdami oraz skomplikowanymi rozliczeniami. Składa się z czterech głównych obszarów:
 
@@ -47,6 +49,49 @@ Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i został
 * **Backend:** Java, Spring Boot, Spring Security
 * **Baza Danych:** PostgreSQL, Flyway / Liquibase
 * **Infrastruktura:** Docker, Docker Compose
+
+```mermaid
+flowchart LR
+    CLIENT["📱 Klient<br/>(Android / Web / Swagger)"]
+    SEC["🛡️ Spring Security<br/>JWT + CORS + BCrypt"]
+
+    subgraph API["🎯 Kontrolery REST  /api/**"]
+        AUTH["🔐 /auth/** + /users/me"]
+        TRIP["✈️ /trips/** (events, participants,<br/>nodes, balances, invites)"]
+        SOC["📝 /posts/** + /photos/upload"]
+        DICT["📚 /dictionaries/**"]
+        ADM["👑 /admin/** (ADMIN only)"]
+    end
+
+    SVC["⚙️ Services<br/>(Auth, Trip, Node, Balance+Settlement,<br/>User, Photo, Jwt, Email)"]
+    REPO["💾 Spring Data JPA Repositories"]
+
+    DB[("🗄️ PostgreSQL<br/>Flyway V1..V5")]
+    FS[("📁 nginx /uploads")]
+    SMTP[("✉️ SMTP")]
+
+    CLIENT --> SEC --> API --> SVC --> REPO --> DB
+    SVC -. pliki .-> FS
+    SVC -. emaile .-> SMTP
+
+    classDef edge fill:#e8f5e9,stroke:#2e7d32;
+    classDef ctrl fill:#e3f2fd,stroke:#1565c0;
+    classDef svc  fill:#fff3e0,stroke:#ef6c00;
+    classDef repo fill:#f3e5f5,stroke:#6a1b9a;
+    classDef ext  fill:#fce4ec,stroke:#ad1457;
+    class SEC edge;
+    class AUTH,TRIP,SOC,DICT,ADM ctrl;
+    class SVC svc;
+    class REPO repo;
+    class DB,FS,SMTP ext;
+```
+
+### Zasady architektoniczne
+* **Resource-oriented routing** — każdy zasób ma osobny kontroler, ścieżki są zagnieżdżone zgodnie z relacjami domenowymi (`/api/trips/{eventId}/nodes`, `/api/trips/{eventId}/participants`).
+* **Stateless JWT** — `JwtAuthenticationFilter` waliduje token przy każdym żądaniu; `TOKEN_BLACKLIST` + `REFRESH_TOKENS` obsługują rotację i logout.
+* **Separation of concerns** — kontrolery są cienkie (walidacja DTO + mapowanie), logika żyje w `service/`, dostęp do bazy w `repository/`.
+* **Strefa publiczna vs prywatna** — `/api/auth/**`, `/swagger-ui/**`, `/v3/api-docs/**` są `permitAll()`; reszta wymaga `Bearer <JWT>`. Endpointy `/api/admin/**` dodatkowo wymagają roli `ADMIN`.
+* **Pliki poza aplikacją** — uploady idą do dedykowanego serwera `nginx` (port `8888`), backend trzyma tylko URL-e w `TRIP_PHOTO` / `USERS.photo_url`.
 
 ---
 
@@ -328,9 +373,55 @@ docker compose up -d --build
 | Zmieniłem `SPRING_PROFILES_ACTIVE` w `.env`, ale appka dalej działa po staremu | `env_file` jest ładowany przy starcie kontenera — potrzebny `docker compose restart backend` (sam `stop` + `start` nie przeładowuje env w niektórych wersjach Compose). |
 | Emaile weryfikacyjne nie docierają na profilu `dev` | Są zapisywane do `backend/logs/emails/*.eml` jako pliki. Otwórz plik, skopiuj link weryfikacyjny, wklej w przeglądarce. |
 | Kontener `trippy_backend` w pętli restartu | Zobacz `docker compose logs backend` — najczęściej brak migracji Flyway, nieaktualny `.env` lub brakujący `JWT_SECRET_KEY`. |
+
+## Dokumentacja API (Swagger / OpenAPI)
+
+Pełna, interaktywna dokumentacja REST API generowana jest automatycznie przez
+springdoc-openapi i dostępna po uruchomieniu backendu:
+
+| Zasób | URL |
+| :--- | :--- |
+| Swagger UI (interaktywny) | `http://localhost:8080/swagger-ui.html` |
+| Specyfikacja OpenAPI (JSON) | `http://localhost:8080/v3/api-docs` |
+
+Oba adresy są publiczne (nie wymagają logowania) — skonfigurowane jako `permitAll()`
+w `SecurityConfig`.
+
+### Autoryzacja w Swagger UI (Bearer token)
+
+Większość endpointów wymaga tokena JWT. Aby testować je z poziomu Swagger UI:
+
+1. Wykonaj `POST /api/auth/login` z danymi konta testowego (patrz *Dane Dostępowe*).
+   W odpowiedzi otrzymasz `accessToken`.
+2. Kliknij przycisk **Authorize** (kłódka w prawym górnym rogu Swagger UI).
+3. Wklej **sam token** (springdoc sam dokleja prefiks `Bearer ` — nie wpisuj go ręcznie).
+4. Zatwierdź. Od tej pory wszystkie żądania z UI niosą nagłówek `Authorization: Bearer <token>`.
+
+Schemat bezpieczeństwa zdefiniowany jest globalnie w `OpenApiConfig`
+(`bearerAuth`, typ HTTP, schemat `bearer`, format `JWT`) i nałożony globalnie przez
+`addSecurityItem(...)`, dzięki czemu kłódka pojawia się przy każdym endpoincie.
+Endpointy publiczne (`/api/auth/**`, zasoby Swaggera) są dodatkowo oznaczone tak,
+by nie wymagały tokena.
+
+### Co zmieniło się w API — wycofanie `/api/expenses`
+
+Wydatek (dawny *Expense*) nie jest już osobnym zasobem — to zwykły węzeł
+(`TripNode`) z dodatnią ceną i flagą `isSeparate`. Endpointy `/api/expenses`
+zostały **usunięte**. Operacje na wydatkach realizuje się przez:
+
+| Operacja | Endpoint |
+| :--- | :--- |
+| Utworzenie wydatku/węzła | `POST /api/trips/{eventId}/nodes` |
+| Lista węzłów/wydatków wycieczki | `GET /api/trips/{eventId}/nodes` |
+| Pojedynczy węzeł | `GET /api/trips/{eventId}/nodes/{nodeId}` |
+| Edycja (pełna podmiana) | `PUT /api/trips/{eventId}/nodes/{nodeId}` |
+| Usunięcie | `DELETE /api/trips/{eventId}/nodes/{nodeId}` |
+
+Pola: dawne `title` → `name`; dochodzą wymagane `startTime` i `endTime`.
+
 ## Dokumentacja Mechanizmu Seedowania Bazy Danych
 
-#### 1. Architektura i Sposób Działania
+### 1. Architektura i Sposób Działania
 Proces automatycznego wypełniania bazy danych opiera się na klasie centralnej oraz dedykowanych skryptach.
 
 | Komponent / Krok | Akcja (Zasada działania) | Znaczenie / Cel |

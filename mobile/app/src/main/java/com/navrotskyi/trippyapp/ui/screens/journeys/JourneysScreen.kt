@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Luggage
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -20,18 +21,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.models.Trip
+import com.navrotskyi.trippyapp.ui.components.EmptyState
+import com.navrotskyi.trippyapp.ui.components.OfflineBanner
+import com.navrotskyi.trippyapp.ui.components.TripCardSkeleton
+import com.navrotskyi.trippyapp.ui.theme.Dimens
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JourneysScreen(
     viewModel: TripViewModel,
+    currentUserId: String?,
     onTripClick: (String) -> Unit,
     onAddTripClick: () -> Unit,
     onInvitationsClick: () -> Unit
 ) {
     val trips by viewModel.trips.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    // NOWE — stany do banera i shimmera
+    val isOnline by viewModel.isOnline.collectAsState()
+    val isLoadingTrips by viewModel.isLoadingTrips.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val pendingCount by viewModel.pendingSyncCount.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -46,50 +58,84 @@ fun JourneysScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refreshTrips() },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // ===== BANER OFFLINE / SYNC =====
+            OfflineBanner(
+                isOffline = !isOnline,
+                isSyncing = isSyncing,
+                pendingCount = pendingCount
+            )
+
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshTrips() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Twoje Podróże",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Twoje Podróże",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onInvitationsClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Zaproszenia")
-                }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    items(trips) { trip ->
-                        TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onInvitationsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Zaproszenia")
+                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
+                        contentPadding = PaddingValues(bottom = Dimens.FabListBottomPadding)
+                    ) {
+                        when {
+                            // ===== SHIMMER: gdy ładujemy z sieci i cache jest pusty =====
+                            isLoadingTrips && trips.isEmpty() -> {
+                                items(5) {
+                                    TripCardSkeleton()
+                                }
+                            }
+                            // ===== PUSTY STAN: brak wycieczek =====
+                            trips.isEmpty() -> {
+                                item {
+                                    EmptyState(
+                                        icon = Icons.Default.Luggage,
+                                        title = "Brak podróży",
+                                        description = "Nie masz jeszcze żadnych wycieczek. Zaplanuj swoją pierwszą przygodę!",
+                                        actionLabel = "Dodaj wycieczkę",
+                                        onActionClick = onAddTripClick
+                                    )
+                                }
+                            }
+                            else -> {
+                                items(trips) { trip ->
+                                    TripCard(
+                                        trip = trip,
+                                        currentUserId = currentUserId,
+                                        onClick = { onTripClick(trip.id) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
-
         }
     }
 }
 
 @Composable
-fun TripCard(trip: Trip, onClick: () -> Unit) {
+fun TripCard(trip: Trip, currentUserId: String?, onClick: () -> Unit) {
+    val isOwner = currentUserId != null && trip.ownerId == currentUserId
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -114,7 +160,6 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                val isOwner = trip.owner?.id == 1L
                 RoleBadge(isOwner = isOwner)
             }
 
@@ -163,7 +208,7 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Organizator: ${trip.owner?.name ?: "Nieznany"}",
+                        text = if (isOwner) "Organizator: Ty" else "Jesteś uczestnikiem",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
