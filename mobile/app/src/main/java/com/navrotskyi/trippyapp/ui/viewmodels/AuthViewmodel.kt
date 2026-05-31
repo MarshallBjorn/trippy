@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
+import android.util.Log
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
@@ -77,9 +77,29 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.Success(response.body()!!.accessToken)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message, e.errors)
+
+                Log.e(
+                    "AuthViewModel",
+                    "Login API error",
+                    e
+                )
+
+                authState = AuthState.Error(
+                    e.message,
+                    e.errors
+                )
+
             } catch (e: Exception) {
-                authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
+
+                Log.e(
+                    "AuthViewModel",
+                    "Unexpected login error",
+                    e
+                )
+
+                authState = AuthState.Error(
+                    "Nieoczekiwany błąd: ${e.message}"
+                )
             }
         }
     }
@@ -94,9 +114,29 @@ class AuthViewModel : ViewModel() {
                     authState = AuthState.AwaitingVerification(email)
                 }
             } catch (e: ApiException) {
-                authState = AuthState.Error(e.message, e.errors)
+
+                Log.e(
+                    "AuthViewModel",
+                    "Register API error",
+                    e
+                )
+
+                authState = AuthState.Error(
+                    e.message,
+                    e.errors
+                )
+
             } catch (e: Exception) {
-                authState = AuthState.Error("Nieoczekiwany błąd: ${e.message}")
+
+                Log.e(
+                    "AuthViewModel",
+                    "Unexpected register error",
+                    e
+                )
+
+                authState = AuthState.Error(
+                    "Nieoczekiwany błąd: ${e.message}"
+                )
             }
         }
     }

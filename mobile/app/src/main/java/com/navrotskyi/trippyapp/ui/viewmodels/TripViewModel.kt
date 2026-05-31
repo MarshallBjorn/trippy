@@ -226,6 +226,13 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createTrip failed",
+                    e
+                )
+
                 SyncManager.enqueueCreateTrip(request)
                 _createTripState.value = CreateTripState.Success
             }
@@ -241,7 +248,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful && response.body() != null) {
                     _participants.value = response.body()!!
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadParticipants failed",
+                    e
+                )
+            }
         }
     }
 
@@ -258,6 +272,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _inviteState.value = InviteState.Error("Brak połączenia: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "inviteParticipant failed",
+                    e
+                )
             }
         }
     }
@@ -339,6 +358,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 SyncManager.enqueueCreateNode(tripId, request)
                 _createNodeState.value = CreateTripNodeState.Success
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -388,6 +412,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 SyncManager.enqueueUpdateNode(tripId, nodeId, request)
                 _createNodeState.value = CreateTripNodeState.Success
+                android.util.Log.e(
+                    "TripViewModel",
+                    "updateTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -408,6 +437,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueDeleteNode(tripId, nodeId)
+                android.util.Log.e(
+                    "TripViewModel",
+                    "deleteTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -421,7 +455,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     _posts.value = response.body() ?: emptyList()
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadPosts failed",
+                    e
+                )
+            }
         }
     }
 
@@ -448,6 +489,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createPost failed",
+                    e
+                )
             }
         }
     }

@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import android.util.Log
+
 sealed class ExpensesState {
     object Loading : ExpensesState()
     data class Success(val summary: ExpensesSummaryDto) : ExpensesState()
@@ -49,6 +51,13 @@ class ExpensesViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
+
+                Log.e(
+                    "ExpensesViewModel",
+                    "Failed to get current user",
+                    e
+                )
+
                 ""
             }
         }
@@ -98,7 +107,17 @@ class ExpensesViewModel : ViewModel() {
                         )
                 }
             } catch (e: Exception) {
-                _uiState.value = ExpensesState.Error("Błąd połączenia: ${e.localizedMessage}")
+
+                Log.e(
+                    "ExpensesViewModel",
+                    "Failed to load expenses",
+                    e
+                )
+
+                _uiState.value =
+                    ExpensesState.Error(
+                        "Błąd połączenia: ${e.localizedMessage}"
+                    )
             }
         }
     }
