@@ -227,6 +227,13 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createTrip failed",
+                    e
+                )
+
                 SyncManager.enqueueCreateTrip(request)
                 _createTripState.value = CreateTripState.Success
             }
@@ -242,7 +249,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful && response.body() != null) {
                     _participants.value = response.body()!!
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadParticipants failed",
+                    e
+                )
+            }
         }
     }
 
@@ -258,9 +272,12 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _inviteState.value = InviteState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
-                // Błąd biznesowy z API (np. "User not found", "already invited") tłumaczymy na polski.
-                // NoInternetException zostaje rozpoznany osobno, więc komunikat sieciowy nie miesza się z błędem serwera.
-                _inviteState.value = InviteState.Error(ErrorMessages.fromThrowable(e))
+                _inviteState.value = InviteState.Error("Brak połączenia: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "inviteParticipant failed",
+                    e
+                )
             }
         }
     }
@@ -310,8 +327,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {
@@ -324,15 +340,30 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val response = api.createTripNode(tripId, request)
+
+                println("RESPONSE CODE = ${response.code()}")
+                println("ERROR BODY = ${response.errorBody()?.string()}")
+
                 if (response.isSuccessful) {
-                    _createNodeState.value = CreateTripNodeState.Success
+                    _createNodeState.value =
+                        CreateTripNodeState.Success
+
                     repo.refreshNodes(tripId)
+
+
+                    repo.refreshTrips()
                 } else {
-                    _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                    _createNodeState.value =
+                        CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueCreateNode(tripId, request)
                 _createNodeState.value = CreateTripNodeState.Success
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -358,8 +389,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {
@@ -376,12 +406,18 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     _createNodeState.value = CreateTripNodeState.Success
                     repo.refreshNodes(tripId)
                     repo.refreshNode(tripId, nodeId)
+                    repo.refreshTrips()
                 } else {
                     _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueUpdateNode(tripId, nodeId, request)
                 _createNodeState.value = CreateTripNodeState.Success
+                android.util.Log.e(
+                    "TripViewModel",
+                    "updateTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -398,9 +434,15 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 val response = api.deleteTripNode(tripId, nodeId)
                 if (response.isSuccessful) {
                     repo.refreshNodes(tripId)
+                    repo.refreshTrips()
                 }
             } catch (e: Exception) {
                 SyncManager.enqueueDeleteNode(tripId, nodeId)
+                android.util.Log.e(
+                    "TripViewModel",
+                    "deleteTripNode failed",
+                    e
+                )
             }
         }
     }
@@ -414,7 +456,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     _posts.value = response.body() ?: emptyList()
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadPosts failed",
+                    e
+                )
+            }
         }
     }
 
@@ -441,6 +490,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createPost failed",
+                    e
+                )
             }
         }
     }

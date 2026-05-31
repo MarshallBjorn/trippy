@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.navrotskyi.trippyapp.models.*
 import com.navrotskyi.trippyapp.api.TrippyApi
-
+import android.util.Log
 
 sealed class GroupBalanceState {
     object Loading : GroupBalanceState()
@@ -87,7 +87,17 @@ class GroupBalanceViewModel : ViewModel() {
                     _uiState.value = GroupBalanceState.Error("Nie udało się pobrać rozliczeń.")
                 }
             } catch (e: Exception) {
-                _uiState.value = GroupBalanceState.Error("Błąd sieci: ${e.message}")
+
+                Log.e(
+                    "GroupBalanceViewModel",
+                    "Failed to load balances",
+                    e
+                )
+
+                _uiState.value =
+                    GroupBalanceState.Error(
+                        "Błąd sieci: ${e.message}"
+                    )
             }
         }
     }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import android.util.Log
 
 data class ReporterFilter(val id: String, val name: String)
 
@@ -147,7 +148,16 @@ class ExpenseHistoryViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Błąd połączenia: ${e.localizedMessage}"
+
+                Log.e(
+                    "ExpenseHistoryViewModel",
+                    "Failed to load expense history",
+                    e
+                )
+
+                _errorMessage.value =
+                    "Błąd połączenia: ${e.localizedMessage}"
+
             } finally {
                 _isLoading.value = false
             }
