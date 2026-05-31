@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.data.database.TrippyDb

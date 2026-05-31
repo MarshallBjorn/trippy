@@ -105,7 +105,7 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.imePadding().padding(16.dp)) {
                     if (isError) {
                         Text(
                             text = "Brak połączenia. Nie można zapisać zmian.",

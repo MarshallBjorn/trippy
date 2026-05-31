@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.navrotskyi.trippyapp.api.ApiException
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.NoInternetException
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi

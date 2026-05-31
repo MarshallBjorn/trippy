@@ -25,7 +25,7 @@ Projekt realizowany jest w architekturze mikrousługowej/monolitycznej z wykorzy
 
 ## 🗄️ Model Danych (ERD)
 
-![Diagram ERD bazy danych Trippy](docs/imgs/erd/ERD.png)
+![Diagram ERD bazy danych Trippy](docs/imgs/erd/ERD-new.png)
 
 Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i została zaprojektowana w taki sposób, aby sprawnie zarządzać użytkownikami, wyjazdami oraz skomplikowanymi rozliczeniami. Składa się z czterech głównych obszarów:
 
@@ -49,6 +49,49 @@ Architektura bazy danych opiera się na relacyjnym modelu (PostgreSQL) i został
 * **Backend:** Java, Spring Boot, Spring Security
 * **Baza Danych:** PostgreSQL, Flyway / Liquibase
 * **Infrastruktura:** Docker, Docker Compose
+
+```mermaid
+flowchart LR
+    CLIENT["📱 Klient<br/>(Android / Web / Swagger)"]
+    SEC["🛡️ Spring Security<br/>JWT + CORS + BCrypt"]
+
+    subgraph API["🎯 Kontrolery REST  /api/**"]
+        AUTH["🔐 /auth/** + /users/me"]
+        TRIP["✈️ /trips/** (events, participants,<br/>nodes, balances, invites)"]
+        SOC["📝 /posts/** + /photos/upload"]
+        DICT["📚 /dictionaries/**"]
+        ADM["👑 /admin/** (ADMIN only)"]
+    end
+
+    SVC["⚙️ Services<br/>(Auth, Trip, Node, Balance+Settlement,<br/>User, Photo, Jwt, Email)"]
+    REPO["💾 Spring Data JPA Repositories"]
+
+    DB[("🗄️ PostgreSQL<br/>Flyway V1..V5")]
+    FS[("📁 nginx /uploads")]
+    SMTP[("✉️ SMTP")]
+
+    CLIENT --> SEC --> API --> SVC --> REPO --> DB
+    SVC -. pliki .-> FS
+    SVC -. emaile .-> SMTP
+
+    classDef edge fill:#e8f5e9,stroke:#2e7d32;
+    classDef ctrl fill:#e3f2fd,stroke:#1565c0;
+    classDef svc  fill:#fff3e0,stroke:#ef6c00;
+    classDef repo fill:#f3e5f5,stroke:#6a1b9a;
+    classDef ext  fill:#fce4ec,stroke:#ad1457;
+    class SEC edge;
+    class AUTH,TRIP,SOC,DICT,ADM ctrl;
+    class SVC svc;
+    class REPO repo;
+    class DB,FS,SMTP ext;
+```
+
+### Zasady architektoniczne
+* **Resource-oriented routing** — każdy zasób ma osobny kontroler, ścieżki są zagnieżdżone zgodnie z relacjami domenowymi (`/api/trips/{eventId}/nodes`, `/api/trips/{eventId}/participants`).
+* **Stateless JWT** — `JwtAuthenticationFilter` waliduje token przy każdym żądaniu; `TOKEN_BLACKLIST` + `REFRESH_TOKENS` obsługują rotację i logout.
+* **Separation of concerns** — kontrolery są cienkie (walidacja DTO + mapowanie), logika żyje w `service/`, dostęp do bazy w `repository/`.
+* **Strefa publiczna vs prywatna** — `/api/auth/**`, `/swagger-ui/**`, `/v3/api-docs/**` są `permitAll()`; reszta wymaga `Bearer <JWT>`. Endpointy `/api/admin/**` dodatkowo wymagają roli `ADMIN`.
+* **Pliki poza aplikacją** — uploady idą do dedykowanego serwera `nginx` (port `8888`), backend trzyma tylko URL-e w `TRIP_PHOTO` / `USERS.photo_url`.
 
 ---
 

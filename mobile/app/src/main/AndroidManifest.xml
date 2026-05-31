@@ -21,8 +21,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.TrippyApp">
-            <intent-filter>
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.App.Starting">            <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>

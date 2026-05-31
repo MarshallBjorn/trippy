@@ -125,6 +125,7 @@ fun AddTripScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 TrippyButton(

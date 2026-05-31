@@ -30,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.database.TrippyDb
@@ -57,6 +58,7 @@ data class ErrorPayload(val message: String, val errors: List<String>? = null)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         TokenManager.init(this)
         enableEdgeToEdge()
@@ -252,8 +254,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.Trips.route) {
+                            val userState by profileViewModel.user.collectAsState()
                             JourneysScreen(
                                 viewModel = tripViewModel,
+                                currentUserId = userState?.remoteUserId,
                                 onTripClick = { tripId -> navController.navigate(Screen.TripDetails.createRoute(tripId)) },
                                 onAddTripClick = { navController.navigate(Screen.AddTrip.route) } ,
                                 onInvitationsClick = {navController.navigate(Screen.Invitations.route) }
@@ -418,7 +422,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Screen.Invitations.route) {
-                            InvitationsScreen()
+                            InvitationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onInvitationAccepted = { tripViewModel.loadTrips() }
+                            )
                         }
                     }
 
