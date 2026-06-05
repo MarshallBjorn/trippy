@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 
 object TokenManager {
+    private const val KEY_ACCESS = "JWT_TOKEN"
+    private const val KEY_REFRESH = "REFRESH_TOKEN"
+
     private var prefs: SharedPreferences? = null
 
     // Inicjalizacja
@@ -12,17 +15,31 @@ object TokenManager {
     }
 
     // Zapisywanie tokena
+    fun saveTokens(accessToken: String, refreshToken: String) {
+        prefs?.edit()
+            ?.putString(KEY_ACCESS, accessToken)
+            ?.putString(KEY_REFRESH, refreshToken)
+            ?.apply()
+    }
+
     fun saveToken(token: String) {
-        prefs?.edit()?.putString("JWT_TOKEN", token)?.apply()
+        prefs?.edit()
+            ?.putString(KEY_ACCESS, token)
+            ?.apply()
     }
 
     // Pobieranie tokena
     fun getToken(): String? {
-        return prefs?.getString("JWT_TOKEN", null)
+        return prefs?.getString(KEY_ACCESS, null)
     }
 
-    // Wylogowanie (czyszczenie tokena)
+    fun getRefreshToken(): String? {
+        return prefs?.getString(KEY_REFRESH, null)
+    }
+
+    fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
+
     fun clearToken() {
-        prefs?.edit()?.remove("JWT_TOKEN")?.apply()
+        prefs?.edit()?.remove(KEY_ACCESS)?.remove(KEY_REFRESH)?.apply()
     }
 }

@@ -31,3 +31,8 @@ data class AuthResponse(
     @SerializedName("refreshToken")
     val refreshToken: String
 )
+
+data class RefreshTokenRequest(
+    @SerializedName("refreshToken")
+    val refreshToken: String
+)
