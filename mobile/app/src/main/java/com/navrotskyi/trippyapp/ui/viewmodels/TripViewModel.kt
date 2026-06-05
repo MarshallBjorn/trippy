@@ -18,9 +18,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import retrofit2.Response
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -82,6 +82,16 @@ sealed class CreatePostState {
     object Loading : CreatePostState()
     object Success : CreatePostState()
     data class Error(val message: String) : CreatePostState()
+}
+
+/** Wynik uniwersalnej operacji zapisu z fallbackiem offline. */
+sealed class NetworkResult {
+    /** Żądanie wysłane i potwierdzone przez serwer (2xx). */
+    object Success : NetworkResult()
+    /** Brak sieci — operacja trafiła do kolejki offline. */
+    object Queued : NetworkResult()
+    /** Serwer odrzucił żądanie (np. 4xx/5xx). */
+    data class ServerError(val code: Int) : NetworkResult()
 }
 
 class TripViewModel(application: Application) : AndroidViewModel(application) {
@@ -210,24 +220,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         viewModelScope.launch {
-            val online = NetworkMonitor.isOnline.first()
-            if (!online) {
-                SyncManager.enqueueCreateTrip(request)
-                _createTripState.value = CreateTripState.Success
-                return@launch
-            }
-
-            try {
-                val response = api.createTrip(request)
-                if (response.isSuccessful) {
-                    _createTripState.value = CreateTripState.Success
-                    repo.refreshTrips()
-                } else {
-                    _createTripState.value = CreateTripState.Error("Błąd serwera: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                SyncManager.enqueueCreateTrip(request)
-                _createTripState.value = CreateTripState.Success
+            val result = executeOrEnqueue(
+                apiCall = { api.createTrip(request) },
+                enqueue = { SyncManager.enqueueCreateTrip(request) },
+                onSuccess = { repo.refreshTrips() }
+            )
+            _createTripState.value = when (result) {
+                is NetworkResult.ServerError -> CreateTripState.Error("Błąd serwera: ${result.code}")
+                else -> CreateTripState.Success
             }
         }
     }
@@ -241,7 +241,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful && response.body() != null) {
                     _participants.value = response.body()!!
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadParticipants failed",
+                    e
+                )
+            }
         }
     }
 
@@ -258,6 +265,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _inviteState.value = InviteState.Error("Brak połączenia: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "inviteParticipant failed",
+                    e
+                )
             }
         }
     }
@@ -307,29 +319,21 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {
-            val online = NetworkMonitor.isOnline.first()
-            if (!online) {
-                SyncManager.enqueueCreateNode(tripId, request)
-                _createNodeState.value = CreateTripNodeState.Success
-                return@launch
-            }
-
-            try {
-                val response = api.createTripNode(tripId, request)
-                if (response.isSuccessful) {
-                    _createNodeState.value = CreateTripNodeState.Success
+            val result = executeOrEnqueue(
+                apiCall = { api.createTripNode(tripId, request) },
+                enqueue = { SyncManager.enqueueCreateNode(tripId, request) },
+                onSuccess = {
                     repo.refreshNodes(tripId)
-                } else {
-                    _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                    repo.refreshTrips()
                 }
-            } catch (e: Exception) {
-                SyncManager.enqueueCreateNode(tripId, request)
-                _createNodeState.value = CreateTripNodeState.Success
+            )
+            _createNodeState.value = when (result) {
+                is NetworkResult.ServerError -> CreateTripNodeState.Error("Błąd serwera: ${result.code}")
+                else -> CreateTripNodeState.Success
             }
         }
     }
@@ -355,50 +359,36 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             endTime = apiEnd,
             note = note.ifBlank { null },
             price = formattedPrice,
-            separate = separate,
-            category = category
+            separate = separate
         )
 
         viewModelScope.launch {
-            val online = NetworkMonitor.isOnline.first()
-            if (!online) {
-                SyncManager.enqueueUpdateNode(tripId, nodeId, request)
-                _createNodeState.value = CreateTripNodeState.Success
-                return@launch
-            }
-
-            try {
-                val response = api.updateTripNode(tripId, nodeId, request)
-                if (response.isSuccessful) {
-                    _createNodeState.value = CreateTripNodeState.Success
+            val result = executeOrEnqueue(
+                apiCall = { api.updateTripNode(tripId, nodeId, request) },
+                enqueue = { SyncManager.enqueueUpdateNode(tripId, nodeId, request) },
+                onSuccess = {
                     repo.refreshNodes(tripId)
                     repo.refreshNode(tripId, nodeId)
-                } else {
-                    _createNodeState.value = CreateTripNodeState.Error("Błąd serwera: ${response.code()}")
+                    repo.refreshTrips()
                 }
-            } catch (e: Exception) {
-                SyncManager.enqueueUpdateNode(tripId, nodeId, request)
-                _createNodeState.value = CreateTripNodeState.Success
+            )
+            _createNodeState.value = when (result) {
+                is NetworkResult.ServerError -> CreateTripNodeState.Error("Błąd serwera: ${result.code}")
+                else -> CreateTripNodeState.Success
             }
         }
     }
 
     fun deleteTripNode(tripId: String, nodeId: String) {
         viewModelScope.launch {
-            val online = NetworkMonitor.isOnline.first()
-            if (!online) {
-                SyncManager.enqueueDeleteNode(tripId, nodeId)
-                return@launch
-            }
-
-            try {
-                val response = api.deleteTripNode(tripId, nodeId)
-                if (response.isSuccessful) {
+            executeOrEnqueue(
+                apiCall = { api.deleteTripNode(tripId, nodeId) },
+                enqueue = { SyncManager.enqueueDeleteNode(tripId, nodeId) },
+                onSuccess = {
                     repo.refreshNodes(tripId)
+                    repo.refreshTrips()
                 }
-            } catch (e: Exception) {
-                SyncManager.enqueueDeleteNode(tripId, nodeId)
-            }
+            )
         }
     }
 
@@ -411,7 +401,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     _posts.value = response.body() ?: emptyList()
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadPosts failed",
+                    e
+                )
+            }
         }
     }
 
@@ -438,6 +435,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createPost failed",
+                    e
+                )
             }
         }
     }
@@ -580,6 +582,37 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // FUNKCJE POMOCNICZE
+
+    /**
+     * Uniwersalna obsługa zapisu (create/update/delete) z fallbackiem offline.
+     *
+     * Najpierw PRÓBUJE wysłać żądanie. Dopiero realny błąd sieci (wyjątek) powoduje
+     * zakolejkowanie operacji do późniejszej synchronizacji — dzięki temu przy
+     * działającym API dane nie lądują niepotrzebnie w "Oczekiwaniu na zmiany".
+     *
+     * - 2xx                  → [onSuccess] + [NetworkResult.Success]
+     * - błąd serwera (!2xx)  → [NetworkResult.ServerError]
+     * - brak sieci (wyjątek) → [enqueue] + [NetworkResult.Queued]
+     */
+    private suspend fun <T> executeOrEnqueue(
+        apiCall: suspend () -> Response<T>,
+        enqueue: suspend () -> Unit,
+        onSuccess: suspend (T?) -> Unit = {}
+    ): NetworkResult {
+        return try {
+            val response = apiCall()
+            if (response.isSuccessful) {
+                onSuccess(response.body())
+                NetworkResult.Success
+            } else {
+                NetworkResult.ServerError(response.code())
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("TripViewModel", "Żądanie sieciowe nieudane — kolejkuję offline", e)
+            enqueue()
+            NetworkResult.Queued
+        }
+    }
 
     private fun formatDateForApi(date: String): String {
         val parts = date.split(".")

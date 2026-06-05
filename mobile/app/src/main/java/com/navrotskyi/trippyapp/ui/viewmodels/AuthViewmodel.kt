@@ -74,8 +74,10 @@ class AuthViewModel : ViewModel() {
             try {
                 val response = api.login(LoginRequest(email, password))
                 if (response.isSuccessful) {
-                    authState = AuthState.Success(response.body()!!.accessToken)
-                }
+                val body = response.body()!!
+                TokenManager.saveTokens(body.accessToken, body.refreshToken)
+                authState = AuthState.Success(body.accessToken)
+            }
             } catch (e: ApiException) {
                 authState = AuthState.Error(e.message, e.errors)
             } catch (e: Exception) {

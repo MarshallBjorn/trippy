@@ -58,7 +58,6 @@ data class ErrorPayload(val message: String, val errors: List<String>? = null)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        TokenManager.init(this)
         enableEdgeToEdge()
 
         setContent {
@@ -81,11 +80,21 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
+                val startDestination = remember {
+                    if (TokenManager.isLoggedIn()) Screen.Trips.route else Screen.Login.route
+                }
+
+                LaunchedEffect(Unit) {
+                    if (TokenManager.isLoggedIn()) {
+                        profileViewModel.fetchUserFromApi()
+                        tripViewModel.loadTrips()
+                    }
+                }
+
                 val sessionViewModel: SessionViewModel = viewModel()
                 LaunchedEffect(authState) {
                     when (authState) {
                         is AuthState.Success -> {
-                            TokenManager.saveToken(authState.token)
                             Toast.makeText(context, "Sukces!", Toast.LENGTH_SHORT).show()
 
                             tripViewModel.loadTrips()
@@ -150,7 +159,7 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Login.route,
+                        startDestination = startDestination,
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable(Screen.Login.route) {
