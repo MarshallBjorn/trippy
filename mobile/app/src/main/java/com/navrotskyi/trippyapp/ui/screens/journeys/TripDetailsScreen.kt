@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.navrotskyi.trippyapp.models.TripNodeDto
 import com.navrotskyi.trippyapp.models.TripParticipantDto
+import com.navrotskyi.trippyapp.ui.components.EmptyState
 import com.navrotskyi.trippyapp.ui.components.OfflineBanner
 import com.navrotskyi.trippyapp.ui.components.TripNodeSkeleton
 import com.navrotskyi.trippyapp.ui.components.TrippyErrorDialog
@@ -243,9 +244,12 @@ fun EventsTab(
     }
 
     if (nodes.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Brak wydarzeń. Dodaj coś!", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        EmptyState(
+            icon = Icons.Default.Event,
+            title = "Brak wydarzeń",
+            description = "Nie zaplanowano jeszcze żadnych wydarzeń. Dodaj pierwsze, klikając przycisk +.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -356,9 +360,12 @@ fun ExpensesTab(
     }
 
     if (expenses.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Brak wydatków. Dodaj pierwszy wydatek!", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        EmptyState(
+            icon = Icons.Default.Receipt,
+            title = "Brak wydatków",
+            description = "Nie dodano jeszcze żadnych wydatków. Dodaj pierwszy, klikając przycisk +.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val total = expenses.sumOf { it.price }
@@ -421,9 +428,12 @@ fun ExpenseCard(expense: TripNodeDto, currency: String, onEdit: () -> Unit, onDe
 @Composable
 fun ParticipantsTab(participants: List<TripParticipantDto>) {
     if (participants.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Brak uczestników. Kliknij + aby kogoś zaprosić!", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        EmptyState(
+            icon = Icons.Default.Group,
+            title = "Brak uczestników",
+            description = "Na razie jesteś tu sam. Zaproś znajomych, klikając przycisk +.",
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(participants) { participant -> ParticipantCard(participant) }

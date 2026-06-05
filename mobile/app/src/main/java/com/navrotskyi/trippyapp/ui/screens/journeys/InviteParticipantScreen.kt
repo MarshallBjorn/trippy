@@ -2,6 +2,8 @@ package com.navrotskyi.trippyapp.ui.screens.journeys
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -67,6 +69,8 @@ fun InviteParticipantScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -112,9 +116,18 @@ fun InviteParticipantScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                participants.forEach { participant ->
-                    ParticipantCard(participant = participant)
+            if (participants.isEmpty()) {
+                Text(
+                    text = "Brak uczestników. Zaproś kogoś, podając jego adres e-mail powyżej.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    participants.forEach { participant ->
+                        ParticipantCard(participant = participant)
+                    }
                 }
             }
         }

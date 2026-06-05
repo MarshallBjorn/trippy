@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.navrotskyi.trippyapp.api.ErrorMessages
 import com.navrotskyi.trippyapp.api.RetrofitClient
 import com.navrotskyi.trippyapp.api.TrippyApi
 import com.navrotskyi.trippyapp.data.database.TrippyDb
@@ -249,6 +250,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                     e
                 )
             }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadParticipants failed",
+                    e
+                )
+            }
         }
     }
 
@@ -265,6 +274,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _inviteState.value = InviteState.Error("Brak połączenia: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "inviteParticipant failed",
+                    e
+                )
                 android.util.Log.e(
                     "TripViewModel",
                     "inviteParticipant failed",
@@ -320,6 +334,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             note = note.ifBlank { null },
             price = formattedPrice,
             separate = separate
+            separate = separate
         )
 
         viewModelScope.launch {
@@ -360,6 +375,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
             note = note.ifBlank { null },
             price = formattedPrice,
             separate = separate
+            separate = separate
         )
 
         viewModelScope.launch {
@@ -387,6 +403,7 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 onSuccess = {
                     repo.refreshNodes(tripId)
                     repo.refreshTrips()
+                    repo.refreshTrips()
                 }
             )
         }
@@ -401,6 +418,14 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     _posts.value = response.body() ?: emptyList()
                 }
+            } catch (e: Exception) {
+
+                android.util.Log.e(
+                    "TripViewModel",
+                    "loadPosts failed",
+                    e
+                )
+            }
             } catch (e: Exception) {
 
                 android.util.Log.e(
@@ -435,6 +460,11 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _createPostState.value = CreatePostState.Error("Błąd sieci: ${e.localizedMessage}")
+                android.util.Log.e(
+                    "TripViewModel",
+                    "createPost failed",
+                    e
+                )
                 android.util.Log.e(
                     "TripViewModel",
                     "createPost failed",

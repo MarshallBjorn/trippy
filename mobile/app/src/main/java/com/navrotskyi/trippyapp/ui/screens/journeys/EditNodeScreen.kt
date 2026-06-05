@@ -69,7 +69,7 @@ fun EditNodeScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
-                Box(Modifier.padding(16.dp)) {
+                Box(Modifier.imePadding().padding(16.dp)) {
                     TrippyButton(
                         text = if (createNodeState is CreateTripNodeState.Loading) "Zapisywanie..." else "Zapisz zmiany",
                         onClick = {

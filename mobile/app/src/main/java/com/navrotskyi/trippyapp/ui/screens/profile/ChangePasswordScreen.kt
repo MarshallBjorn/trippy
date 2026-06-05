@@ -1,8 +1,10 @@
 package com.navrotskyi.trippyapp.ui.screens.profile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material3.*
@@ -80,7 +82,7 @@ fun ChangePasswordScreen(
         },
         bottomBar = {
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.imePadding().padding(16.dp)) {
                     androidx.compose.animation.AnimatedVisibility(visible = backendError != null) {
                         Text(
                             text = backendError ?: "",
@@ -106,6 +108,7 @@ fun ChangePasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
         ) {
             Spacer(Modifier.height(40.dp))

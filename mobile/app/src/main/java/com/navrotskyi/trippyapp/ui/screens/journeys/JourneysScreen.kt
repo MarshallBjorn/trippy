@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Luggage
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -20,14 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.navrotskyi.trippyapp.models.Trip
+import com.navrotskyi.trippyapp.ui.components.EmptyState
 import com.navrotskyi.trippyapp.ui.components.OfflineBanner
 import com.navrotskyi.trippyapp.ui.components.TripCardSkeleton
+import com.navrotskyi.trippyapp.ui.theme.Dimens
 import com.navrotskyi.trippyapp.ui.viewmodels.TripViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JourneysScreen(
     viewModel: TripViewModel,
+    currentUserId: String?,
     onTripClick: (String) -> Unit,
     onAddTripClick: () -> Unit,
     onInvitationsClick: () -> Unit
@@ -90,17 +94,36 @@ fun JourneysScreen(
                     }
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
+                        contentPadding = PaddingValues(bottom = Dimens.FabListBottomPadding)
                     ) {
-                        // ===== SHIMMER: gdy ładujemy z sieci i cache jest pusty =====
-                        if (isLoadingTrips && trips.isEmpty()) {
-                            items(5) {
-                                TripCardSkeleton()
+                        when {
+                            // ===== SHIMMER: gdy ładujemy z sieci i cache jest pusty =====
+                            isLoadingTrips && trips.isEmpty() -> {
+                                items(5) {
+                                    TripCardSkeleton()
+                                }
                             }
-                        } else {
-                            items(trips) { trip ->
-                                TripCard(trip = trip, onClick = { onTripClick(trip.id) })
+                            // ===== PUSTY STAN: brak wycieczek =====
+                            trips.isEmpty() -> {
+                                item {
+                                    EmptyState(
+                                        icon = Icons.Default.Luggage,
+                                        title = "Brak podróży",
+                                        description = "Nie masz jeszcze żadnych wycieczek. Zaplanuj swoją pierwszą przygodę!",
+                                        actionLabel = "Dodaj wycieczkę",
+                                        onActionClick = onAddTripClick
+                                    )
+                                }
+                            }
+                            else -> {
+                                items(trips) { trip ->
+                                    TripCard(
+                                        trip = trip,
+                                        currentUserId = currentUserId,
+                                        onClick = { onTripClick(trip.id) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -110,9 +133,9 @@ fun JourneysScreen(
     }
 }
 
-// TripCard i RoleBadge — bez zmian, zostaw te same co masz
 @Composable
-fun TripCard(trip: Trip, onClick: () -> Unit) {
+fun TripCard(trip: Trip, currentUserId: String?, onClick: () -> Unit) {
+    val isOwner = currentUserId != null && trip.ownerId == currentUserId
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -137,7 +160,6 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                val isOwner = trip.owner?.id == 1L
                 RoleBadge(isOwner = isOwner)
             }
 
@@ -186,7 +208,7 @@ fun TripCard(trip: Trip, onClick: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Organizator: ${trip.owner?.name ?: "Nieznany"}",
+                        text = if (isOwner) "Organizator: Ty" else "Jesteś uczestnikiem",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

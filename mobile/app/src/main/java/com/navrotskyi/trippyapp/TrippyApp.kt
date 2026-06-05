@@ -5,7 +5,8 @@ import com.navrotskyi.trippyapp.api.TokenManager
 import com.navrotskyi.trippyapp.data.network.NetworkMonitor
 import com.navrotskyi.trippyapp.data.sync.SyncManager
 
-class TrippyApp : Application() {
+class
+TrippyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         TokenManager.init(this)

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,8 +23,11 @@ import com.navrotskyi.trippyapp.data.network.NetworkMonitor
 import com.navrotskyi.trippyapp.data.sync.SyncManager
 import com.navrotskyi.trippyapp.models.ExpensesSummaryDto
 import com.navrotskyi.trippyapp.models.SettlementDto
+import com.navrotskyi.trippyapp.ui.components.EmptyState
 import com.navrotskyi.trippyapp.ui.components.OfflineBanner
 import com.navrotskyi.trippyapp.ui.components.ShimmerBox
+import com.navrotskyi.trippyapp.ui.theme.PositiveGreen
+import com.navrotskyi.trippyapp.ui.theme.PositiveGreenContainer
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesState
 import com.navrotskyi.trippyapp.ui.viewmodels.ExpensesViewModel
 
@@ -31,6 +36,7 @@ fun ExpensesScreen(
     viewModel: ExpensesViewModel,
     modifier: Modifier = Modifier
 ) {
+
     val uiState by viewModel.uiState.collectAsState()
 
     val isOnline by NetworkMonitor.isOnline.collectAsState(initial = true)
@@ -76,7 +82,19 @@ fun ExpensesScreen(
                         ExpensesShimmer()
                     }
                     is ExpensesState.Success -> {
-                        ExpensesContent(state.summary, viewModel)
+                        val summary = state.summary
+                        val isEmpty = summary.totalSpent == 0.0 &&
+                                summary.pendingSettlements.isEmpty()
+                        if (isEmpty) {
+                            EmptyState(
+                                icon = Icons.Default.AccountBalanceWallet,
+                                title = "Brak wydatków",
+                                description = "Nie masz jeszcze żadnych wydatków ani rozliczeń. Dodaj wydatki w swoich podróżach, a podsumowanie pojawi się tutaj.",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            ExpensesContent(summary, viewModel)
+                        }
                     }
                     is ExpensesState.Error -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -108,66 +126,79 @@ private fun ExpensesShimmer() {
 }
 
 @Composable
-fun ExpensesContent(summary: ExpensesSummaryDto, viewModel: ExpensesViewModel) {
+fun ExpensesContent(
+    summary: ExpensesSummaryDto,
+    viewModel: ExpensesViewModel
+) {
+
+    val currentUserId =
+        viewModel.currentUserId
+
+    val incomingAmount = summary.pendingSettlements
+        .filter { it.toUserId == currentUserId }
+        .sumOf { it.amount }
+
+    val outgoingAmount = summary.pendingSettlements
+        .filter { it.fromUserId == currentUserId }
+        .sumOf { it.amount }
+
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement =
+            Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp)
+        contentPadding =
+            PaddingValues(bottom = 24.dp)
     ) {
+
         item {
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(12.dp)
             ) {
+
                 BalanceCard(
                     title = "Muszą Ci oddać",
-                    amount = "+${"%.2f".format(summary.userBalance)} ${summary.currency}",
-                    containerColor = Color(0xFFE8F5E9),
-                    contentColor = Color(0xFF2E7D32),
-                    modifier = Modifier.weight(1f)
+                    amount =
+                        "+${"%.2f".format(incomingAmount)} ${summary.currency}",
+                    containerColor =
+                        Color(0xFFE8F5E9),
+                    contentColor =
+                        Color(0xFF2E7D32),
+                    modifier =
+                        Modifier.weight(1f)
                 )
+
                 BalanceCard(
                     title = "Musisz oddać",
-                    amount = "-0.00 ${summary.currency}",
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.weight(1f)
+                    amount =
+                        "-${"%.2f".format(outgoingAmount)} ${summary.currency}",
+                    containerColor =
+                        MaterialTheme.colorScheme.errorContainer,
+                    contentColor =
+                        MaterialTheme.colorScheme.onErrorContainer,
+                    modifier =
+                        Modifier.weight(1f)
                 )
             }
         }
 
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Wydatki w tym miesiącu",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            )
-            Spacer(modifier = Modifier.height(12.dp))
             TotalExpensesCard(summary)
         }
 
-        if (summary.pendingSettlements.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Oczekujące spłaty",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                )
-            }
+        items(summary.pendingSettlements) {
+                settlement ->
 
-            items(summary.pendingSettlements) { settlement ->
-                SettlementItem(settlement, onSettleClick = { viewModel.settle(settlement.id) })
-            }
+            SettlementItem(
+                settlement = settlement,
+                currentUserId = currentUserId
+            )
         }
     }
 }
-
 @Composable
 fun BalanceCard(
     title: String,
@@ -227,7 +258,7 @@ fun TotalExpensesCard(summary: ExpensesSummaryDto) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-
+/*
             summary.categoryBreakdown.forEach { (category, amount) ->
                 CategoryProgressRow(
                     category = category,
@@ -236,7 +267,7 @@ fun TotalExpensesCard(summary: ExpensesSummaryDto) {
                     currency = summary.currency
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-            }
+            }*/
         }
     }
 }
@@ -273,70 +304,104 @@ fun CategoryProgressRow(category: String, amount: Double, total: Double, currenc
     }
 }
 
-@Composable
-fun SettlementItem(settlement: SettlementDto, onSettleClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+    @Composable
+    fun SettlementItem(
+        settlement: SettlementDto,
+        currentUserId: String
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+
+        val isIncoming =
+            settlement.toUserId ==
+                    currentUserId
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme.colorScheme.surface
+            ),
+            elevation =
+                CardDefaults.cardElevation(
+                    defaultElevation = 2.dp
+                ),
+            modifier =
+                Modifier.fillMaxWidth()
         ) {
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(44.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = settlement.fromUserName.take(2).uppercase(),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
 
-            Column(
+            Row(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .weight(1f)
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (settlement.isIncoming) "Otrzymujesz od ${settlement.fromUserName}" else "Oddajesz ${settlement.toUserName}",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = settlement.tripName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${if (settlement.isIncoming) "+" else "-"}${"%.2f".format(settlement.amount)} ${settlement.currency}",
-                    color = if (settlement.isIncoming) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                )
-                if (!settlement.isIncoming) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Button(
-                        onClick = onSettleClick,
-                        modifier = Modifier.height(32.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(8.dp)
+                Surface(
+                    shape =
+                        RoundedCornerShape(50),
+                    color =
+                        MaterialTheme.colorScheme.secondaryContainer,
+                    modifier =
+                        Modifier.size(44.dp)
+                ) {
+
+                    Box(
+                        contentAlignment =
+                            Alignment.Center
                     ) {
-                        Text("Spłać", style = MaterialTheme.typography.labelSmall)
+
+                        Text(
+                            text =
+                                settlement
+                                    .fromUserName
+                                    .take(2)
+                                    .uppercase(),
+
+                            style =
+                                MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight =
+                                        FontWeight.Bold
+                                ),
+
+                            color =
+                                MaterialTheme.colorScheme
+                                    .onSecondaryContainer
+                        )
                     }
+                }
+
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 16.dp)
+                            .weight(1f)
+                ) {
+
+                    Text(
+                        text =
+                            if (isIncoming)
+                                "Otrzymujesz od ${settlement.fromUserName}"
+                            else
+                                "Oddajesz ${settlement.toUserName}",
+
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight =
+                                    FontWeight.SemiBold
+                            )
+                    )
+
+                    Text(
+                        text =
+                            "${"%.2f".format(settlement.amount)}",
+
+                        color =
+                            if (isIncoming)
+                                Color(0xFF2E7D32)
+                            else
+                                MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
     }
-}
